@@ -72,3 +72,51 @@
   position: absolute;
   inset: 0;
 }
+.route-status {
+  padding: 12px;
+  background: #f3f4f6;
+  border-radius: 8px;
+}
+
+.route-point {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.route-point strong {
+  font-size: 14px;
+}
+
+.route-point span {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.route-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.route-summary div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px;
+  background: #f3f4f6;
+  border-radius: 8px;
+}
+
+.route-summary span {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.route-summary strong {
+  font-size: 16px;
+}
