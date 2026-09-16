@@ -15,46 +15,38 @@ export type RouteStyle =
   | 'relax'
 
 export type TripRoadPreferences = {
-  pavedOnly: boolean
   avoidUnpaved: boolean
   avoidMotorways: boolean
   avoidTolls: boolean
-  avoidDifficultRoads: boolean
+  avoidNarrowRoads: boolean
+  avoidUrbanAreas: boolean
+  allowFerries: boolean
 }
 
 export type TripSettings = {
   durationMode: TripDurationMode
-
   shape: TripShape
-
   departureDate: string
   departureTime: string
-
   plannedDays: number | null
-
   routeStyle: RouteStyle
-
   roadPreferences: TripRoadPreferences
 }
 
 export const defaultTripSettings: TripSettings = {
   durationMode: 'single-day',
-
   shape: 'one-way',
-
   departureDate: '',
   departureTime: '',
-
   plannedDays: null,
-
   routeStyle: 'fast',
-
   roadPreferences: {
-    pavedOnly: true,
     avoidUnpaved: true,
     avoidMotorways: false,
     avoidTolls: false,
-    avoidDifficultRoads: true,
+    avoidNarrowRoads: false,
+    avoidUrbanAreas: true,
+    allowFerries: true,
   },
 }
 
