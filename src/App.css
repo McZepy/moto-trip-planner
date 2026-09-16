@@ -1431,3 +1431,591 @@ input {
   font-weight: 700;
   line-height: 1.4;
 }
+/* ITINERARIO COMPATTO */
+
+.endpoint-card,
+.waypoint-card {
+  margin-top: 7px;
+  padding: 8px 10px;
+
+  border-radius: 9px;
+}
+
+.endpoint-title {
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.endpoint-title strong {
+  font-size: 12px;
+}
+
+.endpoint-badge,
+.waypoint-number {
+  width: 24px;
+  height: 24px;
+
+  flex-basis: 24px;
+
+  font-size: 11px;
+}
+
+
+/* CAMPI PARTENZA / DESTINAZIONE */
+
+.endpoint-card .search-field {
+  margin-top: 3px;
+}
+
+.endpoint-card .search-controls {
+  gap: 6px;
+}
+
+.endpoint-card
+  .search-controls input {
+  height: 34px;
+
+  padding: 5px 9px;
+
+  font-size: 12px;
+}
+
+.endpoint-card
+  .search-button {
+  height: 34px;
+
+  padding: 0 12px;
+
+  font-size: 11px;
+}
+
+
+/* PULSANTE AGGIUNGI TAPPA */
+
+.insert-waypoint-row {
+  margin: 4px 0;
+}
+
+.insert-waypoint-row button {
+  padding: 3px 9px;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+
+/* TAPPA INTERMEDIA */
+
+.waypoint-card-main {
+  align-items: center;
+
+  gap: 7px;
+}
+
+.waypoint-info {
+  gap: 0;
+}
+
+.waypoint-info strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+/* Nascondiamo l'indirizzo lungo.
+   Rimane disponibile nei dati della tappa. */
+
+.waypoint-info small {
+  display: none;
+}
+
+
+/* CONTROLLI TAPPA */
+
+.waypoint-card-controls {
+  grid-template-columns:
+    minmax(0, 1fr)
+    30px
+    30px
+    30px;
+
+  gap: 4px;
+
+  margin-top: 6px;
+}
+
+.waypoint-card-controls select {
+  height: 30px;
+
+  padding: 0 6px;
+
+  font-size: 10px;
+}
+
+.waypoint-card-controls button {
+  height: 30px;
+
+  font-size: 11px;
+}
+
+
+/* EDITOR NUOVA TAPPA */
+
+.waypoint-editor {
+  margin-top: 5px;
+
+  padding: 8px;
+}
+
+.waypoint-editor-title {
+  margin-bottom: 5px;
+
+  font-size: 11px;
+}
+
+
+/* MESSAGGIO STATO */
+
+.route-status {
+  margin-top: 8px !important;
+  margin-bottom: 6px !important;
+
+  padding: 8px 10px !important;
+
+  font-size: 11px !important;
+}
+/* =========================================
+   ITINERARIO COMPATTO V0.3
+   ========================================= */
+
+   .compact-itinerary {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .compact-stop-row {
+    position: relative;
+  
+    min-height: 44px;
+  
+    display: grid;
+  
+    grid-template-columns:
+      28px
+      minmax(0, 1fr)
+      auto;
+  
+    align-items: center;
+  
+    gap: 7px;
+  
+    padding: 6px 8px;
+  
+    border: 1px solid #e2e5e9;
+    border-radius: 9px;
+  
+    background: #ffffff;
+  }
+  
+  .compact-stop-row.awaiting-road-point {
+    border-color: #0891b2;
+  
+    box-shadow:
+      inset 3px 0 0 #0891b2;
+  }
+  
+  
+  /* NUMERO TAPPA */
+  
+  .compact-index,
+  .compact-endpoint-badge {
+    width: 26px;
+    height: 26px;
+  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  
+    flex: 0 0 26px;
+  
+    border-radius: 50%;
+  
+    color: #ffffff;
+  
+    font-size: 11px;
+    font-weight: 800;
+  }
+  
+  .compact-index {
+    background: #2563eb;
+  }
+  
+  .start-badge {
+    background: #10b981;
+  }
+  
+  .destination-badge {
+    background: #e11d48;
+  }
+  
+  
+  /* NOME LOCALITA */
+  
+  .compact-place-name {
+    min-width: 0;
+  
+    overflow: hidden;
+  
+    color: #111827;
+  
+    font-size: 12px;
+    font-weight: 700;
+  
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  
+  /* RETTANGOLO TIPO TAPPA */
+  
+  .compact-role-wrap {
+    position: relative;
+  }
+  
+  .compact-role-button {
+    min-width: 82px;
+    height: 30px;
+  
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  
+    gap: 6px;
+  
+    padding: 0 8px;
+  
+    border-radius: 7px;
+  
+    font-size: 10px;
+    font-weight: 700;
+  
+    cursor: pointer;
+  
+    white-space: nowrap;
+  }
+  
+  .compact-role-button span {
+    font-size: 9px;
+  }
+  
+  
+  /* PARTENZA */
+  
+  .compact-role-button.role-start {
+    border: 1px solid #10b981;
+  
+    background: #ecfdf5;
+    color: #047857;
+  }
+  
+  
+  /* ARRIVO */
+  
+  .compact-role-button.role-destination {
+    border: 1px solid #e11d48;
+  
+    background: #fff1f2;
+    color: #be123c;
+  }
+  
+  
+  /* SOSTA */
+  
+  .compact-role-button.role-stop {
+    border: 1px solid #2563eb;
+  
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+  
+  
+  /* PASSAGGIO */
+  
+  .compact-role-button.role-pass {
+    border: 1px solid #f59e0b;
+  
+    background: #fffbeb;
+    color: #b45309;
+  }
+  
+  
+  /* PUNTO STRADA */
+  
+  .compact-role-button.role-road {
+    border: 1px solid #0891b2;
+  
+    background: #ecfeff;
+    color: #0e7490;
+  }
+  
+  
+  /* MENU A TENDINA */
+  
+  .compact-menu {
+    position: absolute;
+  
+    z-index: 200;
+  
+    top: calc(100% + 5px);
+    right: 0;
+  
+    width: 175px;
+  
+    padding: 5px;
+  
+    border: 1px solid #d1d5db;
+    border-radius: 9px;
+  
+    background: #ffffff;
+  
+    box-shadow:
+      0 8px 25px
+      rgba(0, 0, 0, 0.18);
+  }
+  
+  .compact-menu button {
+    width: 100%;
+    min-height: 31px;
+  
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  
+    padding: 5px 8px;
+  
+    border: 0;
+    border-radius: 6px;
+  
+    background: transparent;
+    color: #1f2937;
+  
+    font-size: 11px;
+    text-align: left;
+  
+    cursor: pointer;
+  }
+  
+  .compact-menu button:hover:not(:disabled) {
+    background: #f3f4f6;
+  }
+  
+  .compact-menu button:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  
+  .compact-menu button strong {
+    color: #2563eb;
+  }
+  
+  .compact-menu-separator {
+    height: 1px;
+  
+    margin: 4px 2px;
+  
+    background: #e5e7eb;
+  }
+  
+  .compact-menu
+    .compact-delete-action {
+    color: #dc2626;
+  }
+  
+  
+  /* INSERISCI TAPPA */
+  
+  .insert-waypoint-row {
+    margin: 3px 0;
+  }
+  
+  .insert-waypoint-row button {
+    padding: 3px 9px;
+  
+    font-size: 9px;
+  }
+  
+  
+  /* EDIT PARTENZA / ARRIVO */
+  
+  .endpoint-edit-card {
+    padding: 8px;
+  
+    border: 1px solid #e2e5e9;
+    border-radius: 9px;
+  
+    background: #ffffff;
+  }
+  
+  .endpoint-edit-title {
+    display: flex;
+    align-items: center;
+  
+    gap: 7px;
+  
+    margin-bottom: 6px;
+  }
+  
+  .endpoint-edit-title strong {
+    font-size: 12px;
+  }
+  
+  .endpoint-edit-card
+    .search-controls input {
+    height: 34px;
+  
+    font-size: 12px;
+  }
+  
+  .endpoint-edit-card
+    .search-button {
+    height: 34px;
+  
+    padding: 0 12px;
+  
+    font-size: 11px;
+  }
+  
+  
+  /* EDIT TAPPA */
+  
+  .waypoint-editor {
+    margin: 5px 0;
+  
+    padding: 8px;
+  
+    border-radius: 9px;
+  }
+  
+  .waypoint-editor-title {
+    margin-bottom: 5px;
+  }
+  
+  
+  /* PUNTO STRADA IN ATTESA */
+  
+  .compact-road-hint {
+    grid-column:
+      2 / 4;
+  
+    padding: 4px 7px;
+  
+    border-radius: 5px;
+  
+    background: #ecfeff;
+    color: #0e7490;
+  
+    font-size: 10px;
+    font-weight: 700;
+  }
+  
+  
+  /* STATO PERCORSO */
+  
+  .route-status {
+    margin-top: 8px !important;
+    margin-bottom: 0 !important;
+  
+    padding: 7px 9px !important;
+  
+    font-size: 10px !important;
+  }
+  /* MARKER MAPPA NUMERATI */
+
+.route-map-marker {
+  width: 27px;
+  height: 27px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+
+  color: #ffffff;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  box-shadow:
+    0 2px 7px
+    rgba(0, 0, 0, 0.35);
+}
+
+.route-map-marker--start {
+  background: #10b981;
+}
+
+.route-map-marker--waypoint {
+  background: #2563eb;
+}
+
+.route-map-marker--destination {
+  background: #e11d48;
+}
+
+
+/* ITINERARIO ANCORA PIU COMPATTO */
+
+.compact-stop-row {
+  min-height: 36px;
+
+  grid-template-columns:
+    23px
+    minmax(0, 1fr)
+    auto;
+
+  gap: 6px;
+
+  padding: 3px 6px;
+}
+
+.compact-index,
+.compact-endpoint-badge {
+  width: 22px;
+  height: 22px;
+
+  flex: 0 0 22px;
+
+  font-size: 9px;
+}
+
+.compact-place-name {
+  font-size: 11px;
+}
+
+.compact-role-button {
+  min-width: 76px;
+  height: 26px;
+
+  padding: 0 7px;
+
+  font-size: 9px;
+}
+
+.insert-waypoint-row {
+  margin: 1px 0;
+}
+
+.insert-waypoint-row button {
+  padding: 2px 8px;
+
+  font-size: 8px;
+}
+
+.route-status {
+  margin-top: 5px !important;
+
+  padding: 5px 8px !important;
+
+  font-size: 9px !important;
+}

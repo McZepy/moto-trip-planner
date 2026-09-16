@@ -70,8 +70,9 @@ type EditingWaypoint = {
 
 type PendingAreaSelection = {
   result: GeocodingResult
-  insertIndex: number
   waypointId: string
+  insertIndex: number | null
+  replaceIndex: number | null
 }
 
 function createId() {
@@ -119,6 +120,52 @@ function waypointToRoutePoint(
     lat: waypoint.lat,
     lng: waypoint.lng,
   }
+}
+
+function waypointRoleLabel(
+  type: WaypointType,
+) {
+  if (type === 'zone-pass') {
+    return 'Passaggio'
+  }
+
+  if (type === 'road-point') {
+    return 'Punto strada'
+  }
+
+  return 'Sosta'
+}
+
+function waypointRoleClass(
+  type: WaypointType,
+) {
+  if (type === 'zone-pass') {
+    return 'role-pass'
+  }
+
+  if (type === 'road-point') {
+    return 'role-road'
+  }
+
+  return 'role-stop'
+}
+function createMapMarkerElement(
+  label: string,
+  type:
+    | 'start'
+    | 'waypoint'
+    | 'destination',
+) {
+  const element =
+    document.createElement('div')
+
+  element.className =
+    `route-map-marker route-map-marker--${type}`
+
+  element.textContent =
+    label
+
+  return element
 }
 
 type SearchFieldProps = {
@@ -360,6 +407,18 @@ function App() {
     >(null)
 
   const [
+    editingStart,
+    setEditingStart,
+  ] =
+    useState(true)
+
+  const [
+    editingDestination,
+    setEditingDestination,
+  ] =
+    useState(true)
+
+  const [
     waypoints,
     setWaypoints,
   ] =
@@ -384,6 +443,14 @@ function App() {
     )
 
   const [
+    editingExistingWaypointIndex,
+    setEditingExistingWaypointIndex,
+  ] =
+    useState<number | null>(
+      null,
+    )
+
+  const [
     pendingAreaSelection,
     setPendingAreaSelection,
   ] =
@@ -394,6 +461,14 @@ function App() {
   const [
     pendingRoadPointWaypointId,
     setPendingRoadPointWaypointId,
+  ] =
+    useState<string | null>(
+      null,
+    )
+
+  const [
+    openMenuKey,
+    setOpenMenuKey,
   ] =
     useState<string | null>(
       null,
@@ -423,6 +498,64 @@ function App() {
       'Inserisci partenza e destinazione.',
     )
 
+    useEffect(() => {
+      if (!openMenuKey) {
+        return
+      }
+    
+      const handleMouseDown =
+        (event: MouseEvent) => {
+          const target =
+            event.target
+    
+          if (
+            !(target instanceof HTMLElement)
+          ) {
+            setOpenMenuKey(null)
+            return
+          }
+    
+          if (
+            !target.closest(
+              '.compact-role-wrap',
+            )
+          ) {
+            setOpenMenuKey(null)
+          }
+        }
+    
+      const handleKeyDown =
+        (event: KeyboardEvent) => {
+          if (
+            event.key === 'Escape'
+          ) {
+            setOpenMenuKey(null)
+          }
+        }
+    
+      document.addEventListener(
+        'mousedown',
+        handleMouseDown,
+      )
+    
+      document.addEventListener(
+        'keydown',
+        handleKeyDown,
+      )
+    
+      return () => {
+        document.removeEventListener(
+          'mousedown',
+          handleMouseDown,
+        )
+    
+        document.removeEventListener(
+          'keydown',
+          handleKeyDown,
+        )
+      }
+    }, [openMenuKey])
+    
   useEffect(() => {
     if (
       !mapContainerRef.current
@@ -512,47 +645,32 @@ function App() {
         .clear()
     }
 
-  const syncWaypointMarkers =
+    const syncWaypointMarkers =
     (
       items:
         Waypoint[],
     ) => {
       const map =
         mapRef.current
-
+  
       if (!map) {
         return
       }
-
+  
       removeWaypointMarkers()
-
+  
       items.forEach(
         (
           waypoint,
           index,
         ) => {
-          let color =
-            '#7c3aed'
-
-          if (
-            waypoint.type ===
-            'zone-pass'
-          ) {
-            color =
-              '#f59e0b'
-          }
-
-          if (
-            waypoint.type ===
-            'road-point'
-          ) {
-            color =
-              '#0891b2'
-          }
-
           const marker =
             new Marker({
-              color,
+              element:
+                createMapMarkerElement(
+                  String(index + 1),
+                  'waypoint',
+                ),
             })
               .setLngLat([
                 waypoint.lng,
@@ -564,7 +682,7 @@ function App() {
                 ),
               )
               .addTo(map)
-
+  
           waypointMarkersRef
             .current
             .set(
@@ -581,6 +699,21 @@ function App() {
 
       setDistance(null)
       setDuration(null)
+    }
+
+  const closeWaypointEditor =
+    () => {
+      setEditingWaypoint(
+        null,
+      )
+
+      setEditingInsertIndex(
+        null,
+      )
+
+      setEditingExistingWaypointIndex(
+        null,
+      )
     }
 
   const resetTrip =
@@ -619,21 +752,22 @@ function App() {
       setStartPlace(null)
       setDestinationPlace(null)
 
+      setEditingStart(true)
+      setEditingDestination(true)
+
       setWaypoints([])
 
-      setEditingWaypoint(
-        null,
-      )
-
-      setEditingInsertIndex(
-        null,
-      )
+      closeWaypointEditor()
 
       setPendingAreaSelection(
         null,
       )
 
       setPendingRoadPointWaypointId(
+        null,
+      )
+
+      setOpenMenuKey(
         null,
       )
 
@@ -767,22 +901,30 @@ function App() {
         trip.destinationPlace,
       )
 
-      setWaypoints(
-        trip.waypoints ?? [],
-      )
-
       setStartQuery(
         trip.startPlace
-          ?.label ?? '',
+          ?.name ?? '',
       )
 
       setDestinationQuery(
         trip.destinationPlace
-          ?.label ?? '',
+          ?.name ?? '',
+      )
+
+      setEditingStart(
+        !trip.startPlace,
+      )
+
+      setEditingDestination(
+        !trip.destinationPlace,
       )
 
       setStartResults([])
       setDestinationResults([])
+
+      setWaypoints(
+        trip.waypoints ?? [],
+      )
 
       setDistance(
         trip.distance,
@@ -790,6 +932,12 @@ function App() {
 
       setDuration(
         trip.duration,
+      )
+
+      closeWaypointEditor()
+
+      setOpenMenuKey(
+        null,
       )
 
       setPendingRoadPointWaypointId(
@@ -801,10 +949,13 @@ function App() {
         trip.startPlace
       ) {
         startMarkerRef.current =
-          new Marker({
-            color:
-              '#16a34a',
-          })
+        new Marker({
+          element:
+            createMapMarkerElement(
+              'A',
+              'start',
+            ),
+        })
             .setLngLat([
               trip.startPlace.lng,
               trip.startPlace.lat,
@@ -817,10 +968,13 @@ function App() {
         trip.destinationPlace
       ) {
         destinationMarkerRef.current =
-          new Marker({
-            color:
-              '#dc2626',
-          })
+        new Marker({
+          element:
+            createMapMarkerElement(
+              'B',
+              'destination',
+            ),
+        })
             .setLngLat([
               trip.destinationPlace.lng,
               trip.destinationPlace.lat,
@@ -922,7 +1076,7 @@ function App() {
 
         setStatus(
           results.length
-            ? `${results.length} risultati trovati. Scegli la partenza corretta.`
+            ? `${results.length} risultati trovati.`
             : `Nessun risultato trovato per "${query}".`,
         )
       } catch (error) {
@@ -978,7 +1132,7 @@ function App() {
 
         setStatus(
           results.length
-            ? `${results.length} risultati trovati. Scegli la destinazione corretta.`
+            ? `${results.length} risultati trovati.`
             : `Nessun risultato trovato per "${query}".`,
         )
       } catch (error) {
@@ -1048,7 +1202,7 @@ function App() {
 
         setStatus(
           results.length
-            ? `${results.length} risultati trovati. Scegli la tappa corretta.`
+            ? `${results.length} risultati trovati.`
             : `Nessun risultato trovato per "${query}".`,
         )
       } catch (error) {
@@ -1090,10 +1244,18 @@ function App() {
       )
 
       setStartQuery(
-        result.label,
+        result.name,
       )
 
       setStartResults([])
+
+      setEditingStart(
+        false,
+      )
+
+      setOpenMenuKey(
+        null,
+      )
 
       startMarkerRef
         .current
@@ -1102,9 +1264,12 @@ function App() {
       if (map) {
         startMarkerRef.current =
           new Marker({
-            color:
-              '#16a34a',
-          })
+          element:
+            createMapMarkerElement(
+              'A',
+              'start',
+            ),
+        })
             .setLngLat([
               result.lng,
               result.lat,
@@ -1132,11 +1297,19 @@ function App() {
       )
 
       setDestinationQuery(
-        result.label,
+        result.name,
       )
 
       setDestinationResults(
         [],
+      )
+
+      setEditingDestination(
+        false,
+      )
+
+      setOpenMenuKey(
+        null,
       )
 
       destinationMarkerRef
@@ -1166,6 +1339,10 @@ function App() {
       index:
         number,
     ) => {
+      setEditingExistingWaypointIndex(
+        null,
+      )
+
       setEditingInsertIndex(
         index,
       )
@@ -1183,35 +1360,92 @@ function App() {
         loading:
           false,
       })
+
+      setOpenMenuKey(
+        null,
+      )
     }
 
-  const cancelInsertWaypoint =
-    () => {
+  const startEditWaypoint =
+    (
+      index:
+        number,
+    ) => {
+      const waypoint =
+        waypoints[index]
+
+      if (!waypoint) {
+        return
+      }
+
       setEditingInsertIndex(
         null,
       )
 
-      setEditingWaypoint(
+      setEditingExistingWaypointIndex(
+        index,
+      )
+
+      setEditingWaypoint({
+        id:
+          waypoint.id,
+
+        query:
+          waypoint.name,
+
+        results:
+          [],
+
+        loading:
+          false,
+      })
+
+      setOpenMenuKey(
         null,
       )
     }
 
-  const insertWaypoint =
+  const applyWaypoint =
     (
       waypoint:
         Waypoint,
 
-      index:
-        number,
+      insertIndex:
+        number | null,
+
+      replaceIndex:
+        number | null,
     ) => {
-      const updated =
+      let updated =
         [...waypoints]
 
-      updated.splice(
-        index,
-        0,
-        waypoint,
-      )
+      if (
+        replaceIndex !==
+        null
+      ) {
+        updated =
+          updated.map(
+            (
+              item,
+              index,
+            ) =>
+              index ===
+              replaceIndex
+                ? waypoint
+                : item,
+          )
+      } else if (
+        insertIndex !==
+        null
+      ) {
+        updated.splice(
+          insertIndex,
+          0,
+          waypoint,
+        )
+      } else {
+        return
+      }
 
       setWaypoints(
         updated,
@@ -1221,13 +1455,7 @@ function App() {
         updated,
       )
 
-      setEditingInsertIndex(
-        null,
-      )
-
-      setEditingWaypoint(
-        null,
-      )
+      closeWaypointEditor()
 
       clearRouteData()
     }
@@ -1238,9 +1466,22 @@ function App() {
         GeocodingResult,
     ) => {
       if (
-        editingInsertIndex ===
-        null ||
         !editingWaypoint
+      ) {
+        return
+      }
+
+      const insertIndex =
+        editingInsertIndex
+
+      const replaceIndex =
+        editingExistingWaypointIndex
+
+      if (
+        insertIndex ===
+          null &&
+        replaceIndex ===
+          null
       ) {
         return
       }
@@ -1253,11 +1494,12 @@ function App() {
         setPendingAreaSelection({
           result,
 
-          insertIndex:
-            editingInsertIndex,
-
           waypointId:
             editingWaypoint.id,
+
+          insertIndex,
+
+          replaceIndex,
         })
 
         return
@@ -1299,13 +1541,14 @@ function App() {
             result.boundingBox,
         }
 
-      insertWaypoint(
+      applyWaypoint(
         waypoint,
-        editingInsertIndex,
+        insertIndex,
+        replaceIndex,
       )
 
       setStatus(
-        `Sosta precisa "${waypoint.name}" inserita.`,
+        `Sosta "${waypoint.name}" impostata.`,
       )
     }
 
@@ -1319,8 +1562,9 @@ function App() {
 
       const {
         result,
-        insertIndex,
         waypointId,
+        insertIndex,
+        replaceIndex,
       } =
         pendingAreaSelection
 
@@ -1374,9 +1618,10 @@ function App() {
             result.boundingBox,
         }
 
-      insertWaypoint(
+      applyWaypoint(
         waypoint,
         insertIndex,
+        replaceIndex,
       )
 
       setPendingAreaSelection(
@@ -1384,7 +1629,7 @@ function App() {
       )
 
       setStatus(
-        `"${waypoint.name}" inserito come Passaggio zona.`,
+        `"${result.name}" impostato come Passaggio.`,
       )
     }
 
@@ -1398,8 +1643,9 @@ function App() {
 
       const {
         result,
-        insertIndex,
         waypointId,
+        insertIndex,
+        replaceIndex,
       } =
         pendingAreaSelection
 
@@ -1412,7 +1658,7 @@ function App() {
             'precise-stop',
 
           name:
-            `${result.name} - centro`,
+            result.name,
 
           label:
             result.label,
@@ -1439,9 +1685,10 @@ function App() {
             result.boundingBox,
         }
 
-      insertWaypoint(
+      applyWaypoint(
         waypoint,
         insertIndex,
+        replaceIndex,
       )
 
       setPendingAreaSelection(
@@ -1449,7 +1696,7 @@ function App() {
       )
 
       setStatus(
-        `Centro di "${result.name}" inserito come Sosta precisa.`,
+        `Centro di "${result.name}" impostato come Sosta.`,
       )
     }
 
@@ -1486,6 +1733,10 @@ function App() {
 
       syncWaypointMarkers(
         updated,
+      )
+
+      setOpenMenuKey(
+        null,
       )
 
       clearRouteData()
@@ -1536,6 +1787,10 @@ function App() {
         updated,
       )
 
+      setOpenMenuKey(
+        null,
+      )
+
       clearRouteData()
     }
 
@@ -1556,11 +1811,15 @@ function App() {
 
       if (
         type ===
-        'zone-pass' &&
+          'zone-pass' &&
         !waypoint.boundingBox
       ) {
         setStatus(
           'Questa tappa non dispone di un’area geografica utilizzabile come Passaggio zona.',
+        )
+
+        setOpenMenuKey(
+          null,
         )
 
         return
@@ -1583,6 +1842,10 @@ function App() {
 
       setWaypoints(
         updated,
+      )
+
+      setOpenMenuKey(
+        null,
       )
 
       if (
@@ -1625,16 +1888,11 @@ function App() {
         'zone-pass'
       ) {
         setStatus(
-          `"${waypoint.name}" impostato come Passaggio zona.`,
+          `"${waypoint.name}" impostato come Passaggio.`,
         )
-      }
-
-      if (
-        type ===
-        'precise-stop'
-      ) {
+      } else {
         setStatus(
-          `"${waypoint.name}" impostato come Sosta precisa.`,
+          `"${waypoint.name}" impostato come Sosta.`,
         )
       }
     }
@@ -1786,7 +2044,7 @@ function App() {
           )
 
           setStatus(
-            'Punto strada impostato sulla strada più adatta.',
+            'Punto strada impostato.',
           )
         } catch (error) {
           console.error(
@@ -1922,13 +2180,6 @@ function App() {
 
                   nextReference,
                 )
-
-              /*
-               * null significa che il percorso
-               * migliore attraversa già la zona.
-               * Non aggiungiamo quindi alcun
-               * punto artificiale.
-               */
 
               if (resolved) {
                 points.push(
@@ -2113,21 +2364,18 @@ function App() {
     ) => {
       const isEditing =
         editingInsertIndex ===
-        index
-
-      if (
-        isEditing &&
+          index &&
         editingWaypoint
-      ) {
+
+      if (isEditing) {
         return (
           <div className="waypoint-editor">
             <div className="waypoint-editor-title">
-              Nuova tappa intermedia
+              Nuova tappa
             </div>
 
             <SearchField
-              label="Località / indirizzo / POI"
-              placeholder="Es. Lecco, Passo dello Stelvio..."
+              placeholder="Località, indirizzo o POI"
               value={
                 editingWaypoint.query
               }
@@ -2162,7 +2410,7 @@ function App() {
               type="button"
               className="cancel-waypoint"
               onClick={
-                cancelInsertWaypoint
+                closeWaypointEditor
               }
             >
               Annulla
@@ -2181,23 +2429,267 @@ function App() {
               )
             }
           >
-            + Inserisci tappa intermedia qui
+            + Inserisci tappa qui
           </button>
         </div>
       )
     }
 
-  const renderItinerary =
-    () => (
-      <>
-        <section className="sidebar-section">
-          <h2>
-            Itinerario & Tappe
-          </h2>
+  const renderWaypoint =
+    (
+      waypoint:
+        Waypoint,
 
-          <div className="endpoint-card start-endpoint">
-            <div className="endpoint-title">
-              <span className="endpoint-badge">
+      index:
+        number,
+    ) => {
+      if (
+        editingExistingWaypointIndex ===
+          index &&
+        editingWaypoint
+      ) {
+        return (
+          <div className="waypoint-editor">
+            <div className="waypoint-editor-title">
+              Modifica tappa
+            </div>
+
+            <SearchField
+              placeholder="Località, indirizzo o POI"
+              value={
+                editingWaypoint.query
+              }
+              results={
+                editingWaypoint.results
+              }
+              loading={
+                editingWaypoint.loading
+              }
+              onChange={(
+                value,
+              ) =>
+                setEditingWaypoint({
+                  ...editingWaypoint,
+
+                  query:
+                    value,
+
+                  results:
+                    [],
+                })
+              }
+              onSearch={
+                searchIntermediate
+              }
+              onSelect={
+                selectIntermediateWaypoint
+              }
+            />
+
+            <button
+              type="button"
+              className="cancel-waypoint"
+              onClick={
+                closeWaypointEditor
+              }
+            >
+              Annulla
+            </button>
+          </div>
+        )
+      }
+
+      const menuKey =
+        `waypoint-${waypoint.id}`
+
+      return (
+        <div
+          className={
+            pendingRoadPointWaypointId ===
+            waypoint.id
+              ? 'compact-stop-row awaiting-road-point'
+              : 'compact-stop-row'
+          }
+        >
+          <span className="compact-index">
+            {index + 1}
+          </span>
+
+          <span className="compact-place-name">
+            {waypoint.name}
+          </span>
+
+          <div className="compact-role-wrap">
+            <button
+              type="button"
+              className={`compact-role-button ${waypointRoleClass(
+                waypoint.type,
+              )}`}
+              onClick={() =>
+                setOpenMenuKey(
+                  openMenuKey ===
+                    menuKey
+                    ? null
+                    : menuKey,
+                )
+              }
+            >
+              {waypointRoleLabel(
+                waypoint.type,
+              )}
+              <span>
+                ▾
+              </span>
+            </button>
+
+            {openMenuKey ===
+              menuKey && (
+              <div className="compact-menu">
+                <button
+                  type="button"
+                  onClick={() =>
+                    changeWaypointType(
+                      index,
+                      'precise-stop',
+                    )
+                  }
+                >
+                  <span>
+                    Sosta
+                  </span>
+
+                  {waypoint.type ===
+                    'precise-stop' && (
+                    <strong>
+                      ✓
+                    </strong>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    changeWaypointType(
+                      index,
+                      'zone-pass',
+                    )
+                  }
+                >
+                  <span>
+                    Passaggio
+                  </span>
+
+                  {waypoint.type ===
+                    'zone-pass' && (
+                    <strong>
+                      ✓
+                    </strong>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    changeWaypointType(
+                      index,
+                      'road-point',
+                    )
+                  }
+                >
+                  <span>
+                    Punto strada
+                  </span>
+
+                  {waypoint.type ===
+                    'road-point' && (
+                    <strong>
+                      ✓
+                    </strong>
+                  )}
+                </button>
+
+                <div className="compact-menu-separator" />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    startEditWaypoint(
+                      index,
+                    )
+                  }
+                >
+                  Modifica località
+                </button>
+
+                <button
+                  type="button"
+                  disabled={
+                    index === 0
+                  }
+                  onClick={() =>
+                    moveWaypoint(
+                      index,
+                      -1,
+                    )
+                  }
+                >
+                  Sposta prima
+                </button>
+
+                <button
+                  type="button"
+                  disabled={
+                    index ===
+                    waypoints.length -
+                      1
+                  }
+                  onClick={() =>
+                    moveWaypoint(
+                      index,
+                      1,
+                    )
+                  }
+                >
+                  Sposta dopo
+                </button>
+
+                <div className="compact-menu-separator" />
+
+                <button
+                  type="button"
+                  className="compact-delete-action"
+                  onClick={() =>
+                    removeWaypoint(
+                      index,
+                    )
+                  }
+                >
+                  Elimina tappa
+                </button>
+              </div>
+            )}
+          </div>
+
+          {pendingRoadPointWaypointId ===
+            waypoint.id && (
+            <div className="compact-road-hint">
+              Clicca sulla mappa
+            </div>
+          )}
+        </div>
+      )
+    }
+
+  const renderStart =
+    () => {
+      if (
+        !startPlace ||
+        editingStart
+      ) {
+        return (
+          <div className="endpoint-edit-card">
+            <div className="endpoint-edit-title">
+              <span className="compact-endpoint-badge start-badge">
                 A
               </span>
 
@@ -2207,7 +2699,7 @@ function App() {
             </div>
 
             <SearchField
-              placeholder="Es. Viganò, Lecco"
+              placeholder="Es. Viganò"
               value={
                 startQuery
               }
@@ -2227,23 +2719,6 @@ function App() {
                   value,
                 )
 
-                if (
-                  startPlace
-                ) {
-                  startMarkerRef
-                    .current
-                    ?.remove()
-
-                  startMarkerRef.current =
-                    null
-
-                  setStartPlace(
-                    null,
-                  )
-
-                  clearRouteData()
-                }
-
                 setStartResults(
                   [],
                 )
@@ -2252,153 +2727,113 @@ function App() {
                 selectStart
               }
             />
-          </div>
 
-          {renderAddButton(
-            0,
-          )}
+            {startPlace && (
+              <button
+                type="button"
+                className="cancel-waypoint"
+                onClick={() => {
+                  setStartQuery(
+                    startPlace.name,
+                  )
 
-          {waypoints.map(
-            (
-              waypoint,
-              index,
-            ) => (
-              <div
-                key={
-                  waypoint.id
-                }
+                  setStartResults(
+                    [],
+                  )
+
+                  setEditingStart(
+                    false,
+                  )
+                }}
               >
-                <div
-                  className={
-                    pendingRoadPointWaypointId ===
-                    waypoint.id
-                      ? 'waypoint-card awaiting-road-point'
-                      : 'waypoint-card'
-                  }
+                Annulla
+              </button>
+            )}
+          </div>
+        )
+      }
+
+      return (
+        <div className="compact-stop-row">
+          <span className="compact-endpoint-badge start-badge">
+            A
+          </span>
+
+          <span className="compact-place-name">
+            {startPlace.name}
+          </span>
+
+          <div className="compact-role-wrap">
+            <button
+              type="button"
+              className="compact-role-button role-start"
+              onClick={() =>
+                setOpenMenuKey(
+                  openMenuKey ===
+                    'start'
+                    ? null
+                    : 'start',
+                )
+              }
+            >
+              Partenza
+              <span>
+                ▾
+              </span>
+            </button>
+
+            {openMenuKey ===
+              'start' && (
+              <div className="compact-menu">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStartQuery(
+                      startPlace.name,
+                    )
+
+                    setStartResults(
+                      [],
+                    )
+
+                    setEditingStart(
+                      true,
+                    )
+
+                    setOpenMenuKey(
+                      null,
+                    )
+                  }}
                 >
-                  <div className="waypoint-card-main">
-                    <span className="waypoint-number">
-                      {index + 1}
-                    </span>
-
-                    <div className="waypoint-info">
-                      <strong>
-                        {waypoint.name}
-                      </strong>
-
-                      <small>
-                        {waypoint.label}
-                      </small>
-                    </div>
-                  </div>
-
-                  <div className="waypoint-card-controls">
-                    <select
-                      value={
-                        waypoint.type
-                      }
-                      onChange={(
-                        event,
-                      ) =>
-                        changeWaypointType(
-                          index,
-
-                          event
-                            .target
-                            .value as WaypointType,
-                        )
-                      }
-                    >
-                      <option value="precise-stop">
-                        Sosta precisa
-                      </option>
-
-                      <option value="zone-pass">
-                        Passaggio zona
-                      </option>
-
-                      <option value="road-point">
-                        Punto strada
-                      </option>
-                    </select>
-
-                    <button
-                      type="button"
-                      disabled={
-                        index ===
-                        0
-                      }
-                      onClick={() =>
-                        moveWaypoint(
-                          index,
-                          -1,
-                        )
-                      }
-                      title="Sposta prima"
-                    >
-                      ↑
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={
-                        index ===
-                        waypoints.length -
-                          1
-                      }
-                      onClick={() =>
-                        moveWaypoint(
-                          index,
-                          1,
-                        )
-                      }
-                      title="Sposta dopo"
-                    >
-                      ↓
-                    </button>
-
-                    <button
-                      type="button"
-                      className="waypoint-delete"
-                      onClick={() =>
-                        removeWaypoint(
-                          index,
-                        )
-                      }
-                      title="Elimina"
-                    >
-                      ×
-                    </button>
-                  </div>
-
-                  {pendingRoadPointWaypointId ===
-                    waypoint.id && (
-                    <div className="road-point-hint">
-                      Clicca sulla mappa per scegliere il Punto strada.
-                    </div>
-                  )}
-                </div>
-
-                {renderAddButton(
-                  index + 1,
-                )}
+                  Modifica località
+                </button>
               </div>
-            ),
-          )}
+            )}
+          </div>
+        </div>
+      )
+    }
 
-          <div className="endpoint-card destination-endpoint">
-            <div className="endpoint-title">
-              <span className="endpoint-badge">
+  const renderDestination =
+    () => {
+      if (
+        !destinationPlace ||
+        editingDestination
+      ) {
+        return (
+          <div className="endpoint-edit-card">
+            <div className="endpoint-edit-title">
+              <span className="compact-endpoint-badge destination-badge">
                 B
               </span>
 
               <strong>
-                Destinazione
+                Arrivo
               </strong>
             </div>
 
             <SearchField
-              placeholder="Es. Bolzano"
+              placeholder="Es. Lecco"
               value={
                 destinationQuery
               }
@@ -2418,23 +2853,6 @@ function App() {
                   value,
                 )
 
-                if (
-                  destinationPlace
-                ) {
-                  destinationMarkerRef
-                    .current
-                    ?.remove()
-
-                  destinationMarkerRef.current =
-                    null
-
-                  setDestinationPlace(
-                    null,
-                  )
-
-                  clearRouteData()
-                }
-
                 setDestinationResults(
                   [],
                 )
@@ -2443,56 +2861,136 @@ function App() {
                 selectDestination
               }
             />
+
+            {destinationPlace && (
+              <button
+                type="button"
+                className="cancel-waypoint"
+                onClick={() => {
+                  setDestinationQuery(
+                    destinationPlace.name,
+                  )
+
+                  setDestinationResults(
+                    [],
+                  )
+
+                  setEditingDestination(
+                    false,
+                  )
+                }}
+              >
+                Annulla
+              </button>
+            )}
           </div>
+        )
+      }
 
-          <p className="route-status">
-            {status}
-          </p>
+      return (
+        <div className="compact-stop-row">
+          <span className="compact-endpoint-badge destination-badge">
+            B
+          </span>
 
-          {distance !== null &&
-            duration !== null && (
-              <div className="route-summary">
-                <div>
-                  <span>
-                    Distanza
-                  </span>
+          <span className="compact-place-name">
+            {destinationPlace.name}
+          </span>
 
-                  <strong>
-                    {formatDistance(
-                      distance,
-                    )}
-                  </strong>
-                </div>
+          <div className="compact-role-wrap">
+            <button
+              type="button"
+              className="compact-role-button role-destination"
+              onClick={() =>
+                setOpenMenuKey(
+                  openMenuKey ===
+                    'destination'
+                    ? null
+                    : 'destination',
+                )
+              }
+            >
+              Arrivo
+              <span>
+                ▾
+              </span>
+            </button>
 
-                <div>
-                  <span>
-                    Guida stimata
-                  </span>
+            {openMenuKey ===
+              'destination' && (
+              <div className="compact-menu">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDestinationQuery(
+                      destinationPlace.name,
+                    )
 
-                  <strong>
-                    {formatDuration(
-                      duration,
-                    )}
-                  </strong>
-                </div>
+                    setDestinationResults(
+                      [],
+                    )
+
+                    setEditingDestination(
+                      true,
+                    )
+
+                    setOpenMenuKey(
+                      null,
+                    )
+                  }}
+                >
+                  Modifica località
+                </button>
               </div>
             )}
-        </section>
+          </div>
+        </div>
+      )
+    }
 
-        <section className="sidebar-section">
-          <h2>
-            Routing
-          </h2>
+  const renderItinerary =
+    () => (
+      <section className="sidebar-section">
+        <h2>
+          Itinerario & Tappe
+        </h2>
 
-          <p>
-            Provider prototipo: OSRM
-          </p>
+        <div className="compact-itinerary">
+          {renderStart()}
 
-          <p>
-            Profilo attuale: Veloce / driving
-          </p>
-        </section>
-      </>
+          {renderAddButton(
+            0,
+          )}
+
+          {waypoints.map(
+            (
+              waypoint,
+              index,
+            ) => (
+              <div
+                key={
+                  waypoint.id
+                }
+              >
+                {renderWaypoint(
+                  waypoint,
+                  index,
+                )}
+
+                {renderAddButton(
+                  index + 1,
+                )}
+              </div>
+            ),
+          )}
+
+          {renderDestination()}
+        </div>
+
+        <p className="route-status">
+          {status}
+        </p>
+      </section>
     )
 
   const renderSidebarContent =
@@ -2799,7 +3297,7 @@ function App() {
                 {' '}
                 {pendingAreaSelection.result.name}
               </strong>
-              , che rappresenta una località o un'area geografica.
+              .
             </p>
 
             <p>
@@ -2814,7 +3312,7 @@ function App() {
                   confirmAreaAsZone
                 }
               >
-                Passaggio zona
+                Passaggio
               </button>
 
               <button
@@ -2824,7 +3322,7 @@ function App() {
                   confirmAreaAsCenter
                 }
               >
-                Centro città
+                Sosta al centro
               </button>
 
               <button
