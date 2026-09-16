@@ -32,13 +32,18 @@ import {
 
 setWorkerUrl(workerUrl)
 
+type ActiveSection =
+  | 'itinerary'
+  | 'fuel'
+  | 'breaks'
+  | 'days'
+
 function formatDistance(meters: number) {
   return `${(meters / 1000).toFixed(1)} km`
 }
 
 function formatDuration(seconds: number) {
   const totalMinutes = Math.round(seconds / 60)
-
   const hours = Math.floor(totalMinutes / 60)
   const minutes = totalMinutes % 60
 
@@ -55,7 +60,6 @@ type SearchFieldProps = {
   value: string
   results: GeocodingResult[]
   loading: boolean
-
   onChange: (value: string) => void
   onSearch: () => void
   onSelect: (result: GeocodingResult) => void
@@ -147,6 +151,9 @@ function App() {
   const destinationMarkerRef =
     useRef<Marker | null>(null)
 
+  const [activeSection, setActiveSection] =
+    useState<ActiveSection>('itinerary')
+
   const [startQuery, setStartQuery] =
     useState('')
 
@@ -234,9 +241,41 @@ function App() {
 
   const clearRouteData = () => {
     removeRoute()
+    setDistance(null)
+    setDuration(null)
+  }
+
+  const resetTrip = () => {
+    startMarkerRef.current?.remove()
+    destinationMarkerRef.current?.remove()
+
+    startMarkerRef.current = null
+    destinationMarkerRef.current = null
+
+    removeRoute()
+
+    setStartQuery('')
+    setDestinationQuery('')
+
+    setStartResults([])
+    setDestinationResults([])
+
+    setStartPlace(null)
+    setDestinationPlace(null)
 
     setDistance(null)
     setDuration(null)
+
+    setStatus(
+      'Inserisci partenza e destinazione.',
+    )
+
+    setActiveSection('itinerary')
+
+    mapRef.current?.flyTo({
+      center: [12.5, 42.5],
+      zoom: 5.5,
+    })
   }
 
   const searchStart = async () => {
@@ -538,22 +577,82 @@ function App() {
     destinationPlace,
   ])
 
-  return (
-    <div className="app">
-      <aside className="sidebar">
-        <div className="brand">
-          <h1>
-            Moto Trip Planner
-          </h1>
-
-          <p>
-            Pianifica qui. Naviga con ciò
-            che preferisci.
-          </p>
-        </div>
-
+  const renderSidebarContent = () => {
+    if (activeSection === 'fuel') {
+      return (
         <section className="sidebar-section">
-          <h2>Percorso</h2>
+          <h2>Rifornimenti</h2>
+
+          <div className="placeholder-card">
+            <strong>
+              Pianificazione carburante
+            </strong>
+
+            <p>
+              Qui inseriremo autonomia moto,
+              distributori sul percorso e
+              deviazione massima consentita.
+            </p>
+
+            <span>
+              Funzione in preparazione
+            </span>
+          </div>
+        </section>
+      )
+    }
+
+    if (activeSection === 'breaks') {
+      return (
+        <section className="sidebar-section">
+          <h2>Pause & Pranzo</h2>
+
+          <div className="placeholder-card">
+            <strong>
+              Pause di viaggio
+            </strong>
+
+            <p>
+              Qui gestiremo frequenza delle
+              pause, pranzo e soste di comfort.
+            </p>
+
+            <span>
+              Funzione in preparazione
+            </span>
+          </div>
+        </section>
+      )
+    }
+
+    if (activeSection === 'days') {
+      return (
+        <section className="sidebar-section">
+          <h2>Giornate & Hotel</h2>
+
+          <div className="placeholder-card">
+            <strong>
+              Viaggio multi-giorno
+            </strong>
+
+            <p>
+              Qui divideremo il tour in
+              giornate, pernottamenti e
+              timeline.
+            </p>
+
+            <span>
+              Funzione in preparazione
+            </span>
+          </div>
+        </section>
+      )
+    }
+
+    return (
+      <>
+        <section className="sidebar-section">
+          <h2>Itinerario & Tappe</h2>
 
           <SearchField
             label="Partenza"
@@ -653,23 +752,129 @@ function App() {
             Veloce / driving
           </p>
         </section>
+      </>
+    )
+  }
 
-        <section className="sidebar-section">
-          <h2>Mappa</h2>
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="topbar-brand">
+          <div className="brand-mark">
+            M
+          </div>
 
-          <p>
-            Cartografia:{' '}
-            {mapProvider.name}
-          </p>
-        </section>
-      </aside>
+          <div>
+            <strong>
+              Moto Trip Planner
+            </strong>
 
-      <main className="map-area">
-        <div
-          ref={mapContainerRef}
-          className="map"
-        />
-      </main>
+            <span>
+              Pianifica qui. Naviga con ciò
+              che preferisci.
+            </span>
+          </div>
+        </div>
+
+        <div className="trip-summary">
+          <strong>
+            Nuovo viaggio
+          </strong>
+
+          <span>
+            {distance !== null
+              ? formatDistance(distance)
+              : '— km'}
+          </span>
+
+          <span>
+            {duration !== null
+              ? formatDuration(duration)
+              : '— guida'}
+          </span>
+        </div>
+
+        <div className="topbar-actions">
+          <button
+            type="button"
+            className="secondary-action"
+            onClick={resetTrip}
+          >
+            + Nuovo
+          </button>
+        </div>
+      </header>
+
+      <nav className="section-tabs">
+        <button
+          type="button"
+          className={
+            activeSection === 'itinerary'
+              ? 'section-tab active'
+              : 'section-tab'
+          }
+          onClick={() =>
+            setActiveSection('itinerary')
+          }
+        >
+          Itinerario & Tappe
+        </button>
+
+        <button
+          type="button"
+          className={
+            activeSection === 'fuel'
+              ? 'section-tab active'
+              : 'section-tab'
+          }
+          onClick={() =>
+            setActiveSection('fuel')
+          }
+        >
+          Rifornimenti
+        </button>
+
+        <button
+          type="button"
+          className={
+            activeSection === 'breaks'
+              ? 'section-tab active'
+              : 'section-tab'
+          }
+          onClick={() =>
+            setActiveSection('breaks')
+          }
+        >
+          Pause & Pranzo
+        </button>
+
+        <button
+          type="button"
+          className={
+            activeSection === 'days'
+              ? 'section-tab active'
+              : 'section-tab'
+          }
+          onClick={() =>
+            setActiveSection('days')
+          }
+        >
+          Giornate & Hotel
+        </button>
+      </nav>
+
+      <div className="workspace">
+        <aside className="sidebar">
+          {renderSidebarContent()}
+        </aside>
+
+        <main className="map-area">
+          <div
+            ref={mapContainerRef}
+            className="map"
+          />
+        </main>
+      </div>
     </div>
   )
 }
