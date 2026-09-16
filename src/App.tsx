@@ -47,11 +47,17 @@ import {
 } from './storage/tripStorage'
 
 import {
+  defaultTripSettings,
+  type TripSettings,
+} from './types/trip'
+
+import {
   type Waypoint,
   type WaypointType,
 } from './types/waypoint'
 
 import { TripsModal } from './components/TripsModal'
+import { TripSettingsModal } from './components/TripSettingsModal'
 
 setWorkerUrl(workerUrl)
 
@@ -86,6 +92,18 @@ function createId() {
   return `${Date.now()}-${Math.random()
     .toString(16)
     .slice(2)}`
+}
+
+function cloneTripSettings(
+  settings: TripSettings,
+): TripSettings {
+  return {
+    ...settings,
+
+    roadPreferences: {
+      ...settings.roadPreferences,
+    },
+  }
 }
 
 function formatDistance(
@@ -149,6 +167,7 @@ function waypointRoleClass(
 
   return 'role-stop'
 }
+
 function createMapMarkerElement(
   label: string,
   type:
@@ -214,8 +233,7 @@ function SearchField({
           }
           onKeyDown={(event) => {
             if (
-              event.key ===
-              'Enter'
+              event.key === 'Enter'
             ) {
               event.preventDefault()
               onSearch()
@@ -327,6 +345,23 @@ function App() {
     useState(
       'Nuovo viaggio',
     )
+
+  const [
+    tripSettings,
+    setTripSettings,
+  ] =
+    useState<TripSettings>(
+      () =>
+        cloneTripSettings(
+          defaultTripSettings,
+        ),
+    )
+
+  const [
+    tripSettingsOpen,
+    setTripSettingsOpen,
+  ] =
+    useState(false)
 
   const [
     currentTripId,
@@ -498,64 +533,64 @@ function App() {
       'Inserisci partenza e destinazione.',
     )
 
-    useEffect(() => {
-      if (!openMenuKey) {
-        return
+  useEffect(() => {
+    if (!openMenuKey) {
+      return
+    }
+
+    const handleMouseDown =
+      (event: MouseEvent) => {
+        const target =
+          event.target
+
+        if (
+          !(target instanceof HTMLElement)
+        ) {
+          setOpenMenuKey(null)
+          return
+        }
+
+        if (
+          !target.closest(
+            '.compact-role-wrap',
+          )
+        ) {
+          setOpenMenuKey(null)
+        }
       }
-    
-      const handleMouseDown =
-        (event: MouseEvent) => {
-          const target =
-            event.target
-    
-          if (
-            !(target instanceof HTMLElement)
-          ) {
-            setOpenMenuKey(null)
-            return
-          }
-    
-          if (
-            !target.closest(
-              '.compact-role-wrap',
-            )
-          ) {
-            setOpenMenuKey(null)
-          }
+
+    const handleKeyDown =
+      (event: KeyboardEvent) => {
+        if (
+          event.key === 'Escape'
+        ) {
+          setOpenMenuKey(null)
         }
-    
-      const handleKeyDown =
-        (event: KeyboardEvent) => {
-          if (
-            event.key === 'Escape'
-          ) {
-            setOpenMenuKey(null)
-          }
-        }
-    
-      document.addEventListener(
+      }
+
+    document.addEventListener(
+      'mousedown',
+      handleMouseDown,
+    )
+
+    document.addEventListener(
+      'keydown',
+      handleKeyDown,
+    )
+
+    return () => {
+      document.removeEventListener(
         'mousedown',
         handleMouseDown,
       )
-    
-      document.addEventListener(
+
+      document.removeEventListener(
         'keydown',
         handleKeyDown,
       )
-    
-      return () => {
-        document.removeEventListener(
-          'mousedown',
-          handleMouseDown,
-        )
-    
-        document.removeEventListener(
-          'keydown',
-          handleKeyDown,
-        )
-      }
-    }, [openMenuKey])
-    
+    }
+  }, [openMenuKey])
+
   useEffect(() => {
     if (
       !mapContainerRef.current
@@ -645,20 +680,20 @@ function App() {
         .clear()
     }
 
-    const syncWaypointMarkers =
+  const syncWaypointMarkers =
     (
       items:
         Waypoint[],
     ) => {
       const map =
         mapRef.current
-  
+
       if (!map) {
         return
       }
-  
+
       removeWaypointMarkers()
-  
+
       items.forEach(
         (
           waypoint,
@@ -668,7 +703,9 @@ function App() {
             new Marker({
               element:
                 createMapMarkerElement(
-                  String(index + 1),
+                  String(
+                    index + 1,
+                  ),
                   'waypoint',
                 ),
             })
@@ -682,7 +719,7 @@ function App() {
                 ),
               )
               .addTo(map)
-  
+
           waypointMarkersRef
             .current
             .set(
@@ -737,6 +774,16 @@ function App() {
 
       setTripName(
         'Nuovo viaggio',
+      )
+
+      setTripSettings(
+        cloneTripSettings(
+          defaultTripSettings,
+        ),
+      )
+
+      setTripSettingsOpen(
+        false,
       )
 
       setCurrentTripId(
@@ -837,6 +884,11 @@ function App() {
 
             waypoints,
 
+            settings:
+              cloneTripSettings(
+                tripSettings,
+              ),
+
             distance,
 
             duration,
@@ -851,6 +903,12 @@ function App() {
 
       setTripName(
         saved.name,
+      )
+
+      setTripSettings(
+        cloneTripSettings(
+          saved.settings,
+        ),
       )
 
       refreshSavedTrips()
@@ -891,6 +949,12 @@ function App() {
 
       setTripName(
         trip.name,
+      )
+
+      setTripSettings(
+        cloneTripSettings(
+          trip.settings,
+        ),
       )
 
       setStartPlace(
@@ -949,13 +1013,13 @@ function App() {
         trip.startPlace
       ) {
         startMarkerRef.current =
-        new Marker({
-          element:
-            createMapMarkerElement(
-              'A',
-              'start',
-            ),
-        })
+          new Marker({
+            element:
+              createMapMarkerElement(
+                'A',
+                'start',
+              ),
+          })
             .setLngLat([
               trip.startPlace.lng,
               trip.startPlace.lat,
@@ -968,13 +1032,13 @@ function App() {
         trip.destinationPlace
       ) {
         destinationMarkerRef.current =
-        new Marker({
-          element:
-            createMapMarkerElement(
-              'B',
-              'destination',
-            ),
-        })
+          new Marker({
+            element:
+              createMapMarkerElement(
+                'B',
+                'destination',
+              ),
+          })
             .setLngLat([
               trip.destinationPlace.lng,
               trip.destinationPlace.lat,
@@ -1264,12 +1328,12 @@ function App() {
       if (map) {
         startMarkerRef.current =
           new Marker({
-          element:
-            createMapMarkerElement(
-              'A',
-              'start',
-            ),
-        })
+            element:
+              createMapMarkerElement(
+                'A',
+                'start',
+              ),
+          })
             .setLngLat([
               result.lng,
               result.lat,
@@ -1319,8 +1383,11 @@ function App() {
       if (map) {
         destinationMarkerRef.current =
           new Marker({
-            color:
-              '#dc2626',
+            element:
+              createMapMarkerElement(
+                'B',
+                'destination',
+              ),
           })
             .setLngLat([
               result.lng,
@@ -2537,6 +2604,7 @@ function App() {
               {waypointRoleLabel(
                 waypoint.type,
               )}
+
               <span>
                 ▾
               </span>
@@ -2777,6 +2845,7 @@ function App() {
               }
             >
               Partenza
+
               <span>
                 ▾
               </span>
@@ -2911,6 +2980,7 @@ function App() {
               }
             >
               Arrivo
+
               <span>
                 ▾
               </span>
@@ -3140,6 +3210,18 @@ function App() {
           <button
             type="button"
             className="secondary-action"
+            onClick={() =>
+              setTripSettingsOpen(
+                true,
+              )
+            }
+          >
+            Impostazioni
+          </button>
+
+          <button
+            type="button"
+            className="secondary-action"
             onClick={() => {
               refreshSavedTrips()
 
@@ -3282,6 +3364,33 @@ function App() {
         onDelete={
           handleDeleteTrip
         }
+      />
+
+      <TripSettingsModal
+        open={
+          tripSettingsOpen
+        }
+        settings={
+          tripSettings
+        }
+        onClose={() =>
+          setTripSettingsOpen(
+            false,
+          )
+        }
+        onApply={(
+          settings,
+        ) => {
+          setTripSettings(
+            cloneTripSettings(
+              settings,
+            ),
+          )
+
+          setStatus(
+            'Impostazioni viaggio aggiornate. Premi Salva per memorizzarle nel viaggio.',
+          )
+        }}
       />
 
       {pendingAreaSelection && (

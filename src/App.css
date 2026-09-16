@@ -2,982 +2,806 @@
   width: 100vw;
   height: 100vh;
 }
-
 * {
   box-sizing: border-box;
 }
-
 button,
 input {
   font: inherit;
 }
-
+/* =========================================
+   APP SHELL
+   ========================================= */
 .app-shell {
   display: flex;
   flex-direction: column;
-
   width: 100%;
   height: 100%;
-
   overflow: hidden;
-
   background: #f4f5f7;
   color: #1f2937;
 }
-
-/* TOP BAR */
-
+/* =========================================
+   TOP BAR
+   ========================================= */
 .topbar {
   min-height: 58px;
-
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns:
+    minmax(190px, 1fr)
+    minmax(280px, auto)
+    max-content;
   align-items: center;
   gap: 20px;
-
   padding: 8px 16px;
-
   background: #171717;
   color: #ffffff;
-
   border-bottom: 1px solid #2f2f2f;
 }
-
 .topbar-brand {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-
 .brand-mark {
   width: 38px;
   height: 38px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
+  flex: 0 0 38px;
   border-radius: 10px;
-
   background: #f97316;
   color: #ffffff;
-
   font-size: 18px;
   font-weight: 800;
 }
-
 .topbar-brand > div:last-child {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
-
 .topbar-brand strong {
   font-size: 17px;
+  white-space: nowrap;
 }
-
 .topbar-brand span {
   color: #a3a3a3;
   font-size: 11px;
+  white-space: nowrap;
 }
-
 .trip-summary {
-  display: flex;
+  width: clamp(330px, 38vw, 560px);
+  min-width: 0;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns:
+    minmax(190px, 1fr)
+    auto
+    auto;
   align-items: center;
-  gap: 14px;
-
-  padding: 8px 14px;
-
+  gap: 10px;
+  padding: 6px 10px;
   background: #0f0f0f;
-
   border: 1px solid #292929;
   border-radius: 999px;
 }
-
-.trip-summary strong {
+.trip-name-input {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 30px;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid #363636;
+  border-radius: 999px;
+  outline: none;
+  background: transparent;
+  color: #ffffff;
   font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
+.trip-name-input:focus {
+  border-color: #f97316;
+}
 .trip-summary span {
+  flex: 0 0 auto;
   color: #d4d4d4;
   font-size: 12px;
+  white-space: nowrap;
 }
-
 .trip-summary span + span {
   padding-left: 14px;
   border-left: 1px solid #363636;
 }
-
-.topbar-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.secondary-action {
-  height: 36px;
-
-  padding: 0 14px;
-
-  border: 1px solid #4a4a4a;
-  border-radius: 8px;
-
-  background: #292929;
-  color: #ffffff;
-
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.secondary-action:hover {
-  background: #363636;
-}
-
-/* TAB */
-
-.section-tabs {
-  min-height: 42px;
-
-  display: flex;
-  align-items: stretch;
-
-  padding: 0 16px;
-
-  background: #101010;
-
-  border-bottom: 1px solid #303030;
-}
-
-.section-tab {
-  padding: 0 16px;
-
-  border: 0;
-  border-bottom: 3px solid transparent;
-
-  background: transparent;
-
-  color: #a3a3a3;
-
-  font-size: 13px;
-  font-weight: 600;
-
-  cursor: pointer;
-}
-
-.section-tab:hover {
-  color: #ffffff;
-}
-
-.section-tab.active {
-  color: #f97316;
-  border-bottom-color: #f97316;
-}
-
-/* WORKSPACE */
-
-.workspace {
-  flex: 1;
-
-  display: flex;
-
-  min-height: 0;
-}
-
-.sidebar {
-  width: 380px;
-  min-width: 380px;
-  height: 100%;
-
-  padding: 20px;
-
-  background: #ffffff;
-
-  border-right: 1px solid #dfe3e8;
-
-  overflow-y: auto;
-
-  z-index: 2;
-}
-
-.sidebar-section + .sidebar-section {
-  margin-top: 30px;
-}
-
-.sidebar-section h2 {
-  margin: 0 0 14px;
-
-  font-size: 18px;
-}
-
-.sidebar-section p {
-  margin: 6px 0;
-
-  color: #6b7280;
-
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.map-area {
-  flex: 1;
-
-  min-width: 0;
-  height: 100%;
-
-  position: relative;
-}
-
-.map {
-  position: absolute;
-  inset: 0;
-}
-
-/* RICERCA */
-
-.search-field {
-  margin-top: 18px;
-}
-
-.search-field > label {
-  display: block;
-
-  margin-bottom: 7px;
-
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.search-controls {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-}
-
-.search-controls input {
-  width: 100%;
-  min-width: 0;
-  height: 42px;
-
-  padding: 0 12px;
-
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-
-  outline: none;
-
-  background: #ffffff;
-  color: #1f2937;
-}
-
-.search-controls input:focus {
-  border-color: #f97316;
-
-  box-shadow:
-    0 0 0 2px
-    rgba(249, 115, 22, 0.13);
-}
-
-.search-button {
-  height: 42px;
-  min-width: 68px;
-
-  padding: 0 12px;
-
-  border: 0;
-  border-radius: 8px;
-
-  background: #2563eb;
-  color: #ffffff;
-
-  font-weight: 600;
-
-  cursor: pointer;
-}
-
-.search-button:hover {
-  background: #1d4ed8;
-}
-
-.search-button:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
-.search-results {
-  width: 100%;
-  max-height: 300px;
-
-  margin-top: 7px;
-
-  overflow-y: auto;
-
-  background: #ffffff;
-
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-
-  box-shadow:
-    0 6px 18px
-    rgba(0, 0, 0, 0.1);
-}
-
-.search-result {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-
-  width: 100%;
-
-  padding: 11px 12px;
-
-  border: 0;
-  border-bottom: 1px solid #e5e7eb;
-
-  background: #ffffff;
-  color: #1f2937;
-
-  text-align: left;
-
-  cursor: pointer;
-}
-
-.search-result:last-child {
-  border-bottom: 0;
-}
-
-.search-result:hover {
-  background: #f3f4f6;
-}
-
-.search-result strong {
-  font-size: 14px;
-}
-
-.search-result span {
-  color: #6b7280;
-
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.search-result small {
-  color: #9ca3af;
-  font-size: 11px;
-}
-
-/* ROTTA */
-
-.route-status {
-  margin-top: 18px !important;
-
-  padding: 12px;
-
-  background: #f3f4f6;
-
-  border-radius: 8px;
-}
-
-.route-summary {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-
-  margin-top: 18px;
-}
-
-.route-summary div {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-
-  padding: 12px;
-
-  background: #f3f4f6;
-
-  border-radius: 8px;
-}
-
-.route-summary span {
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.route-summary strong {
-  font-size: 16px;
-}
-
-/* SEZIONI FUTURE */
-
-.placeholder-card {
-  padding: 16px;
-
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-
-  background: #f9fafb;
-}
-
-.placeholder-card strong {
-  display: block;
-
-  margin-bottom: 8px;
-
-  font-size: 14px;
-}
-
-.placeholder-card p {
-  margin: 0 0 12px;
-}
-
-.placeholder-card span {
-  display: inline-block;
-
-  padding: 4px 8px;
-
-  border-radius: 999px;
-
-  background: #fff7ed;
-  color: #ea580c;
-
-  font-size: 11px;
-  font-weight: 700;
-}
-/* NOME VIAGGIO */
-
-.trip-name-input {
-  width: 180px;
-  height: 30px;
-
-  padding: 0 10px;
-
-  border: 1px solid #363636;
-  border-radius: 999px;
-
-  outline: none;
-
-  background: transparent;
-  color: #ffffff;
-
-  font-weight: 700;
-}
-
-.trip-name-input:focus {
-  border-color: #f97316;
-}
-
-/* AZIONI TOPBAR */
-
-.topbar-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.save-action {
-  height: 36px;
-  padding: 0 14px;
-
-  border: 0;
-  border-radius: 8px;
-
-  background: #f97316;
-  color: #ffffff;
-
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.save-action:hover {
-  background: #ea580c;
-}
-
-/* MODALE I MIEI VIAGGI */
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-
-  z-index: 1000;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 24px;
-
-  background:
-    rgba(0, 0, 0, 0.62);
-}
-
-.trips-modal {
-  width: min(720px, 100%);
-  max-height: 78vh;
-
-  display: flex;
-  flex-direction: column;
-
-  overflow: hidden;
-
-  background: #181818;
-  color: #ffffff;
-
-  border: 1px solid #343434;
-  border-radius: 14px;
-
-  box-shadow:
-    0 24px 60px
-    rgba(0, 0, 0, 0.35);
-}
-
-.modal-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-
-  padding: 18px 20px;
-
-  border-bottom:
-    1px solid #303030;
-}
-
-.modal-header h2 {
-  margin: 0 0 4px;
-
-  font-size: 19px;
-}
-
-.modal-header p {
-  margin: 0;
-
-  color: #a3a3a3;
-
-  font-size: 12px;
-}
-
-.modal-close {
-  width: 34px;
-  height: 34px;
-
-  border: 0;
-  border-radius: 8px;
-
-  background: #292929;
-  color: #d4d4d4;
-
-  font-size: 22px;
-
-  cursor: pointer;
-}
-
-.modal-content {
-  padding: 18px;
-
-  overflow-y: auto;
-}
-
-.empty-trips {
-  padding: 36px 20px;
-
-  text-align: center;
-
-  background: #111111;
-
-  border: 1px solid #303030;
-  border-radius: 10px;
-}
-
-.empty-trips p {
-  margin-bottom: 0;
-
-  color: #a3a3a3;
-}
-
-.saved-trip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-
-  padding: 14px;
-
-  background: #111111;
-
-  border:
-    1px solid #303030;
-  border-radius: 10px;
-}
-
-.saved-trip + .saved-trip {
-  margin-top: 10px;
-}
-
-.saved-trip-info {
-  min-width: 0;
-
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.saved-trip-info strong {
-  font-size: 14px;
-}
-
-.saved-trip-info span {
-  overflow: hidden;
-
-  color: #d4d4d4;
-
-  font-size: 12px;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.saved-trip-info small {
-  color: #737373;
-
-  font-size: 11px;
-}
-
-.saved-trip-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.saved-trip-actions button {
-  height: 32px;
-
-  padding: 0 10px;
-
-  border:
-    1px solid #404040;
-  border-radius: 7px;
-
-  background: #292929;
-  color: #ffffff;
-
-  font-size: 12px;
-  font-weight: 600;
-
-  cursor: pointer;
-}
-
-.saved-trip-actions button:hover {
-  background: #3a3a3a;
-}
-
-.saved-trip-actions .danger-action {
-  color: #fca5a5;
-}
-/* TOPBAR - EVITA TESTI SPEZZATI */
-
-.topbar {
-  grid-template-columns:
-    minmax(180px, 1fr)
-    auto
-    max-content;
-}
-
 .topbar-actions {
   display: flex;
   flex-wrap: nowrap;
   justify-content: flex-end;
   gap: 8px;
+  flex-shrink: 0;
 }
-
 .secondary-action,
 .save-action {
-  flex: 0 0 auto;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
   white-space: nowrap;
 }
-
-.trip-name-input {
-  min-width: 0;
+.secondary-action {
+  border: 1px solid #4a4a4a;
+  background: #292929;
 }
-
-/* CONFERMA ELIMINAZIONE */
-
-.confirm-backdrop {
-  position: fixed;
+.secondary-action:hover {
+  background: #363636;
+}
+.save-action {
+  border: 0;
+  background: #f97316;
+  font-weight: 700;
+}
+.save-action:hover {
+  background: #ea580c;
+}
+/* =========================================
+   MAIN TABS
+   ========================================= */
+.section-tabs {
+  min-height: 42px;
+  display: flex;
+  align-items: stretch;
+  padding: 0 16px;
+  background: #101010;
+  border-bottom: 1px solid #303030;
+}
+.section-tab {
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #a3a3a3;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.section-tab:hover {
+  color: #ffffff;
+}
+.section-tab.active {
+  color: #f97316;
+  border-bottom-color: #f97316;
+}
+/* =========================================
+   WORKSPACE
+   ========================================= */
+.workspace {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.sidebar {
+  width: 380px;
+  min-width: 380px;
+  height: 100%;
+  padding: 20px;
+  overflow-y: auto;
+  background: #ffffff;
+  border-right: 1px solid #dfe3e8;
+  z-index: 2;
+}
+.sidebar-section + .sidebar-section {
+  margin-top: 30px;
+}
+.sidebar-section h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+.sidebar-section p {
+  margin: 6px 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.map-area {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+.map {
+  position: absolute;
   inset: 0;
-
-  z-index: 1100;
-
+}
+/* =========================================
+   SEARCH
+   ========================================= */
+.search-field {
+  margin-top: 18px;
+}
+.search-field > label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.search-controls {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto;
+  gap: 8px;
+}
+.search-controls input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  outline: none;
+  background: #ffffff;
+  color: #1f2937;
+}
+.search-controls input:focus {
+  border-color: #f97316;
+  box-shadow:
+    0 0 0 2px
+    rgba(249, 115, 22, 0.13);
+}
+.search-button {
+  min-width: 68px;
+  height: 42px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.search-button:hover {
+  background: #1d4ed8;
+}
+.search-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.search-results {
+  width: 100%;
+  max-height: 300px;
+  margin-top: 7px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow:
+    0 6px 18px
+    rgba(0, 0, 0, 0.1);
+}
+.search-result {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 11px 12px;
+  border: 0;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #1f2937;
+  text-align: left;
+  cursor: pointer;
+}
+.search-result:last-child {
+  border-bottom: 0;
+}
+.search-result:hover {
+  background: #f3f4f6;
+}
+.search-result strong {
+  font-size: 14px;
+}
+.search-result span {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.search-result small {
+  color: #9ca3af;
+  font-size: 11px;
+}
+/* =========================================
+   COMPACT ITINERARY
+   ========================================= */
+.compact-itinerary {
+  display: flex;
+  flex-direction: column;
+}
+.compact-stop-row {
+  position: relative;
+  min-height: 36px;
+  display: grid;
+  grid-template-columns:
+    23px
+    minmax(0, 1fr)
+    auto;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border: 1px solid #e2e5e9;
+  border-radius: 9px;
+  background: #ffffff;
+}
+.compact-stop-row.awaiting-road-point {
+  border-color: #0891b2;
+  box-shadow:
+    inset 3px 0 0 #0891b2;
+}
+.compact-index,
+.compact-endpoint-badge {
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  padding: 24px;
-
-  background:
-    rgba(0, 0, 0, 0.72);
+  flex: 0 0 22px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
 }
-
-.confirm-dialog {
-  width: min(420px, 100%);
-
+.compact-index {
+  background: #2563eb;
+}
+.start-badge {
+  background: #10b981;
+}
+.destination-badge {
+  background: #e11d48;
+}
+.compact-place-name {
+  min-width: 0;
+  overflow: hidden;
+  color: #111827;
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.compact-role-wrap {
+  position: relative;
+}
+.compact-role-button {
+  min-width: 76px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 7px;
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.compact-role-button span {
+  font-size: 9px;
+}
+.compact-role-button.role-start {
+  border: 1px solid #10b981;
+  background: #ecfdf5;
+  color: #047857;
+}
+.compact-role-button.role-destination {
+  border: 1px solid #e11d48;
+  background: #fff1f2;
+  color: #be123c;
+}
+.compact-role-button.role-stop {
+  border: 1px solid #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.compact-role-button.role-pass {
+  border: 1px solid #f59e0b;
+  background: #fffbeb;
+  color: #b45309;
+}
+.compact-role-button.role-road {
+  border: 1px solid #0891b2;
+  background: #ecfeff;
+  color: #0e7490;
+}
+/* Itinerary dropdown */
+.compact-menu {
+  position: absolute;
+  z-index: 200;
+  top: calc(100% + 5px);
+  right: 0;
+  width: 175px;
+  padding: 5px;
+  border: 1px solid #d1d5db;
+  border-radius: 9px;
+  background: #ffffff;
+  box-shadow:
+    0 8px 25px
+    rgba(0, 0, 0, 0.18);
+}
+.compact-menu button {
+  width: 100%;
+  min-height: 31px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #1f2937;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+.compact-menu button:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+.compact-menu button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.compact-menu button strong {
+  color: #2563eb;
+}
+.compact-menu-separator {
+  height: 1px;
+  margin: 4px 2px;
+  background: #e5e7eb;
+}
+.compact-menu
+  .compact-delete-action {
+  color: #dc2626;
+}
+/* Insert waypoint */
+.insert-waypoint-row {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin: 1px 0;
+}
+.insert-waypoint-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: #e5e7eb;
+}
+.insert-waypoint-row button {
+  position: relative;
+  z-index: 1;
+  padding: 2px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.insert-waypoint-row button:hover {
+  border-color: #f97316;
+  color: #ea580c;
+}
+/* Endpoint edit */
+.endpoint-edit-card {
+  padding: 8px;
+  border: 1px solid #e2e5e9;
+  border-radius: 9px;
+  background: #ffffff;
+}
+.endpoint-edit-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+}
+.endpoint-edit-title strong {
+  font-size: 12px;
+}
+.endpoint-edit-card
+  .search-field {
+  margin-top: 0;
+}
+.endpoint-edit-card
+  .search-controls input {
+  height: 34px;
+  font-size: 12px;
+}
+.endpoint-edit-card
+  .search-button {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 11px;
+}
+/* Waypoint editor */
+.waypoint-editor {
+  margin: 5px 0;
+  padding: 8px;
+  border: 1px solid #fed7aa;
+  border-radius: 9px;
+  background: #fff7ed;
+}
+.waypoint-editor-title {
+  margin-bottom: 5px;
+  color: #9a3412;
+  font-size: 11px;
+  font-weight: 800;
+}
+.waypoint-editor
+  .search-field {
+  margin-top: 0;
+}
+.cancel-waypoint {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.compact-road-hint {
+  grid-column:
+    2 / 4;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #ecfeff;
+  color: #0e7490;
+  font-size: 10px;
+  font-weight: 700;
+}
+/* Route status */
+.route-status {
+  margin-top: 5px !important;
+  margin-bottom: 0 !important;
+  padding: 5px 8px !important;
+  background: #f3f4f6;
+  border-radius: 8px;
+  font-size: 9px !important;
+}
+/* =========================================
+   MAP MARKERS
+   ========================================= */
+.route-map-marker {
+  width: 27px;
+  height: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow:
+    0 2px 7px
+    rgba(0, 0, 0, 0.35);
+}
+.route-map-marker--start {
+  background: #10b981;
+}
+.route-map-marker--waypoint {
+  background: #2563eb;
+}
+.route-map-marker--destination {
+  background: #e11d48;
+}
+/* =========================================
+   AREA / CENTER CHOICE DIALOG
+   ========================================= */
+.area-choice-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    rgba(0, 0, 0, 0.68);
+}
+.area-choice-dialog {
+  width: min(460px, 100%);
   padding: 22px;
-
   background: #181818;
   color: #ffffff;
-
   border: 1px solid #3a3a3a;
   border-radius: 12px;
-
   box-shadow:
     0 24px 60px
     rgba(0, 0, 0, 0.45);
 }
-
-.confirm-dialog h3 {
+.area-choice-dialog h3 {
   margin: 0 0 12px;
-
   font-size: 18px;
 }
-
-.confirm-dialog p {
-  margin: 0 0 8px;
-
+.area-choice-dialog p {
+  margin: 8px 0;
   color: #d4d4d4;
-
   font-size: 13px;
   line-height: 1.5;
 }
-
-.confirm-dialog .confirm-note {
+.area-choice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+.area-choice-actions button {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid #444444;
+  border-radius: 8px;
+  background: #292929;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.area-choice-actions
+  .zone-choice {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  color: #111827;
+}
+.area-choice-actions
+  .center-choice {
+  border-color: #2563eb;
+  background: #2563eb;
+}
+/* =========================================
+   FUTURE SECTION PLACEHOLDERS
+   ========================================= */
+.placeholder-card {
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+.placeholder-card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.placeholder-card p {
+  margin: 0 0 12px;
+}
+.placeholder-card span {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #ea580c;
+  font-size: 11px;
+  font-weight: 700;
+}
+/* =========================================
+   MY TRIPS MODAL
+   ========================================= */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    rgba(0, 0, 0, 0.62);
+}
+.trips-modal {
+  width: min(720px, 100%);
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #181818;
+  color: #ffffff;
+  border: 1px solid #343434;
+  border-radius: 14px;
+  box-shadow:
+    0 24px 60px
+    rgba(0, 0, 0, 0.35);
+}
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px;
+  border-bottom:
+    1px solid #303030;
+}
+.modal-header h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+}
+.modal-header p {
+  margin: 0;
   color: #a3a3a3;
   font-size: 12px;
 }
-
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-
-  margin-top: 22px;
-}
-
-.confirm-actions button {
-  height: 36px;
-  padding: 0 14px;
-
-  border: 1px solid #444444;
+.modal-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
   border-radius: 8px;
-
   background: #292929;
-  color: #ffffff;
-
-  font-weight: 600;
-
+  color: #d4d4d4;
+  font-size: 22px;
   cursor: pointer;
 }
-
-.confirm-actions button:hover {
-  background: #3a3a3a;
+.modal-content {
+  padding: 18px;
+  overflow-y: auto;
 }
-
-.confirm-actions .confirm-delete {
-  border-color: #dc2626;
-
-  background: #dc2626;
-  color: #ffffff;
+.empty-trips {
+  padding: 36px 20px;
+  text-align: center;
+  background: #111111;
+  border: 1px solid #303030;
+  border-radius: 10px;
 }
-
-.confirm-actions .confirm-delete:hover {
-  background: #b91c1c;
+.empty-trips p {
+  margin-bottom: 0;
+  color: #a3a3a3;
 }
-
-/* TOPBAR SU FINESTRE PIÙ STRETTE */
-
-@media (max-width: 1100px) {
-  .topbar {
-    grid-template-columns:
-      auto
-      1fr
-      auto;
-
-    gap: 10px;
-
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-
-  .topbar-brand span {
-    display: none;
-  }
-
-  .trip-summary {
-    justify-self: center;
-
-    gap: 8px;
-
-    padding: 6px 10px;
-  }
-
-  .trip-name-input {
-    width: 150px;
-  }
-
-  .topbar-actions {
-    gap: 6px;
-  }
-
-  .secondary-action,
-  .save-action {
-    height: 34px;
-
-    padding: 0 10px;
-
-    font-size: 12px;
-  }
+.saved-trip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px;
+  background: #111111;
+  border: 1px solid #303030;
+  border-radius: 10px;
 }
-/* TOPBAR RESPONSIVA */
-
-.trip-summary {
-  min-width: 0;
-  max-width: 100%;
+.saved-trip + .saved-trip {
+  margin-top: 10px;
 }
-
-.trip-name-input {
-  width: clamp(130px, 20vw, 240px);
-  min-width: 0;
-
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 950px) {
-  .topbar {
-    grid-template-columns:
-      auto
-      minmax(0, 1fr)
-      auto;
-  }
-
-  .topbar-brand span {
-    display: none;
-  }
-
-  .topbar-brand strong {
-    font-size: 15px;
-  }
-
-  .trip-summary {
-    gap: 6px;
-    padding: 6px 8px;
-  }
-
-  .trip-name-input {
-    width: clamp(110px, 18vw, 170px);
-  }
-
-  .trip-summary span {
-    font-size: 11px;
-  }
-}
-/* VIAGGIO ATTIVO */
-
 .saved-trip.active-trip {
   border-color: #f97316;
-
   box-shadow:
     inset 3px 0 0 #f97316;
 }
-
-.active-trip-badge {
-  display: inline-block;
-
-  width: fit-content;
-
-  margin-top: 2px;
-  padding: 3px 7px;
-
-  border-radius: 999px;
-
-  background: rgba(249, 115, 22, 0.14);
-  color: #fb923c !important;
-
-  font-size: 10px !important;
-  font-weight: 800;
-
-  letter-spacing: 0.04em;
-}
-
-
-/* TOPBAR PIÙ ROBUSTA */
-
-.topbar {
-  grid-template-columns:
-    minmax(190px, 1fr)
-    minmax(280px, auto)
-    max-content;
-}
-
-.trip-summary {
+.saved-trip-info {
   min-width: 0;
-  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-
-.trip-name-input {
-  width: clamp(125px, 19vw, 240px);
-
+.saved-trip-info strong {
+  font-size: 14px;
+}
+.saved-trip-info span {
   overflow: hidden;
+  color: #d4d4d4;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.topbar-actions {
-  flex-shrink: 0;
-}
-
-.secondary-action,
-.save-action {
-  white-space: nowrap;
-}
-
-@media (max-width: 1000px) {
-  .topbar {
-    grid-template-columns:
-      minmax(150px, auto)
-      minmax(220px, 1fr)
-      max-content;
-
-    gap: 8px;
-  }
-
-  .topbar-brand span {
-    display: none;
-  }
-
-  .topbar-brand strong {
-    font-size: 14px;
-  }
-
-  .trip-summary {
-    gap: 6px;
-    padding: 6px 8px;
-  }
-
-  .trip-name-input {
-    width: clamp(110px, 18vw, 165px);
-  }
-
-  .trip-summary span {
-    font-size: 11px;
-  }
-
-  .secondary-action,
-  .save-action {
-    padding-left: 9px;
-    padding-right: 9px;
-
-    font-size: 11px;
-  }
+.saved-trip-info small {
+  color: #737373;
+  font-size: 11px;
 }
 .saved-trip-title-row {
   display: flex;
@@ -985,1037 +809,197 @@ input {
   gap: 8px;
   min-width: 0;
 }
-
 .saved-trip-title-row strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .saved-trip-route {
   color: #d4d4d4 !important;
 }
-/* RIEPILOGO VIAGGIO RESPONSIVO */
-
-.trip-summary {
-  display: grid;
-  grid-template-columns:
-    minmax(190px, 1fr)
-    auto
-    auto;
-
-  align-items: center;
-  gap: 10px;
-
-  width: clamp(330px, 38vw, 560px);
-  min-width: 0;
-
-  padding: 6px 10px;
+.active-trip-badge {
+  display: inline-block;
+  width: fit-content;
+  margin-top: 2px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background:
+    rgba(249, 115, 22, 0.14);
+  color: #fb923c !important;
+  font-size: 10px !important;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
-
-.trip-name-input {
-  width: 100%;
-  min-width: 0;
-  max-width: none;
-
+.saved-trip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.saved-trip-actions button {
+  height: 32px;
   padding: 0 10px;
-
-  overflow: hidden;
-
+  border: 1px solid #404040;
+  border-radius: 7px;
+  background: #292929;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.saved-trip-actions button:hover {
+  background: #3a3a3a;
+}
+.saved-trip-actions
+  .danger-action {
+  color: #fca5a5;
+}
+/* =========================================
+   DELETE CONFIRMATION DIALOG
+   ========================================= */
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    rgba(0, 0, 0, 0.72);
+}
+.confirm-dialog {
+  width: min(420px, 100%);
+  padding: 22px;
+  background: #181818;
+  color: #ffffff;
+  border: 1px solid #3a3a3a;
+  border-radius: 12px;
+  box-shadow:
+    0 24px 60px
+    rgba(0, 0, 0, 0.45);
+}
+.confirm-dialog h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+.confirm-dialog p {
+  margin: 0 0 8px;
+  color: #d4d4d4;
   font-size: 13px;
-  font-weight: 700;
+  line-height: 1.5;
 }
-
-.trip-summary span {
-  flex: 0 0 auto;
-  white-space: nowrap;
+.confirm-dialog
+  .confirm-note {
+  color: #a3a3a3;
+  font-size: 12px;
 }
-
-/* FINESTRE MEDIE */
-
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 22px;
+}
+.confirm-actions button {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid #444444;
+  border-radius: 8px;
+  background: #292929;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.confirm-actions button:hover {
+  background: #3a3a3a;
+}
+.confirm-actions
+  .confirm-delete {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+}
+.confirm-actions
+  .confirm-delete:hover {
+  background: #b91c1c;
+}
+/* =========================================
+   RESPONSIVE TOP BAR
+   ========================================= */
 @media (max-width: 1100px) {
+  .topbar {
+    grid-template-columns:
+      auto
+      minmax(0, 1fr)
+      auto;
+    gap: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .topbar-brand span {
+    display: none;
+  }
   .trip-summary {
-    width: clamp(300px, 42vw, 460px);
-
+    width: clamp(
+      300px,
+      42vw,
+      460px
+    );
     grid-template-columns:
       minmax(160px, 1fr)
       auto
       auto;
   }
-
   .trip-name-input {
     font-size: 12px;
   }
+  .topbar-actions {
+    gap: 6px;
+  }
+  .secondary-action,
+  .save-action {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
 }
-
-/* FINESTRE MOLTO STRETTE */
-
+@media (max-width: 1000px) {
+  .topbar {
+    grid-template-columns:
+      minmax(150px, auto)
+      minmax(220px, 1fr)
+      max-content;
+    gap: 8px;
+  }
+  .topbar-brand strong {
+    font-size: 14px;
+  }
+  .trip-summary {
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .trip-name-input {
+    font-size: 12px;
+  }
+  .trip-summary span {
+    font-size: 11px;
+  }
+  .secondary-action,
+  .save-action {
+    padding-left: 9px;
+    padding-right: 9px;
+    font-size: 11px;
+  }
+}
 @media (max-width: 850px) {
   .topbar-brand > div:last-child {
     display: none;
   }
-
   .trip-summary {
     width: 100%;
-
     grid-template-columns:
       minmax(140px, 1fr)
       auto
       auto;
   }
-}
-/* PANNELLO TIPO NUOVA TAPPA */
-
-.waypoint-mode-panel {
-  margin-bottom: 20px;
-  padding: 12px;
-
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-
-  background: #f9fafb;
-}
-
-.waypoint-mode-title {
-  display: block;
-
-  font-size: 12px;
-  font-weight: 800;
-
-  color: #374151;
-}
-
-.waypoint-mode-panel
-  .waypoint-type-selector {
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
-
-.waypoint-mode-description {
-  margin: 0 !important;
-
-  color: #6b7280 !important;
-
-  font-size: 12px !important;
-  line-height: 1.4 !important;
-}
-/* ITINERARIO DINAMICO */
-
-.endpoint-card,
-.waypoint-card,
-.waypoint-editor {
-  margin-top: 14px;
-
-  padding: 12px;
-
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-
-  background: #ffffff;
-}
-
-.endpoint-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  margin-bottom: 6px;
-}
-
-.endpoint-badge,
-.waypoint-number {
-  width: 28px;
-  height: 28px;
-
-  flex: 0 0 28px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  color: #ffffff;
-
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.start-endpoint .endpoint-badge {
-  background: #10b981;
-}
-
-.destination-endpoint .endpoint-badge {
-  background: #e11d48;
-}
-
-.waypoint-number {
-  background: #2563eb;
-}
-
-.endpoint-card
-  .search-field {
-  margin-top: 8px;
-}
-
-.insert-waypoint-row {
-  position: relative;
-
-  display: flex;
-  justify-content: center;
-
-  margin: 10px 0;
-}
-
-.insert-waypoint-row::before {
-  content: '';
-
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-
-  height: 1px;
-
-  background: #e5e7eb;
-}
-
-.insert-waypoint-row button {
-  position: relative;
-  z-index: 1;
-
-  padding: 6px 12px;
-
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-
-  background: #ffffff;
-  color: #374151;
-
-  font-size: 11px;
-  font-weight: 700;
-
-  cursor: pointer;
-}
-
-.insert-waypoint-row button:hover {
-  border-color: #f97316;
-  color: #ea580c;
-}
-
-.waypoint-card {
-  background: #f9fafb;
-}
-
-.waypoint-card-main {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.waypoint-info {
-  min-width: 0;
-
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.waypoint-info strong {
-  font-size: 14px;
-}
-
-.waypoint-info small {
-  overflow: hidden;
-
-  color: #6b7280;
-
-  font-size: 11px;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.waypoint-card-controls {
-  display: grid;
-
-  grid-template-columns:
-    minmax(0, 1fr)
-    34px
-    34px
-    34px;
-
-  gap: 5px;
-
-  margin-top: 10px;
-}
-
-.waypoint-card-controls select {
-  min-width: 0;
-
-  height: 34px;
-
-  padding: 0 8px;
-
-  border: 1px solid #d1d5db;
-  border-radius: 7px;
-
-  background: #ffffff;
-  color: #1f2937;
-
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.waypoint-card-controls button {
-  height: 34px;
-
-  border: 1px solid #d1d5db;
-  border-radius: 7px;
-
-  background: #ffffff;
-  color: #374151;
-
-  cursor: pointer;
-}
-
-.waypoint-card-controls button:hover:not(:disabled) {
-  background: #f3f4f6;
-}
-
-.waypoint-card-controls button:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
-.waypoint-card-controls
-  .waypoint-delete {
-  color: #dc2626;
-}
-
-.waypoint-editor {
-  background: #fff7ed;
-
-  border-color: #fed7aa;
-}
-
-.waypoint-editor-title {
-  margin-bottom: 8px;
-
-  color: #9a3412;
-
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.cancel-waypoint {
-  margin-top: 8px;
-
-  padding: 6px 10px;
-
-  border: 0;
-  border-radius: 7px;
-
-  background: #e5e7eb;
-  color: #374151;
-
-  font-size: 11px;
-  font-weight: 700;
-
-  cursor: pointer;
-}
-/* SCELTA LOCALITA / CENTRO */
-
-.area-choice-backdrop {
-  position: fixed;
-  inset: 0;
-
-  z-index: 1200;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 24px;
-
-  background: rgba(0, 0, 0, 0.68);
-}
-
-.area-choice-dialog {
-  width: min(460px, 100%);
-
-  padding: 22px;
-
-  background: #181818;
-  color: #ffffff;
-
-  border: 1px solid #3a3a3a;
-  border-radius: 12px;
-
-  box-shadow:
-    0 24px 60px
-    rgba(0, 0, 0, 0.45);
-}
-
-.area-choice-dialog h3 {
-  margin: 0 0 12px;
-
-  font-size: 18px;
-}
-
-.area-choice-dialog p {
-  margin: 8px 0;
-
-  color: #d4d4d4;
-
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.area-choice-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-
-  margin-top: 20px;
-}
-
-.area-choice-actions button {
-  height: 38px;
-
-  padding: 0 14px;
-
-  border: 1px solid #444444;
-  border-radius: 8px;
-
-  background: #292929;
-  color: #ffffff;
-
-  font-weight: 700;
-
-  cursor: pointer;
-}
-
-.area-choice-actions .zone-choice {
-  border-color: #f59e0b;
-  background: #f59e0b;
-  color: #111827;
-}
-
-.area-choice-actions .center-choice {
-  border-color: #2563eb;
-  background: #2563eb;
-}
-
-
-/* PUNTO STRADA */
-
-.waypoint-card.awaiting-road-point {
-  border-color: #0891b2;
-
-  box-shadow:
-    inset 3px 0 0 #0891b2;
-}
-
-.road-point-hint {
-  margin-top: 10px;
-
-  padding: 9px 10px;
-
-  border-radius: 7px;
-
-  background: #ecfeff;
-  color: #155e75;
-
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.4;
-}
-/* ITINERARIO COMPATTO */
-
-.endpoint-card,
-.waypoint-card {
-  margin-top: 7px;
-  padding: 8px 10px;
-
-  border-radius: 9px;
-}
-
-.endpoint-title {
-  gap: 6px;
-  margin-bottom: 5px;
-}
-
-.endpoint-title strong {
-  font-size: 12px;
-}
-
-.endpoint-badge,
-.waypoint-number {
-  width: 24px;
-  height: 24px;
-
-  flex-basis: 24px;
-
-  font-size: 11px;
-}
-
-
-/* CAMPI PARTENZA / DESTINAZIONE */
-
-.endpoint-card .search-field {
-  margin-top: 3px;
-}
-
-.endpoint-card .search-controls {
-  gap: 6px;
-}
-
-.endpoint-card
-  .search-controls input {
-  height: 34px;
-
-  padding: 5px 9px;
-
-  font-size: 12px;
-}
-
-.endpoint-card
-  .search-button {
-  height: 34px;
-
-  padding: 0 12px;
-
-  font-size: 11px;
-}
-
-
-/* PULSANTE AGGIUNGI TAPPA */
-
-.insert-waypoint-row {
-  margin: 4px 0;
-}
-
-.insert-waypoint-row button {
-  padding: 3px 9px;
-
-  font-size: 10px;
-  font-weight: 700;
-}
-
-
-/* TAPPA INTERMEDIA */
-
-.waypoint-card-main {
-  align-items: center;
-
-  gap: 7px;
-}
-
-.waypoint-info {
-  gap: 0;
-}
-
-.waypoint-info strong {
-  font-size: 12px;
-  line-height: 1.2;
-}
-
-/* Nascondiamo l'indirizzo lungo.
-   Rimane disponibile nei dati della tappa. */
-
-.waypoint-info small {
-  display: none;
-}
-
-
-/* CONTROLLI TAPPA */
-
-.waypoint-card-controls {
-  grid-template-columns:
-    minmax(0, 1fr)
-    30px
-    30px
-    30px;
-
-  gap: 4px;
-
-  margin-top: 6px;
-}
-
-.waypoint-card-controls select {
-  height: 30px;
-
-  padding: 0 6px;
-
-  font-size: 10px;
-}
-
-.waypoint-card-controls button {
-  height: 30px;
-
-  font-size: 11px;
-}
-
-
-/* EDITOR NUOVA TAPPA */
-
-.waypoint-editor {
-  margin-top: 5px;
-
-  padding: 8px;
-}
-
-.waypoint-editor-title {
-  margin-bottom: 5px;
-
-  font-size: 11px;
-}
-
-
-/* MESSAGGIO STATO */
-
-.route-status {
-  margin-top: 8px !important;
-  margin-bottom: 6px !important;
-
-  padding: 8px 10px !important;
-
-  font-size: 11px !important;
-}
-/* =========================================
-   ITINERARIO COMPATTO V0.3
-   ========================================= */
-
-   .compact-itinerary {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .compact-stop-row {
-    position: relative;
-  
-    min-height: 44px;
-  
-    display: grid;
-  
-    grid-template-columns:
-      28px
-      minmax(0, 1fr)
-      auto;
-  
-    align-items: center;
-  
-    gap: 7px;
-  
-    padding: 6px 8px;
-  
-    border: 1px solid #e2e5e9;
-    border-radius: 9px;
-  
-    background: #ffffff;
-  }
-  
-  .compact-stop-row.awaiting-road-point {
-    border-color: #0891b2;
-  
-    box-shadow:
-      inset 3px 0 0 #0891b2;
-  }
-  
-  
-  /* NUMERO TAPPA */
-  
-  .compact-index,
-  .compact-endpoint-badge {
-    width: 26px;
-    height: 26px;
-  
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  
-    flex: 0 0 26px;
-  
-    border-radius: 50%;
-  
-    color: #ffffff;
-  
-    font-size: 11px;
-    font-weight: 800;
-  }
-  
-  .compact-index {
-    background: #2563eb;
-  }
-  
-  .start-badge {
-    background: #10b981;
-  }
-  
-  .destination-badge {
-    background: #e11d48;
-  }
-  
-  
-  /* NOME LOCALITA */
-  
-  .compact-place-name {
-    min-width: 0;
-  
-    overflow: hidden;
-  
-    color: #111827;
-  
-    font-size: 12px;
-    font-weight: 700;
-  
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  
-  
-  /* RETTANGOLO TIPO TAPPA */
-  
-  .compact-role-wrap {
-    position: relative;
-  }
-  
-  .compact-role-button {
-    min-width: 82px;
-    height: 30px;
-  
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  
-    gap: 6px;
-  
-    padding: 0 8px;
-  
-    border-radius: 7px;
-  
-    font-size: 10px;
-    font-weight: 700;
-  
-    cursor: pointer;
-  
-    white-space: nowrap;
-  }
-  
-  .compact-role-button span {
-    font-size: 9px;
-  }
-  
-  
-  /* PARTENZA */
-  
-  .compact-role-button.role-start {
-    border: 1px solid #10b981;
-  
-    background: #ecfdf5;
-    color: #047857;
-  }
-  
-  
-  /* ARRIVO */
-  
-  .compact-role-button.role-destination {
-    border: 1px solid #e11d48;
-  
-    background: #fff1f2;
-    color: #be123c;
-  }
-  
-  
-  /* SOSTA */
-  
-  .compact-role-button.role-stop {
-    border: 1px solid #2563eb;
-  
-    background: #eff6ff;
-    color: #1d4ed8;
-  }
-  
-  
-  /* PASSAGGIO */
-  
-  .compact-role-button.role-pass {
-    border: 1px solid #f59e0b;
-  
-    background: #fffbeb;
-    color: #b45309;
-  }
-  
-  
-  /* PUNTO STRADA */
-  
-  .compact-role-button.role-road {
-    border: 1px solid #0891b2;
-  
-    background: #ecfeff;
-    color: #0e7490;
-  }
-  
-  
-  /* MENU A TENDINA */
-  
-  .compact-menu {
-    position: absolute;
-  
-    z-index: 200;
-  
-    top: calc(100% + 5px);
-    right: 0;
-  
-    width: 175px;
-  
-    padding: 5px;
-  
-    border: 1px solid #d1d5db;
-    border-radius: 9px;
-  
-    background: #ffffff;
-  
-    box-shadow:
-      0 8px 25px
-      rgba(0, 0, 0, 0.18);
-  }
-  
-  .compact-menu button {
-    width: 100%;
-    min-height: 31px;
-  
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  
-    padding: 5px 8px;
-  
-    border: 0;
-    border-radius: 6px;
-  
-    background: transparent;
-    color: #1f2937;
-  
-    font-size: 11px;
-    text-align: left;
-  
-    cursor: pointer;
-  }
-  
-  .compact-menu button:hover:not(:disabled) {
-    background: #f3f4f6;
-  }
-  
-  .compact-menu button:disabled {
-    opacity: 0.35;
-    cursor: default;
-  }
-  
-  .compact-menu button strong {
-    color: #2563eb;
-  }
-  
-  .compact-menu-separator {
-    height: 1px;
-  
-    margin: 4px 2px;
-  
-    background: #e5e7eb;
-  }
-  
-  .compact-menu
-    .compact-delete-action {
-    color: #dc2626;
-  }
-  
-  
-  /* INSERISCI TAPPA */
-  
-  .insert-waypoint-row {
-    margin: 3px 0;
-  }
-  
-  .insert-waypoint-row button {
-    padding: 3px 9px;
-  
-    font-size: 9px;
-  }
-  
-  
-  /* EDIT PARTENZA / ARRIVO */
-  
-  .endpoint-edit-card {
-    padding: 8px;
-  
-    border: 1px solid #e2e5e9;
-    border-radius: 9px;
-  
-    background: #ffffff;
-  }
-  
-  .endpoint-edit-title {
-    display: flex;
-    align-items: center;
-  
-    gap: 7px;
-  
-    margin-bottom: 6px;
-  }
-  
-  .endpoint-edit-title strong {
-    font-size: 12px;
-  }
-  
-  .endpoint-edit-card
-    .search-controls input {
-    height: 34px;
-  
-    font-size: 12px;
-  }
-  
-  .endpoint-edit-card
-    .search-button {
-    height: 34px;
-  
-    padding: 0 12px;
-  
-    font-size: 11px;
-  }
-  
-  
-  /* EDIT TAPPA */
-  
-  .waypoint-editor {
-    margin: 5px 0;
-  
-    padding: 8px;
-  
-    border-radius: 9px;
-  }
-  
-  .waypoint-editor-title {
-    margin-bottom: 5px;
-  }
-  
-  
-  /* PUNTO STRADA IN ATTESA */
-  
-  .compact-road-hint {
-    grid-column:
-      2 / 4;
-  
-    padding: 4px 7px;
-  
-    border-radius: 5px;
-  
-    background: #ecfeff;
-    color: #0e7490;
-  
-    font-size: 10px;
-    font-weight: 700;
-  }
-  
-  
-  /* STATO PERCORSO */
-  
-  .route-status {
-    margin-top: 8px !important;
-    margin-bottom: 0 !important;
-  
-    padding: 7px 9px !important;
-  
-    font-size: 10px !important;
-  }
-  /* MARKER MAPPA NUMERATI */
-
-.route-map-marker {
-  width: 27px;
-  height: 27px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border: 3px solid #ffffff;
-  border-radius: 50%;
-
-  color: #ffffff;
-
-  font-size: 11px;
-  font-weight: 800;
-
-  box-shadow:
-    0 2px 7px
-    rgba(0, 0, 0, 0.35);
-}
-
-.route-map-marker--start {
-  background: #10b981;
-}
-
-.route-map-marker--waypoint {
-  background: #2563eb;
-}
-
-.route-map-marker--destination {
-  background: #e11d48;
-}
-
-
-/* ITINERARIO ANCORA PIU COMPATTO */
-
-.compact-stop-row {
-  min-height: 36px;
-
-  grid-template-columns:
-    23px
-    minmax(0, 1fr)
-    auto;
-
-  gap: 6px;
-
-  padding: 3px 6px;
-}
-
-.compact-index,
-.compact-endpoint-badge {
-  width: 22px;
-  height: 22px;
-
-  flex: 0 0 22px;
-
-  font-size: 9px;
-}
-
-.compact-place-name {
-  font-size: 11px;
-}
-
-.compact-role-button {
-  min-width: 76px;
-  height: 26px;
-
-  padding: 0 7px;
-
-  font-size: 9px;
-}
-
-.insert-waypoint-row {
-  margin: 1px 0;
-}
-
-.insert-waypoint-row button {
-  padding: 2px 8px;
-
-  font-size: 8px;
-}
-
-.route-status {
-  margin-top: 5px !important;
-
-  padding: 5px 8px !important;
-
-  font-size: 9px !important;
 }

@@ -1,4 +1,6 @@
 import type { GeocodingResult } from '../providers/geocodingProvider'
+import type { TripSettings } from '../types/trip'
+import { defaultTripSettings } from '../types/trip'
 import type { Waypoint } from '../types/waypoint'
 
 export type TripRecord = {
@@ -9,6 +11,8 @@ export type TripRecord = {
   destinationPlace: GeocodingResult | null
 
   waypoints: Waypoint[]
+
+  settings: TripSettings
 
   distance: number | null
   duration: number | null
@@ -32,6 +36,33 @@ function createId() {
     .slice(2)}`
 }
 
+function cloneDefaultSettings(): TripSettings {
+  return {
+    ...defaultTripSettings,
+
+    roadPreferences: {
+      ...defaultTripSettings.roadPreferences,
+    },
+  }
+}
+
+function normalizeSettings(
+  settings?: Partial<TripSettings>,
+): TripSettings {
+  const defaults =
+    cloneDefaultSettings()
+
+  return {
+    ...defaults,
+    ...settings,
+
+    roadPreferences: {
+      ...defaults.roadPreferences,
+      ...(settings?.roadPreferences ?? {}),
+    },
+  }
+}
+
 export function getSavedTrips(): TripRecord[] {
   try {
     const raw =
@@ -44,13 +75,26 @@ export function getSavedTrips(): TripRecord[] {
     }
 
     const stored =
-      JSON.parse(raw) as TripRecord[]
+      JSON.parse(raw) as Array<
+        Omit<
+          TripRecord,
+          'settings'
+        > & {
+          settings?: Partial<TripSettings>
+        }
+      >
 
-    const trips =
+    const trips: TripRecord[] =
       stored.map((trip) => ({
         ...trip,
+
         waypoints:
           trip.waypoints ?? [],
+
+        settings:
+          normalizeSettings(
+            trip.settings,
+          ),
       }))
 
     return trips.sort(
@@ -79,15 +123,31 @@ function writeTrips(
 export function saveTrip(
   trip: Omit<
     TripRecord,
-    'id' | 'updatedAt'
-  >,
+    'id' | 'updatedAt' | 'settings'
+  > & {
+    settings?: TripSettings
+  },
   existingId?: string | null,
 ): TripRecord {
   const trips =
     getSavedTrips()
 
+  const existingTrip =
+    existingId
+      ? trips.find(
+          (item) =>
+            item.id === existingId,
+        )
+      : undefined
+
   const savedTrip: TripRecord = {
     ...trip,
+
+    settings:
+      normalizeSettings(
+        trip.settings ??
+          existingTrip?.settings,
+      ),
 
     id:
       existingId ??
@@ -187,8 +247,24 @@ export function duplicateTrip(
       source.waypoints.map(
         (waypoint) => ({
           ...waypoint,
+
+          boundingBox:
+            waypoint.boundingBox
+              ? {
+                  ...waypoint.boundingBox,
+                }
+              : undefined,
         }),
       ),
+
+    settings: {
+      ...source.settings,
+
+      roadPreferences: {
+        ...source.settings
+          .roadPreferences,
+      },
+    },
 
     id:
       createId(),
