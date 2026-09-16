@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>
+      MotoRoute - FerryProvider Test
+    </title>
+
+    <style>
+      body {
+        margin: 0;
+        padding: 32px;
+        background: #111111;
+        color: #f5f5f5;
+        font-family:
+          Inter,
+          system-ui,
+          sans-serif;
+      }
+
+      #test-root {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin:
+          0 0 12px;
+        font-size: 24px;
+      }
+
+      .summary {
+        margin:
+          0 0 22px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+      }
+
+      .ok-summary {
+        background: #16351f;
+        color: #86efac;
+      }
+
+      .ko-summary {
+        background: #451a1a;
+        color: #fca5a5;
+      }
+
+      .test-row {
+        display: grid;
+        grid-template-columns:
+          70px 1fr;
+        gap: 14px;
+        margin-bottom: 10px;
+        padding: 14px;
+        border:
+          1px solid #333333;
+        border-radius: 9px;
+        background: #1b1b1b;
+      }
+
+      .test-status {
+        font-weight: 800;
+      }
+
+      .test-row.ok
+      .test-status {
+        color: #86efac;
+      }
+
+      .test-row.ko
+      .test-status {
+        color: #fca5a5;
+      }
+
+      .test-detail {
+        margin-top: 5px;
+        color: #bdbdbd;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="test-root">
+      Caricamento test...
+    </div>
+
+    <script
+      type="module"
+      src="/src/dev/ferryTest.ts"
+    ></script>
+  </body>
+</html>
