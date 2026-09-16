@@ -1,0 +1,53 @@
+/* DRAG & DROP TAPPE */
+
+.draggable-stop-row {
+    grid-template-columns:
+      43px
+      minmax(0, 1fr)
+      auto;
+  }
+  
+  .waypoint-leading {
+    display: flex;
+    align-items: center;
+  
+    gap: 3px;
+  }
+  
+  .waypoint-drag-handle {
+    width: 17px;
+  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  
+    color: #9ca3af;
+  
+    font-size: 15px;
+    line-height: 1;
+  
+    cursor: grab;
+  
+    user-select: none;
+  }
+  
+  .waypoint-drag-handle:hover {
+    color: #4b5563;
+  }
+  
+  .waypoint-drag-handle:active {
+    cursor: grabbing;
+  }
+  
+  .draggable-stop-row.is-dragging {
+    opacity: 0.45;
+  }
+  
+  .draggable-stop-row.drag-over {
+    border-color: #2563eb;
+  
+    background: #eff6ff;
+  
+    box-shadow:
+      inset 3px 0 0 #2563eb;
+  }

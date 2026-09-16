@@ -19,6 +19,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
 import './App.css'
+import './components/WaypointDrag.css'
 
 import { mapProvider } from './config/mapProvider'
 
@@ -193,13 +194,16 @@ type SearchFieldProps = {
   value: string
   results: GeocodingResult[]
   loading: boolean
-  onChange: (
-    value: string,
-  ) => void
+
+  onChange:
+    (value: string) => void
+
   onSearch: () => void
-  onSelect: (
-    result: GeocodingResult,
-  ) => void
+
+  onSelect:
+    (
+      result: GeocodingResult,
+    ) => void
 }
 
 function SearchField({
@@ -278,16 +282,14 @@ function SearchField({
                 {(result.type ||
                   result.category) && (
                     <small>
-                      {result.type ??
-                        ''}
+                      {result.type ?? ''}
 
                       {result.type &&
                       result.category
                         ? ' · '
                         : ''}
 
-                      {result.category ??
-                        ''}
+                      {result.category ?? ''}
                     </small>
                   )}
               </button>
@@ -506,6 +508,22 @@ function App() {
     setOpenMenuKey,
   ] =
     useState<string | null>(
+      null,
+    )
+
+  const [
+    draggedWaypointIndex,
+    setDraggedWaypointIndex,
+  ] =
+    useState<number | null>(
+      null,
+    )
+
+  const [
+    dragOverWaypointIndex,
+    setDragOverWaypointIndex,
+  ] =
+    useState<number | null>(
       null,
     )
 
@@ -818,6 +836,14 @@ function App() {
         null,
       )
 
+      setDraggedWaypointIndex(
+        null,
+      )
+
+      setDragOverWaypointIndex(
+        null,
+      )
+
       setDistance(null)
       setDuration(null)
 
@@ -1008,6 +1034,14 @@ function App() {
         null,
       )
 
+      setDraggedWaypointIndex(
+        null,
+      )
+
+      setDragOverWaypointIndex(
+        null,
+      )
+
       if (
         map &&
         trip.startPlace
@@ -1149,8 +1183,7 @@ function App() {
         )
 
         setStatus(
-          error instanceof
-            Error
+          error instanceof Error
             ? error.message
             : 'Errore durante la ricerca della partenza.',
         )
@@ -1205,8 +1238,7 @@ function App() {
         )
 
         setStatus(
-          error instanceof
-            Error
+          error instanceof Error
             ? error.message
             : 'Errore durante la ricerca della destinazione.',
         )
@@ -1285,8 +1317,7 @@ function App() {
         })
 
         setStatus(
-          error instanceof
-            Error
+          error instanceof Error
             ? error.message
             : 'Errore durante la ricerca della tappa.',
         )
@@ -1859,6 +1890,167 @@ function App() {
       )
 
       clearRouteData()
+    }
+
+  const handleWaypointDragStart =
+    (
+      event:
+        React.DragEvent<HTMLElement>,
+
+      index:
+        number,
+    ) => {
+      setDraggedWaypointIndex(
+        index,
+      )
+
+      setDragOverWaypointIndex(
+        null,
+      )
+
+      setOpenMenuKey(
+        null,
+      )
+
+      event.dataTransfer.effectAllowed =
+        'move'
+
+      event.dataTransfer.setData(
+        'text/plain',
+        String(index),
+      )
+    }
+
+  const handleWaypointDragOver =
+    (
+      event:
+        React.DragEvent<HTMLDivElement>,
+
+      index:
+        number,
+    ) => {
+      event.preventDefault()
+
+      event.dataTransfer.dropEffect =
+        'move'
+
+      if (
+        draggedWaypointIndex !==
+        null &&
+        draggedWaypointIndex !==
+        index
+      ) {
+        setDragOverWaypointIndex(
+          index,
+        )
+      }
+    }
+
+  const handleWaypointDrop =
+    (
+      event:
+        React.DragEvent<HTMLDivElement>,
+
+      targetIndex:
+        number,
+    ) => {
+      event.preventDefault()
+
+      const sourceIndex =
+        draggedWaypointIndex
+
+      if (
+        sourceIndex ===
+        null
+      ) {
+        return
+      }
+
+      const rect =
+        event.currentTarget
+          .getBoundingClientRect()
+
+      const dropAfter =
+        event.clientY >
+        rect.top +
+          rect.height / 2
+
+      let insertIndex =
+        targetIndex +
+        (dropAfter ? 1 : 0)
+
+      const updated =
+        [...waypoints]
+
+      const [
+        moved,
+      ] =
+        updated.splice(
+          sourceIndex,
+          1,
+        )
+
+      if (
+        sourceIndex <
+        insertIndex
+      ) {
+        insertIndex -= 1
+      }
+
+      insertIndex =
+        Math.max(
+          0,
+          Math.min(
+            insertIndex,
+            updated.length,
+          ),
+        )
+
+      updated.splice(
+        insertIndex,
+        0,
+        moved,
+      )
+
+      setDraggedWaypointIndex(
+        null,
+      )
+
+      setDragOverWaypointIndex(
+        null,
+      )
+
+      if (
+        sourceIndex ===
+        insertIndex
+      ) {
+        return
+      }
+
+      setWaypoints(
+        updated,
+      )
+
+      syncWaypointMarkers(
+        updated,
+      )
+
+      clearRouteData()
+
+      setStatus(
+        `"${moved.name}" spostata. Percorso ricalcolato.`,
+      )
+    }
+
+  const handleWaypointDragEnd =
+    () => {
+      setDraggedWaypointIndex(
+        null,
+      )
+
+      setDragOverWaypointIndex(
+        null,
+      )
     }
 
   const changeWaypointType =
@@ -2569,18 +2761,70 @@ function App() {
       const menuKey =
         `waypoint-${waypoint.id}`
 
+      const dragging =
+        draggedWaypointIndex ===
+        index
+
+      const dragOver =
+        dragOverWaypointIndex ===
+        index
+
       return (
         <div
-          className={
+          className={[
+            'compact-stop-row',
+            'draggable-stop-row',
+
             pendingRoadPointWaypointId ===
             waypoint.id
-              ? 'compact-stop-row awaiting-road-point'
-              : 'compact-stop-row'
+              ? 'awaiting-road-point'
+              : '',
+
+            dragging
+              ? 'is-dragging'
+              : '',
+
+            dragOver
+              ? 'drag-over'
+              : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          onDragOver={(event) =>
+            handleWaypointDragOver(
+              event,
+              index,
+            )
+          }
+          onDrop={(event) =>
+            handleWaypointDrop(
+              event,
+              index,
+            )
           }
         >
-          <span className="compact-index">
-            {index + 1}
-          </span>
+          <div className="waypoint-leading">
+            <span
+              className="waypoint-drag-handle"
+              draggable
+              title="Trascina per spostare la tappa"
+              onDragStart={(event) =>
+                handleWaypointDragStart(
+                  event,
+                  index,
+                )
+              }
+              onDragEnd={
+                handleWaypointDragEnd
+              }
+            >
+              ⠿
+            </span>
+
+            <span className="compact-index">
+              {index + 1}
+            </span>
+          </div>
 
           <span className="compact-place-name">
             {waypoint.name}
