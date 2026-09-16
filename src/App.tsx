@@ -2,6 +2,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type DragEvent,
 } from 'react'
 
 import {
@@ -77,6 +78,12 @@ type EditingWaypoint = {
 
 type PendingAreaSelection = {
   result: GeocodingResult
+  waypointId: string
+  insertIndex: number | null
+  replaceIndex: number | null
+}
+
+type PendingRoadPointSelection = {
   waypointId: string
   insertIndex: number | null
   replaceIndex: number | null
@@ -496,12 +503,12 @@ function App() {
     >(null)
 
   const [
-    pendingRoadPointWaypointId,
-    setPendingRoadPointWaypointId,
+    pendingRoadPointSelection,
+    setPendingRoadPointSelection,
   ] =
-    useState<string | null>(
-      null,
-    )
+    useState<
+      PendingRoadPointSelection | null
+    >(null)
 
   const [
     openMenuKey,
@@ -520,8 +527,8 @@ function App() {
     )
 
   const [
-    dragOverWaypointIndex,
-    setDragOverWaypointIndex,
+    dragOverInsertIndex,
+    setDragOverInsertIndex,
   ] =
     useState<number | null>(
       null,
@@ -550,6 +557,10 @@ function App() {
     useState(
       'Inserisci partenza e destinazione.',
     )
+
+  const pendingRoadPointWaypointId =
+    pendingRoadPointSelection
+      ?.waypointId ?? null
 
   useEffect(() => {
     if (!openMenuKey) {
@@ -771,6 +782,17 @@ function App() {
       )
     }
 
+  const cancelPendingRoadPoint =
+    () => {
+      setPendingRoadPointSelection(
+        null,
+      )
+
+      setStatus(
+        'Selezione Punto strada annullata.',
+      )
+    }
+
   const resetTrip =
     () => {
       startMarkerRef
@@ -828,7 +850,7 @@ function App() {
         null,
       )
 
-      setPendingRoadPointWaypointId(
+      setPendingRoadPointSelection(
         null,
       )
 
@@ -840,7 +862,7 @@ function App() {
         null,
       )
 
-      setDragOverWaypointIndex(
+      setDragOverInsertIndex(
         null,
       )
 
@@ -889,7 +911,7 @@ function App() {
       }
 
       if (
-        pendingRoadPointWaypointId
+        pendingRoadPointSelection
       ) {
         setStatus(
           'Completa prima la selezione del Punto strada sulla mappa.',
@@ -1030,7 +1052,7 @@ function App() {
         null,
       )
 
-      setPendingRoadPointWaypointId(
+      setPendingRoadPointSelection(
         null,
       )
 
@@ -1038,7 +1060,7 @@ function App() {
         null,
       )
 
-      setDragOverWaypointIndex(
+      setDragOverInsertIndex(
         null,
       )
 
@@ -1464,6 +1486,38 @@ function App() {
       )
     }
 
+  const startDirectRoadPoint =
+    (
+      index:
+        number,
+    ) => {
+      const waypointId =
+        editingWaypoint?.id ??
+        createId()
+
+      closeWaypointEditor()
+
+      setOpenMenuKey(
+        null,
+      )
+
+      setPendingRoadPointSelection({
+        waypointId,
+
+        insertIndex:
+          index,
+
+        replaceIndex:
+          null,
+      })
+
+      clearRouteData()
+
+      setStatus(
+        'Punto strada: clicca direttamente sulla strada desiderata nella mappa.',
+      )
+    }
+
   const startEditWaypoint =
     (
       index:
@@ -1810,7 +1864,7 @@ function App() {
         waypoint?.id ===
         pendingRoadPointWaypointId
       ) {
-        setPendingRoadPointWaypointId(
+        setPendingRoadPointSelection(
           null,
         )
       }
@@ -1895,7 +1949,7 @@ function App() {
   const handleWaypointDragStart =
     (
       event:
-        React.DragEvent<HTMLElement>,
+        DragEvent<HTMLElement>,
 
       index:
         number,
@@ -1904,7 +1958,7 @@ function App() {
         index,
       )
 
-      setDragOverWaypointIndex(
+      setDragOverInsertIndex(
         null,
       )
 
@@ -1924,9 +1978,9 @@ function App() {
   const handleWaypointDragOver =
     (
       event:
-        React.DragEvent<HTMLDivElement>,
+        DragEvent<HTMLDivElement>,
 
-      index:
+      insertIndex:
         number,
     ) => {
       event.preventDefault()
@@ -1934,24 +1988,17 @@ function App() {
       event.dataTransfer.dropEffect =
         'move'
 
-      if (
-        draggedWaypointIndex !==
-        null &&
-        draggedWaypointIndex !==
-        index
-      ) {
-        setDragOverWaypointIndex(
-          index,
-        )
-      }
+      setDragOverInsertIndex(
+        insertIndex,
+      )
     }
 
   const handleWaypointDrop =
     (
       event:
-        React.DragEvent<HTMLDivElement>,
+        DragEvent<HTMLDivElement>,
 
-      targetIndex:
+      targetInsertIndex:
         number,
     ) => {
       event.preventDefault()
@@ -1966,19 +2013,6 @@ function App() {
         return
       }
 
-      const rect =
-        event.currentTarget
-          .getBoundingClientRect()
-
-      const dropAfter =
-        event.clientY >
-        rect.top +
-          rect.height / 2
-
-      let insertIndex =
-        targetIndex +
-        (dropAfter ? 1 : 0)
-
       const updated =
         [...waypoints]
 
@@ -1990,9 +2024,12 @@ function App() {
           1,
         )
 
+      let insertIndex =
+        targetInsertIndex
+
       if (
         sourceIndex <
-        insertIndex
+        targetInsertIndex
       ) {
         insertIndex -= 1
       }
@@ -2006,17 +2043,11 @@ function App() {
           ),
         )
 
-      updated.splice(
-        insertIndex,
-        0,
-        moved,
-      )
-
       setDraggedWaypointIndex(
         null,
       )
 
-      setDragOverWaypointIndex(
+      setDragOverInsertIndex(
         null,
       )
 
@@ -2026,6 +2057,12 @@ function App() {
       ) {
         return
       }
+
+      updated.splice(
+        insertIndex,
+        0,
+        moved,
+      )
 
       setWaypoints(
         updated,
@@ -2048,7 +2085,7 @@ function App() {
         null,
       )
 
-      setDragOverWaypointIndex(
+      setDragOverInsertIndex(
         null,
       )
     }
@@ -2070,17 +2107,67 @@ function App() {
 
       if (
         type ===
-          'zone-pass' &&
-        !waypoint.boundingBox
+        'road-point'
       ) {
-        setStatus(
-          'Questa tappa non dispone di un’area geografica utilizzabile come Passaggio zona.',
-        )
-
         setOpenMenuKey(
           null,
         )
 
+        setPendingRoadPointSelection({
+          waypointId:
+            waypoint.id,
+
+          insertIndex:
+            null,
+
+          replaceIndex:
+            index,
+        })
+
+        clearRouteData()
+
+        setStatus(
+          'Punto strada: clicca sulla mappa per scegliere la nuova posizione.',
+        )
+
+        return
+      }
+
+      if (
+        type ===
+          'zone-pass' &&
+        !waypoint.boundingBox
+      ) {
+        setEditingInsertIndex(
+          null,
+        )
+      
+        setEditingExistingWaypointIndex(
+          index,
+        )
+      
+        setEditingWaypoint({
+          id:
+            waypoint.id,
+      
+          query:
+            '',
+      
+          results:
+            [],
+      
+          loading:
+            false,
+        })
+      
+        setOpenMenuKey(
+          null,
+        )
+      
+        setStatus(
+          'Passaggio: cerca e seleziona una località o area geografica.',
+        )
+      
         return
       }
 
@@ -2106,35 +2193,6 @@ function App() {
       setOpenMenuKey(
         null,
       )
-
-      if (
-        type ===
-        'road-point'
-      ) {
-        setPendingRoadPointWaypointId(
-          waypoint.id,
-        )
-
-        removeRoute()
-
-        setDistance(null)
-        setDuration(null)
-
-        setStatus(
-          'Punto strada: clicca sulla mappa nel punto desiderato.',
-        )
-
-        return
-      }
-
-      if (
-        pendingRoadPointWaypointId ===
-        waypoint.id
-      ) {
-        setPendingRoadPointWaypointId(
-          null,
-        )
-      }
 
       syncWaypointMarkers(
         updated,
@@ -2162,23 +2220,17 @@ function App() {
 
     if (
       !map ||
-      !pendingRoadPointWaypointId
+      !pendingRoadPointSelection
     ) {
       return
     }
 
-    const waypointIndex =
-      waypoints.findIndex(
-        (waypoint) =>
-          waypoint.id ===
-          pendingRoadPointWaypointId,
-      )
-
-    if (
-      waypointIndex < 0
-    ) {
-      return
-    }
+    const {
+      waypointId,
+      insertIndex,
+      replaceIndex,
+    } =
+      pendingRoadPointSelection
 
     let previous:
       RoutePoint | undefined
@@ -2187,48 +2239,101 @@ function App() {
       RoutePoint | undefined
 
     if (
-      waypointIndex === 0
-    ) {
-      if (startPlace) {
-        previous = {
-          lat:
-            startPlace.lat,
-
-          lng:
-            startPlace.lng,
-        }
-      }
-    } else {
-      previous =
-        waypointToRoutePoint(
-          waypoints[
-            waypointIndex - 1
-          ],
-        )
-    }
-
-    if (
-      waypointIndex ===
-      waypoints.length - 1
+      replaceIndex !==
+      null
     ) {
       if (
-        destinationPlace
+        replaceIndex === 0
       ) {
-        next = {
-          lat:
-            destinationPlace.lat,
+        if (startPlace) {
+          previous = {
+            lat:
+              startPlace.lat,
 
-          lng:
-            destinationPlace.lng,
+            lng:
+              startPlace.lng,
+          }
         }
+      } else {
+        previous =
+          waypointToRoutePoint(
+            waypoints[
+              replaceIndex - 1
+            ],
+          )
       }
-    } else {
-      next =
-        waypointToRoutePoint(
-          waypoints[
-            waypointIndex + 1
-          ],
-        )
+
+      if (
+        replaceIndex ===
+        waypoints.length - 1
+      ) {
+        if (
+          destinationPlace
+        ) {
+          next = {
+            lat:
+              destinationPlace.lat,
+
+            lng:
+              destinationPlace.lng,
+          }
+        }
+      } else {
+        next =
+          waypointToRoutePoint(
+            waypoints[
+              replaceIndex + 1
+            ],
+          )
+      }
+    } else if (
+      insertIndex !==
+      null
+    ) {
+      if (
+        insertIndex === 0
+      ) {
+        if (startPlace) {
+          previous = {
+            lat:
+              startPlace.lat,
+
+            lng:
+              startPlace.lng,
+          }
+        }
+      } else {
+        previous =
+          waypointToRoutePoint(
+            waypoints[
+              insertIndex - 1
+            ],
+          )
+      }
+
+      if (
+        insertIndex >=
+        waypoints.length
+      ) {
+        if (
+          destinationPlace
+        ) {
+          next = {
+            lat:
+              destinationPlace.lat,
+
+            lng:
+              destinationPlace.lng,
+          }
+        }
+      } else {
+        next =
+          waypointToRoutePoint(
+            waypoints[
+              insertIndex
+            ],
+          )
+      }
     }
 
     map.getCanvas().style.cursor =
@@ -2241,7 +2346,7 @@ function App() {
       ) => {
         try {
           setStatus(
-            'Cerco la strada più adatta vicino al punto selezionato...',
+            'Aggancio il punto alla strada percorribile più adatta...',
           )
 
           const resolved =
@@ -2259,36 +2364,87 @@ function App() {
               next,
             )
 
+          const label =
+            `${resolved.lat.toFixed(5)}, ${resolved.lng.toFixed(5)}`
+
           setWaypoints(
             (current) => {
-              const updated =
-                current.map(
-                  (waypoint) =>
-                    waypoint.id ===
-                    pendingRoadPointWaypointId
-                      ? {
-                          ...waypoint,
+              let updated =
+                [...current]
 
-                          type:
-                            'road-point' as const,
+              if (
+                replaceIndex !==
+                null
+              ) {
+                updated =
+                  updated.map(
+                    (
+                      waypoint,
+                    ) =>
+                      waypoint.id ===
+                      waypointId
+                        ? {
+                            ...waypoint,
 
-                          name:
-                            'Punto strada',
+                            type:
+                              'road-point' as const,
 
-                          label:
-                            `${resolved.lat.toFixed(5)}, ${resolved.lng.toFixed(5)}`,
+                            name:
+                              'Punto strada',
 
-                          lat:
-                            resolved.lat,
+                            label,
 
-                          lng:
-                            resolved.lng,
+                            lat:
+                              resolved.lat,
 
-                          boundingBox:
-                            undefined,
-                        }
-                      : waypoint,
+                            lng:
+                              resolved.lng,
+
+                            boundingBox:
+                              undefined,
+                          }
+                        : waypoint,
+                  )
+              } else if (
+                insertIndex !==
+                null
+              ) {
+                const waypoint:
+                  Waypoint = {
+                    id:
+                      waypointId,
+
+                    type:
+                      'road-point',
+
+                    name:
+                      'Punto strada',
+
+                    label,
+
+                    lat:
+                      resolved.lat,
+
+                    lng:
+                      resolved.lng,
+                  }
+
+                const safeIndex =
+                  Math.max(
+                    0,
+
+                    Math.min(
+                      insertIndex,
+                      updated.length,
+                    ),
+                  )
+
+                updated.splice(
+                  safeIndex,
+                  0,
+                  waypoint,
                 )
+              }
 
               syncWaypointMarkers(
                 updated,
@@ -2298,7 +2454,7 @@ function App() {
             },
           )
 
-          setPendingRoadPointWaypointId(
+          setPendingRoadPointSelection(
             null,
           )
 
@@ -2311,8 +2467,7 @@ function App() {
           )
 
           setStatus(
-            error instanceof
-              Error
+            error instanceof Error
               ? error.message
               : 'Errore durante la creazione del Punto strada.',
           )
@@ -2334,7 +2489,7 @@ function App() {
       )
     }
   }, [
-    pendingRoadPointWaypointId,
+    pendingRoadPointSelection,
     waypoints,
     startPlace,
     destinationPlace,
@@ -2353,7 +2508,7 @@ function App() {
     }
 
     if (
-      pendingRoadPointWaypointId
+      pendingRoadPointSelection
     ) {
       return
     }
@@ -2594,8 +2749,7 @@ function App() {
             setDuration(null)
 
             setStatus(
-              error instanceof
-                Error
+              error instanceof Error
                 ? error.message
                 : 'Errore durante il calcolo del percorso.',
             )
@@ -2613,7 +2767,7 @@ function App() {
     startPlace,
     destinationPlace,
     waypoints,
-    pendingRoadPointWaypointId,
+    pendingRoadPointSelection,
   ])
 
   const renderAddButton =
@@ -2621,6 +2775,73 @@ function App() {
       index:
         number,
     ) => {
+      if (
+        draggedWaypointIndex !==
+        null
+      ) {
+        const active =
+          dragOverInsertIndex ===
+          index
+
+        return (
+          <div
+            className={
+              active
+                ? 'waypoint-drop-zone active'
+                : 'waypoint-drop-zone'
+            }
+            onDragOver={(
+              event,
+            ) =>
+              handleWaypointDragOver(
+                event,
+                index,
+              )
+            }
+            onDrop={(
+              event,
+            ) =>
+              handleWaypointDrop(
+                event,
+                index,
+              )
+            }
+          >
+            {active && (
+              <span>
+                Rilascia qui
+              </span>
+            )}
+          </div>
+        )
+      }
+
+      if (
+        pendingRoadPointSelection
+          ?.insertIndex ===
+          index &&
+        pendingRoadPointSelection
+          .replaceIndex ===
+          null
+      ) {
+        return (
+          <div className="road-point-pending-inline">
+            <span>
+              📍 Clicca sulla mappa
+            </span>
+
+            <button
+              type="button"
+              onClick={
+                cancelPendingRoadPoint
+              }
+            >
+              Annulla
+            </button>
+          </div>
+        )
+      }
+
       const isEditing =
         editingInsertIndex ===
           index &&
@@ -2665,15 +2886,29 @@ function App() {
               }
             />
 
-            <button
-              type="button"
-              className="cancel-waypoint"
-              onClick={
-                closeWaypointEditor
-              }
-            >
-              Annulla
-            </button>
+            <div className="waypoint-editor-secondary-actions">
+              <button
+                type="button"
+                className="road-point-map-button"
+                onClick={() =>
+                  startDirectRoadPoint(
+                    index,
+                  )
+                }
+              >
+                📍 Punto strada sulla mappa
+              </button>
+
+              <button
+                type="button"
+                className="cancel-waypoint"
+                onClick={
+                  closeWaypointEditor
+                }
+              >
+                Annulla
+              </button>
+            </div>
           </div>
         )
       }
@@ -2765,10 +3000,6 @@ function App() {
         draggedWaypointIndex ===
         index
 
-      const dragOver =
-        dragOverWaypointIndex ===
-        index
-
       return (
         <div
           className={[
@@ -2783,25 +3014,9 @@ function App() {
             dragging
               ? 'is-dragging'
               : '',
-
-            dragOver
-              ? 'drag-over'
-              : '',
           ]
             .filter(Boolean)
             .join(' ')}
-          onDragOver={(event) =>
-            handleWaypointDragOver(
-              event,
-              index,
-            )
-          }
-          onDrop={(event) =>
-            handleWaypointDrop(
-              event,
-              index,
-            )
-          }
         >
           <div className="waypoint-leading">
             <span
