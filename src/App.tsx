@@ -13,7 +13,6 @@ import {
 } from 'maplibre-gl'
 
 import 'maplibre-gl/dist/maplibre-gl.css'
-
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
 import './App.css'
@@ -29,6 +28,16 @@ import {
   nominatimGeocodingProvider,
   type GeocodingResult,
 } from './providers/geocodingProvider'
+
+import {
+  deleteTrip,
+  duplicateTrip,
+  getSavedTrips,
+  saveTrip,
+  type TripRecord,
+} from './storage/tripStorage'
+
+import { TripsModal } from './components/TripsModal'
 
 setWorkerUrl(workerUrl)
 
@@ -154,6 +163,24 @@ function App() {
   const [activeSection, setActiveSection] =
     useState<ActiveSection>('itinerary')
 
+  const [tripName, setTripName] =
+    useState('Nuovo viaggio')
+
+  const [
+    currentTripId,
+    setCurrentTripId,
+  ] = useState<string | null>(null)
+
+  const [savedTrips, setSavedTrips] =
+    useState<TripRecord[]>(() =>
+      getSavedTrips(),
+    )
+
+  const [
+    tripsModalOpen,
+    setTripsModalOpen,
+  ] = useState(false)
+
   const [startQuery, setStartQuery] =
     useState('')
 
@@ -223,6 +250,10 @@ function App() {
     }
   }, [])
 
+  const refreshSavedTrips = () => {
+    setSavedTrips(getSavedTrips())
+  }
+
   const removeRoute = () => {
     const map = mapRef.current
 
@@ -241,6 +272,7 @@ function App() {
 
   const clearRouteData = () => {
     removeRoute()
+
     setDistance(null)
     setDuration(null)
   }
@@ -253,6 +285,9 @@ function App() {
     destinationMarkerRef.current = null
 
     removeRoute()
+
+    setTripName('Nuovo viaggio')
+    setCurrentTripId(null)
 
     setStartQuery('')
     setDestinationQuery('')
@@ -276,6 +311,155 @@ function App() {
       center: [12.5, 42.5],
       zoom: 5.5,
     })
+  }
+
+  const handleSaveTrip = () => {
+    const cleanName = tripName.trim()
+
+    if (!cleanName) {
+      setStatus(
+        'Inserisci un nome per il viaggio.',
+      )
+      return
+    }
+
+    if (
+      !startPlace ||
+      !destinationPlace
+    ) {
+      setStatus(
+        'Imposta partenza e destinazione prima di salvare.',
+      )
+      return
+    }
+
+    const saved = saveTrip(
+      {
+        name: cleanName,
+        startPlace,
+        destinationPlace,
+        distance,
+        duration,
+      },
+      currentTripId,
+    )
+
+    setCurrentTripId(saved.id)
+    setTripName(saved.name)
+
+    refreshSavedTrips()
+
+    setStatus(
+      `Viaggio "${saved.name}" salvato.`,
+    )
+  }
+
+  const loadTrip = (
+    trip: TripRecord,
+  ) => {
+    const map = mapRef.current
+
+    startMarkerRef.current?.remove()
+    destinationMarkerRef.current?.remove()
+
+    startMarkerRef.current = null
+    destinationMarkerRef.current = null
+
+    removeRoute()
+
+    setCurrentTripId(trip.id)
+    setTripName(trip.name)
+
+    setStartPlace(trip.startPlace)
+    setDestinationPlace(
+      trip.destinationPlace,
+    )
+
+    setStartQuery(
+      trip.startPlace?.label ?? '',
+    )
+
+    setDestinationQuery(
+      trip.destinationPlace?.label ?? '',
+    )
+
+    setStartResults([])
+    setDestinationResults([])
+
+    setDistance(trip.distance)
+    setDuration(trip.duration)
+
+    if (
+      map &&
+      trip.startPlace
+    ) {
+      startMarkerRef.current =
+        new Marker({
+          color: '#16a34a',
+        })
+          .setLngLat([
+            trip.startPlace.lng,
+            trip.startPlace.lat,
+          ])
+          .addTo(map)
+    }
+
+    if (
+      map &&
+      trip.destinationPlace
+    ) {
+      destinationMarkerRef.current =
+        new Marker({
+          color: '#dc2626',
+        })
+          .setLngLat([
+            trip.destinationPlace.lng,
+            trip.destinationPlace.lat,
+          ])
+          .addTo(map)
+    }
+
+    setActiveSection('itinerary')
+    setTripsModalOpen(false)
+
+    setStatus(
+      `Viaggio "${trip.name}" caricato.`,
+    )
+  }
+
+  const handleDuplicateTrip = (
+    trip: TripRecord,
+  ) => {
+    const copy =
+      duplicateTrip(trip.id)
+  
+    if (!copy) {
+      return
+    }
+  
+    refreshSavedTrips()
+  
+    loadTrip(copy)
+  
+    setStatus(
+      `Creata e caricata "${copy.name}".`,
+    )
+  }
+
+  const handleDeleteTrip = (
+    trip: TripRecord,
+  ) => {
+    deleteTrip(trip.id)
+
+    if (currentTripId === trip.id) {
+      resetTrip()
+    }
+
+    refreshSavedTrips()
+
+    setStatus(
+      `Viaggio "${trip.name}" eliminato.`,
+    )
   }
 
   const searchStart = async () => {
@@ -327,55 +511,58 @@ function App() {
     }
   }
 
-  const searchDestination = async () => {
-    const query =
-      destinationQuery.trim()
+  const searchDestination =
+    async () => {
+      const query =
+        destinationQuery.trim()
 
-    if (query.length < 3) {
-      setStatus(
-        'Inserisci almeno 3 caratteri per la destinazione.',
-      )
-      return
-    }
-
-    try {
-      setDestinationLoading(true)
-      setDestinationResults([])
-
-      setStatus(
-        `Ricerca destinazione: "${query}"...`,
-      )
-
-      const results =
-        await nominatimGeocodingProvider.search(
-          query,
-        )
-
-      setDestinationResults(results)
-
-      if (results.length === 0) {
+      if (query.length < 3) {
         setStatus(
-          `Nessun risultato trovato per "${query}".`,
+          'Inserisci almeno 3 caratteri per la destinazione.',
         )
-      } else {
-        setStatus(
-          `${results.length} risultati trovati. Scegli la destinazione corretta.`,
-        )
+        return
       }
-    } catch (error) {
-      console.error(error)
 
-      setDestinationResults([])
+      try {
+        setDestinationLoading(true)
+        setDestinationResults([])
 
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Errore durante la ricerca della destinazione.',
-      )
-    } finally {
-      setDestinationLoading(false)
+        setStatus(
+          `Ricerca destinazione: "${query}"...`,
+        )
+
+        const results =
+          await nominatimGeocodingProvider.search(
+            query,
+          )
+
+        setDestinationResults(
+          results,
+        )
+
+        if (results.length === 0) {
+          setStatus(
+            `Nessun risultato trovato per "${query}".`,
+          )
+        } else {
+          setStatus(
+            `${results.length} risultati trovati. Scegli la destinazione corretta.`,
+          )
+        }
+      } catch (error) {
+        console.error(error)
+
+        setDestinationResults([])
+
+        setStatus(
+          error instanceof Error
+            ? error.message
+            : 'Errore durante la ricerca della destinazione.',
+        )
+      } finally {
+        setDestinationLoading(false)
+      }
     }
-  }
 
   const selectStart = (
     result: GeocodingResult,
@@ -423,7 +610,11 @@ function App() {
     clearRouteData()
 
     setDestinationPlace(result)
-    setDestinationQuery(result.label)
+
+    setDestinationQuery(
+      result.label,
+    )
+
     setDestinationResults([])
 
     destinationMarkerRef.current?.remove()
@@ -458,114 +649,124 @@ function App() {
 
     let cancelled = false
 
-    const calculateRoute = async () => {
-      setStatus('Calcolo percorso...')
+    const calculateRoute =
+      async () => {
+        setStatus(
+          'Calcolo percorso...',
+        )
 
-      const start: RoutePoint = {
-        lat: startPlace.lat,
-        lng: startPlace.lng,
-      }
-
-      const destination: RoutePoint = {
-        lat: destinationPlace.lat,
-        lng: destinationPlace.lng,
-      }
-
-      try {
-        const route =
-          await osrmRoutingProvider.calculateRoute(
-            start,
-            destination,
-          )
-
-        if (cancelled) {
-          return
+        const start: RoutePoint = {
+          lat: startPlace.lat,
+          lng: startPlace.lng,
         }
 
-        removeRoute()
+        const destination: RoutePoint = {
+          lat: destinationPlace.lat,
+          lng: destinationPlace.lng,
+        }
 
-        map.addSource('route', {
-          type: 'geojson',
+        try {
+          const route =
+            await osrmRoutingProvider.calculateRoute(
+              start,
+              destination,
+            )
 
-          data: {
-            type: 'Feature',
-            properties: {},
-            geometry: route.geometry,
-          },
-        })
+          if (cancelled) {
+            return
+          }
 
-        map.addLayer({
-          id: 'route',
-          type: 'line',
-          source: 'route',
+          removeRoute()
 
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round',
-          },
+          map.addSource('route', {
+            type: 'geojson',
 
-          paint: {
-            'line-width': 5,
-            'line-color': '#2563eb',
-          },
-        })
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry:
+                route.geometry,
+            },
+          })
 
-        const coordinates =
-          route.geometry.coordinates
+          map.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
 
-        const bounds =
-          coordinates.reduce(
-            (
-              currentBounds,
-              coordinate,
-            ) =>
-              currentBounds.extend(
-                coordinate as [
+            layout: {
+              'line-join':
+                'round',
+
+              'line-cap':
+                'round',
+            },
+
+            paint: {
+              'line-width': 5,
+
+              'line-color':
+                '#2563eb',
+            },
+          })
+
+          const coordinates =
+            route.geometry
+              .coordinates
+
+          const bounds =
+            coordinates.reduce(
+              (
+                currentBounds,
+                coordinate,
+              ) =>
+                currentBounds.extend(
+                  coordinate as [
+                    number,
+                    number,
+                  ],
+                ),
+
+              new LngLatBounds(
+                coordinates[0] as [
+                  number,
+                  number,
+                ],
+
+                coordinates[0] as [
                   number,
                   number,
                 ],
               ),
+            )
 
-            new LngLatBounds(
-              coordinates[0] as [
-                number,
-                number,
-              ],
+          map.fitBounds(bounds, {
+            padding: 70,
+          })
 
-              coordinates[0] as [
-                number,
-                number,
-              ],
-            ),
+          setDistance(
+            route.distanceMeters,
           )
 
-        map.fitBounds(bounds, {
-          padding: 70,
-        })
+          setDuration(
+            route.durationSeconds,
+          )
 
-        setDistance(
-          route.distanceMeters,
-        )
-
-        setDuration(
-          route.durationSeconds,
-        )
-
-        setStatus(
-          'Percorso calcolato.',
-        )
-      } catch (error) {
-        console.error(error)
-
-        if (!cancelled) {
           setStatus(
-            error instanceof Error
-              ? error.message
-              : 'Errore durante il calcolo del percorso.',
+            'Percorso calcolato.',
           )
+        } catch (error) {
+          console.error(error)
+
+          if (!cancelled) {
+            setStatus(
+              error instanceof Error
+                ? error.message
+                : 'Errore durante il calcolo del percorso.',
+            )
+          }
         }
       }
-    }
 
     calculateRoute()
 
@@ -577,184 +778,225 @@ function App() {
     destinationPlace,
   ])
 
-  const renderSidebarContent = () => {
-    if (activeSection === 'fuel') {
+  const renderSidebarContent =
+    () => {
+      if (
+        activeSection === 'fuel'
+      ) {
+        return (
+          <section className="sidebar-section">
+            <h2>Rifornimenti</h2>
+
+            <div className="placeholder-card">
+              <strong>
+                Pianificazione
+                carburante
+              </strong>
+
+              <p>
+                Qui inseriremo
+                autonomia moto,
+                distributori sul
+                percorso e deviazione
+                massima consentita.
+              </p>
+
+              <span>
+                Funzione in
+                preparazione
+              </span>
+            </div>
+          </section>
+        )
+      }
+
+      if (
+        activeSection === 'breaks'
+      ) {
+        return (
+          <section className="sidebar-section">
+            <h2>
+              Pause & Pranzo
+            </h2>
+
+            <div className="placeholder-card">
+              <strong>
+                Pause di viaggio
+              </strong>
+
+              <p>
+                Qui gestiremo
+                frequenza delle pause,
+                pranzo e soste di
+                comfort.
+              </p>
+
+              <span>
+                Funzione in
+                preparazione
+              </span>
+            </div>
+          </section>
+        )
+      }
+
+      if (
+        activeSection === 'days'
+      ) {
+        return (
+          <section className="sidebar-section">
+            <h2>
+              Giornate & Hotel
+            </h2>
+
+            <div className="placeholder-card">
+              <strong>
+                Viaggio multi-giorno
+              </strong>
+
+              <p>
+                Qui divideremo il tour
+                in giornate,
+                pernottamenti e
+                timeline.
+              </p>
+
+              <span>
+                Funzione in
+                preparazione
+              </span>
+            </div>
+          </section>
+        )
+      }
+
       return (
-        <section className="sidebar-section">
-          <h2>Rifornimenti</h2>
+        <>
+          <section className="sidebar-section">
+            <h2>
+              Itinerario & Tappe
+            </h2>
 
-          <div className="placeholder-card">
-            <strong>
-              Pianificazione carburante
-            </strong>
+            <SearchField
+              label="Partenza"
+              placeholder="Es. Viganò, Lecco"
+              value={startQuery}
+              results={startResults}
+              loading={startLoading}
+              onSearch={searchStart}
+              onChange={(value) => {
+                setStartQuery(value)
 
-            <p>
-              Qui inseriremo autonomia moto,
-              distributori sul percorso e
-              deviazione massima consentita.
-            </p>
+                if (startPlace) {
+                  startMarkerRef.current?.remove()
 
-            <span>
-              Funzione in preparazione
-            </span>
-          </div>
-        </section>
-      )
-    }
+                  startMarkerRef.current =
+                    null
 
-    if (activeSection === 'breaks') {
-      return (
-        <section className="sidebar-section">
-          <h2>Pause & Pranzo</h2>
+                  setStartPlace(null)
 
-          <div className="placeholder-card">
-            <strong>
-              Pause di viaggio
-            </strong>
+                  clearRouteData()
+                }
 
-            <p>
-              Qui gestiremo frequenza delle
-              pause, pranzo e soste di comfort.
-            </p>
+                setStartResults([])
+              }}
+              onSelect={selectStart}
+            />
 
-            <span>
-              Funzione in preparazione
-            </span>
-          </div>
-        </section>
-      )
-    }
-
-    if (activeSection === 'days') {
-      return (
-        <section className="sidebar-section">
-          <h2>Giornate & Hotel</h2>
-
-          <div className="placeholder-card">
-            <strong>
-              Viaggio multi-giorno
-            </strong>
-
-            <p>
-              Qui divideremo il tour in
-              giornate, pernottamenti e
-              timeline.
-            </p>
-
-            <span>
-              Funzione in preparazione
-            </span>
-          </div>
-        </section>
-      )
-    }
-
-    return (
-      <>
-        <section className="sidebar-section">
-          <h2>Itinerario & Tappe</h2>
-
-          <SearchField
-            label="Partenza"
-            placeholder="Es. Viganò, Lecco"
-            value={startQuery}
-            results={startResults}
-            loading={startLoading}
-            onSearch={searchStart}
-            onChange={(value) => {
-              setStartQuery(value)
-
-              if (startPlace) {
-                startMarkerRef.current?.remove()
-                startMarkerRef.current = null
-
-                setStartPlace(null)
-                clearRouteData()
+            <SearchField
+              label="Destinazione"
+              placeholder="Es. Bolzano"
+              value={
+                destinationQuery
               }
-
-              setStartResults([])
-            }}
-            onSelect={selectStart}
-          />
-
-          <SearchField
-            label="Destinazione"
-            placeholder="Es. Bolzano"
-            value={destinationQuery}
-            results={destinationResults}
-            loading={destinationLoading}
-            onSearch={
-              searchDestination
-            }
-            onChange={(value) => {
-              setDestinationQuery(value)
-
-              if (destinationPlace) {
-                destinationMarkerRef.current?.remove()
-
-                destinationMarkerRef.current =
-                  null
-
-                setDestinationPlace(null)
-                clearRouteData()
+              results={
+                destinationResults
               }
+              loading={
+                destinationLoading
+              }
+              onSearch={
+                searchDestination
+              }
+              onChange={(value) => {
+                setDestinationQuery(
+                  value,
+                )
 
-              setDestinationResults([])
-            }}
-            onSelect={
-              selectDestination
-            }
-          />
+                if (
+                  destinationPlace
+                ) {
+                  destinationMarkerRef.current?.remove()
 
-          <p className="route-status">
-            {status}
-          </p>
+                  destinationMarkerRef.current =
+                    null
 
-          {distance !== null &&
-            duration !== null && (
-              <div className="route-summary">
-                <div>
-                  <span>
-                    Distanza
-                  </span>
+                  setDestinationPlace(
+                    null,
+                  )
 
-                  <strong>
-                    {formatDistance(
-                      distance,
-                    )}
-                  </strong>
+                  clearRouteData()
+                }
+
+                setDestinationResults(
+                  [],
+                )
+              }}
+              onSelect={
+                selectDestination
+              }
+            />
+
+            <p className="route-status">
+              {status}
+            </p>
+
+            {distance !== null &&
+              duration !== null && (
+                <div className="route-summary">
+                  <div>
+                    <span>
+                      Distanza
+                    </span>
+
+                    <strong>
+                      {formatDistance(
+                        distance,
+                      )}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Guida stimata
+                    </span>
+
+                    <strong>
+                      {formatDuration(
+                        duration,
+                      )}
+                    </strong>
+                  </div>
                 </div>
+              )}
+          </section>
 
-                <div>
-                  <span>
-                    Guida stimata
-                  </span>
+          <section className="sidebar-section">
+            <h2>Routing</h2>
 
-                  <strong>
-                    {formatDuration(
-                      duration,
-                    )}
-                  </strong>
-                </div>
-              </div>
-            )}
-        </section>
+            <p>
+              Provider prototipo:
+              OSRM
+            </p>
 
-        <section className="sidebar-section">
-          <h2>Routing</h2>
-
-          <p>
-            Provider prototipo: OSRM
-          </p>
-
-          <p>
-            Profilo attuale:
-            Veloce / driving
-          </p>
-        </section>
-      </>
-    )
-  }
+            <p>
+              Profilo attuale:
+              Veloce / driving
+            </p>
+          </section>
+        </>
+      )
+    }
 
   return (
     <div className="app-shell">
@@ -770,31 +1012,67 @@ function App() {
             </strong>
 
             <span>
-              Pianifica qui. Naviga con ciò
-              che preferisci.
+              Pianifica qui. Naviga con
+              ciò che preferisci.
             </span>
           </div>
         </div>
 
         <div className="trip-summary">
-          <strong>
-            Nuovo viaggio
-          </strong>
+          <input
+            className="trip-name-input"
+            type="text"
+            value={tripName}
+            maxLength={60}
+            onChange={(event) =>
+              setTripName(
+                event.target.value,
+              )
+            }
+          />
 
           <span>
             {distance !== null
-              ? formatDistance(distance)
+              ? formatDistance(
+                  distance,
+                )
               : '— km'}
           </span>
 
           <span>
             {duration !== null
-              ? formatDuration(duration)
+              ? formatDuration(
+                  duration,
+                )
               : '— guida'}
           </span>
         </div>
 
         <div className="topbar-actions">
+          <button
+            type="button"
+            className="secondary-action"
+            onClick={() => {
+              refreshSavedTrips()
+
+              setTripsModalOpen(
+                true,
+              )
+            }}
+          >
+            I miei Viaggi
+          </button>
+
+          <button
+            type="button"
+            className="save-action"
+            onClick={
+              handleSaveTrip
+            }
+          >
+            Salva
+          </button>
+
           <button
             type="button"
             className="secondary-action"
@@ -809,12 +1087,15 @@ function App() {
         <button
           type="button"
           className={
-            activeSection === 'itinerary'
+            activeSection ===
+            'itinerary'
               ? 'section-tab active'
               : 'section-tab'
           }
           onClick={() =>
-            setActiveSection('itinerary')
+            setActiveSection(
+              'itinerary',
+            )
           }
         >
           Itinerario & Tappe
@@ -837,12 +1118,15 @@ function App() {
         <button
           type="button"
           className={
-            activeSection === 'breaks'
+            activeSection ===
+            'breaks'
               ? 'section-tab active'
               : 'section-tab'
           }
           onClick={() =>
-            setActiveSection('breaks')
+            setActiveSection(
+              'breaks',
+            )
           }
         >
           Pause & Pranzo
@@ -875,6 +1159,22 @@ function App() {
           />
         </main>
       </div>
+
+      <TripsModal
+        open={tripsModalOpen}
+        trips={savedTrips}
+        currentTripId={currentTripId}
+        onClose={() =>
+          setTripsModalOpen(false)
+        }
+        onLoad={loadTrip}
+        onDuplicate={
+          handleDuplicateTrip
+        }
+        onDelete={
+          handleDeleteTrip
+        }
+      />
     </div>
   )
 }

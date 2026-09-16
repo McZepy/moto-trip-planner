@@ -442,3 +442,625 @@ input {
   font-size: 11px;
   font-weight: 700;
 }
+/* NOME VIAGGIO */
+
+.trip-name-input {
+  width: 180px;
+  height: 30px;
+
+  padding: 0 10px;
+
+  border: 1px solid #363636;
+  border-radius: 999px;
+
+  outline: none;
+
+  background: transparent;
+  color: #ffffff;
+
+  font-weight: 700;
+}
+
+.trip-name-input:focus {
+  border-color: #f97316;
+}
+
+/* AZIONI TOPBAR */
+
+.topbar-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.save-action {
+  height: 36px;
+  padding: 0 14px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #f97316;
+  color: #ffffff;
+
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.save-action:hover {
+  background: #ea580c;
+}
+
+/* MODALE I MIEI VIAGGI */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background:
+    rgba(0, 0, 0, 0.62);
+}
+
+.trips-modal {
+  width: min(720px, 100%);
+  max-height: 78vh;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  background: #181818;
+  color: #ffffff;
+
+  border: 1px solid #343434;
+  border-radius: 14px;
+
+  box-shadow:
+    0 24px 60px
+    rgba(0, 0, 0, 0.35);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+
+  padding: 18px 20px;
+
+  border-bottom:
+    1px solid #303030;
+}
+
+.modal-header h2 {
+  margin: 0 0 4px;
+
+  font-size: 19px;
+}
+
+.modal-header p {
+  margin: 0;
+
+  color: #a3a3a3;
+
+  font-size: 12px;
+}
+
+.modal-close {
+  width: 34px;
+  height: 34px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #292929;
+  color: #d4d4d4;
+
+  font-size: 22px;
+
+  cursor: pointer;
+}
+
+.modal-content {
+  padding: 18px;
+
+  overflow-y: auto;
+}
+
+.empty-trips {
+  padding: 36px 20px;
+
+  text-align: center;
+
+  background: #111111;
+
+  border: 1px solid #303030;
+  border-radius: 10px;
+}
+
+.empty-trips p {
+  margin-bottom: 0;
+
+  color: #a3a3a3;
+}
+
+.saved-trip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+
+  padding: 14px;
+
+  background: #111111;
+
+  border:
+    1px solid #303030;
+  border-radius: 10px;
+}
+
+.saved-trip + .saved-trip {
+  margin-top: 10px;
+}
+
+.saved-trip-info {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.saved-trip-info strong {
+  font-size: 14px;
+}
+
+.saved-trip-info span {
+  overflow: hidden;
+
+  color: #d4d4d4;
+
+  font-size: 12px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-trip-info small {
+  color: #737373;
+
+  font-size: 11px;
+}
+
+.saved-trip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.saved-trip-actions button {
+  height: 32px;
+
+  padding: 0 10px;
+
+  border:
+    1px solid #404040;
+  border-radius: 7px;
+
+  background: #292929;
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.saved-trip-actions button:hover {
+  background: #3a3a3a;
+}
+
+.saved-trip-actions .danger-action {
+  color: #fca5a5;
+}
+/* TOPBAR - EVITA TESTI SPEZZATI */
+
+.topbar {
+  grid-template-columns:
+    minmax(180px, 1fr)
+    auto
+    max-content;
+}
+
+.topbar-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.secondary-action,
+.save-action {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.trip-name-input {
+  min-width: 0;
+}
+
+/* CONFERMA ELIMINAZIONE */
+
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+
+  z-index: 1100;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background:
+    rgba(0, 0, 0, 0.72);
+}
+
+.confirm-dialog {
+  width: min(420px, 100%);
+
+  padding: 22px;
+
+  background: #181818;
+  color: #ffffff;
+
+  border: 1px solid #3a3a3a;
+  border-radius: 12px;
+
+  box-shadow:
+    0 24px 60px
+    rgba(0, 0, 0, 0.45);
+}
+
+.confirm-dialog h3 {
+  margin: 0 0 12px;
+
+  font-size: 18px;
+}
+
+.confirm-dialog p {
+  margin: 0 0 8px;
+
+  color: #d4d4d4;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.confirm-dialog .confirm-note {
+  color: #a3a3a3;
+  font-size: 12px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+
+  margin-top: 22px;
+}
+
+.confirm-actions button {
+  height: 36px;
+  padding: 0 14px;
+
+  border: 1px solid #444444;
+  border-radius: 8px;
+
+  background: #292929;
+  color: #ffffff;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.confirm-actions button:hover {
+  background: #3a3a3a;
+}
+
+.confirm-actions .confirm-delete {
+  border-color: #dc2626;
+
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.confirm-actions .confirm-delete:hover {
+  background: #b91c1c;
+}
+
+/* TOPBAR SU FINESTRE PIÙ STRETTE */
+
+@media (max-width: 1100px) {
+  .topbar {
+    grid-template-columns:
+      auto
+      1fr
+      auto;
+
+    gap: 10px;
+
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .topbar-brand span {
+    display: none;
+  }
+
+  .trip-summary {
+    justify-self: center;
+
+    gap: 8px;
+
+    padding: 6px 10px;
+  }
+
+  .trip-name-input {
+    width: 150px;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+  }
+
+  .secondary-action,
+  .save-action {
+    height: 34px;
+
+    padding: 0 10px;
+
+    font-size: 12px;
+  }
+}
+/* TOPBAR RESPONSIVA */
+
+.trip-summary {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.trip-name-input {
+  width: clamp(130px, 20vw, 240px);
+  min-width: 0;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 950px) {
+  .topbar {
+    grid-template-columns:
+      auto
+      minmax(0, 1fr)
+      auto;
+  }
+
+  .topbar-brand span {
+    display: none;
+  }
+
+  .topbar-brand strong {
+    font-size: 15px;
+  }
+
+  .trip-summary {
+    gap: 6px;
+    padding: 6px 8px;
+  }
+
+  .trip-name-input {
+    width: clamp(110px, 18vw, 170px);
+  }
+
+  .trip-summary span {
+    font-size: 11px;
+  }
+}
+/* VIAGGIO ATTIVO */
+
+.saved-trip.active-trip {
+  border-color: #f97316;
+
+  box-shadow:
+    inset 3px 0 0 #f97316;
+}
+
+.active-trip-badge {
+  display: inline-block;
+
+  width: fit-content;
+
+  margin-top: 2px;
+  padding: 3px 7px;
+
+  border-radius: 999px;
+
+  background: rgba(249, 115, 22, 0.14);
+  color: #fb923c !important;
+
+  font-size: 10px !important;
+  font-weight: 800;
+
+  letter-spacing: 0.04em;
+}
+
+
+/* TOPBAR PIÙ ROBUSTA */
+
+.topbar {
+  grid-template-columns:
+    minmax(190px, 1fr)
+    minmax(280px, auto)
+    max-content;
+}
+
+.trip-summary {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.trip-name-input {
+  width: clamp(125px, 19vw, 240px);
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-actions {
+  flex-shrink: 0;
+}
+
+.secondary-action,
+.save-action {
+  white-space: nowrap;
+}
+
+@media (max-width: 1000px) {
+  .topbar {
+    grid-template-columns:
+      minmax(150px, auto)
+      minmax(220px, 1fr)
+      max-content;
+
+    gap: 8px;
+  }
+
+  .topbar-brand span {
+    display: none;
+  }
+
+  .topbar-brand strong {
+    font-size: 14px;
+  }
+
+  .trip-summary {
+    gap: 6px;
+    padding: 6px 8px;
+  }
+
+  .trip-name-input {
+    width: clamp(110px, 18vw, 165px);
+  }
+
+  .trip-summary span {
+    font-size: 11px;
+  }
+
+  .secondary-action,
+  .save-action {
+    padding-left: 9px;
+    padding-right: 9px;
+
+    font-size: 11px;
+  }
+}
+.saved-trip-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.saved-trip-title-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-trip-route {
+  color: #d4d4d4 !important;
+}
+/* RIEPILOGO VIAGGIO RESPONSIVO */
+
+.trip-summary {
+  display: grid;
+  grid-template-columns:
+    minmax(190px, 1fr)
+    auto
+    auto;
+
+  align-items: center;
+  gap: 10px;
+
+  width: clamp(330px, 38vw, 560px);
+  min-width: 0;
+
+  padding: 6px 10px;
+}
+
+.trip-name-input {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+
+  padding: 0 10px;
+
+  overflow: hidden;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.trip-summary span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* FINESTRE MEDIE */
+
+@media (max-width: 1100px) {
+  .trip-summary {
+    width: clamp(300px, 42vw, 460px);
+
+    grid-template-columns:
+      minmax(160px, 1fr)
+      auto
+      auto;
+  }
+
+  .trip-name-input {
+    font-size: 12px;
+  }
+}
+
+/* FINESTRE MOLTO STRETTE */
+
+@media (max-width: 850px) {
+  .topbar-brand > div:last-child {
+    display: none;
+  }
+
+  .trip-summary {
+    width: 100%;
+
+    grid-template-columns:
+      minmax(140px, 1fr)
+      auto
+      auto;
+  }
+}
