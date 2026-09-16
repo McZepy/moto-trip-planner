@@ -1,7 +1,16 @@
+export type GeoBoundingBox = {
+  south: number
+  north: number
+  west: number
+  east: number
+}
+
 export type GeocodingResult = {
   id: string
+
   name: string
   label: string
+
   lat: number
   lng: number
 
@@ -10,10 +19,14 @@ export type GeocodingResult = {
 
   osmType?: string
   osmId?: number
+
+  boundingBox?: GeoBoundingBox
 }
 
 export interface GeocodingProvider {
-  search(query: string): Promise<GeocodingResult[]>
+  search(
+    query: string,
+  ): Promise<GeocodingResult[]>
 }
 
 type NominatimResult = {
@@ -32,6 +45,13 @@ type NominatimResult = {
   type?: string
   addresstype?: string
 
+  boundingbox?: [
+    string,
+    string,
+    string,
+    string,
+  ]
+
   address?: {
     road?: string
     village?: string
@@ -47,7 +67,9 @@ type NominatimResult = {
 const NOMINATIM_BASE_URL =
   'https://nominatim.openstreetmap.org'
 
-function getResultName(result: NominatimResult) {
+function getResultName(
+  result: NominatimResult,
+) {
   return (
     result.name ??
     result.address?.road ??
@@ -60,58 +82,117 @@ function getResultName(result: NominatimResult) {
   )
 }
 
-export const nominatimGeocodingProvider: GeocodingProvider = {
-  async search(query) {
-    const trimmedQuery = query.trim()
+function getBoundingBox(
+  result: NominatimResult,
+): GeoBoundingBox | undefined {
+  if (!result.boundingbox) {
+    return undefined
+  }
 
-    if (trimmedQuery.length < 3) {
-      return []
-    }
+  const [
+    south,
+    north,
+    west,
+    east,
+  ] = result.boundingbox.map(Number)
 
-    const params = new URLSearchParams({
-      q: trimmedQuery,
-      format: 'jsonv2',
-      addressdetails: '1',
-      limit: '6',
-      'accept-language': 'it',
-    })
+  if (
+    !Number.isFinite(south) ||
+    !Number.isFinite(north) ||
+    !Number.isFinite(west) ||
+    !Number.isFinite(east)
+  ) {
+    return undefined
+  }
 
-    const response = await fetch(
-      `${NOMINATIM_BASE_URL}/search?${params.toString()}`,
-      {
-        headers: {
-          Accept: 'application/json',
-        },
-      },
-    )
-
-    if (!response.ok) {
-      throw new Error(
-        `Ricerca località non disponibile (${response.status})`,
-      )
-    }
-
-    const data =
-      (await response.json()) as NominatimResult[]
-
-    return data.map((result) => ({
-      id: String(result.place_id),
-
-      name: getResultName(result),
-
-      label: result.display_name,
-
-      lat: Number(result.lat),
-      lng: Number(result.lon),
-
-      category: result.category,
-
-      type:
-        result.addresstype ??
-        result.type,
-
-      osmType: result.osm_type,
-      osmId: result.osm_id,
-    }))
-  },
+  return {
+    south,
+    north,
+    west,
+    east,
+  }
 }
+
+export const nominatimGeocodingProvider: GeocodingProvider =
+  {
+    async search(query) {
+      const trimmedQuery =
+        query.trim()
+
+      if (
+        trimmedQuery.length < 3
+      ) {
+        return []
+      }
+
+      const params =
+        new URLSearchParams({
+          q: trimmedQuery,
+          format: 'jsonv2',
+          addressdetails: '1',
+          limit: '6',
+          'accept-language': 'it',
+        })
+
+      const response =
+        await fetch(
+          `${NOMINATIM_BASE_URL}/search?${params.toString()}`,
+          {
+            headers: {
+              Accept:
+                'application/json',
+            },
+          },
+        )
+
+      if (!response.ok) {
+        throw new Error(
+          `Ricerca località non disponibile (${response.status})`,
+        )
+      }
+
+      const data =
+        (await response.json()) as NominatimResult[]
+
+      return data.map(
+        (result) => ({
+          id:
+            String(
+              result.place_id,
+            ),
+
+          name:
+            getResultName(
+              result,
+            ),
+
+          label:
+            result.display_name,
+
+          lat:
+            Number(result.lat),
+
+          lng:
+            Number(result.lon),
+
+          category:
+            result.category,
+
+          type:
+            result.addresstype ??
+            result.type,
+
+          osmType:
+            result.osm_type,
+
+          osmId:
+            result.osm_id,
+
+          boundingBox:
+            getBoundingBox(
+              result,
+            ),
+        }),
+      )
+    },
+  }

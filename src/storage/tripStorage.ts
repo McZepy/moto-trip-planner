@@ -1,4 +1,5 @@
 import type { GeocodingResult } from '../providers/geocodingProvider'
+import type { Waypoint } from '../types/waypoint'
 
 export type TripRecord = {
   id: string
@@ -7,13 +8,16 @@ export type TripRecord = {
   startPlace: GeocodingResult | null
   destinationPlace: GeocodingResult | null
 
+  waypoints: Waypoint[]
+
   distance: number | null
   duration: number | null
 
   updatedAt: string
 }
 
-const STORAGE_KEY = 'moto-route-trips-v1'
+const STORAGE_KEY =
+  'moto-route-trips-v1'
 
 function createId() {
   if (
@@ -31,19 +35,32 @@ function createId() {
 export function getSavedTrips(): TripRecord[] {
   try {
     const raw =
-      localStorage.getItem(STORAGE_KEY)
+      localStorage.getItem(
+        STORAGE_KEY,
+      )
 
     if (!raw) {
       return []
     }
 
-    const trips =
+    const stored =
       JSON.parse(raw) as TripRecord[]
+
+    const trips =
+      stored.map((trip) => ({
+        ...trip,
+        waypoints:
+          trip.waypoints ?? [],
+      }))
 
     return trips.sort(
       (a, b) =>
-        new Date(b.updatedAt).getTime() -
-        new Date(a.updatedAt).getTime(),
+        new Date(
+          b.updatedAt,
+        ).getTime() -
+        new Date(
+          a.updatedAt,
+        ).getTime(),
     )
   } catch {
     return []
@@ -66,7 +83,8 @@ export function saveTrip(
   >,
   existingId?: string | null,
 ): TripRecord {
-  const trips = getSavedTrips()
+  const trips =
+    getSavedTrips()
 
   const savedTrip: TripRecord = {
     ...trip,
@@ -79,15 +97,19 @@ export function saveTrip(
       new Date().toISOString(),
   }
 
-  const index = trips.findIndex(
-    (item) =>
-      item.id === savedTrip.id,
-  )
+  const index =
+    trips.findIndex(
+      (item) =>
+        item.id === savedTrip.id,
+    )
 
   if (index >= 0) {
-    trips[index] = savedTrip
+    trips[index] =
+      savedTrip
   } else {
-    trips.unshift(savedTrip)
+    trips.unshift(
+      savedTrip,
+    )
   }
 
   writeTrips(trips)
@@ -100,7 +122,8 @@ export function deleteTrip(
 ) {
   const trips =
     getSavedTrips().filter(
-      (trip) => trip.id !== id,
+      (trip) =>
+        trip.id !== id,
     )
 
   writeTrips(trips)
@@ -144,11 +167,14 @@ function createCopyName(
 export function duplicateTrip(
   id: string,
 ): TripRecord | null {
-  const trips = getSavedTrips()
+  const trips =
+    getSavedTrips()
 
-  const source = trips.find(
-    (trip) => trip.id === id,
-  )
+  const source =
+    trips.find(
+      (trip) =>
+        trip.id === id,
+    )
 
   if (!source) {
     return null
@@ -157,12 +183,21 @@ export function duplicateTrip(
   const copy: TripRecord = {
     ...source,
 
-    id: createId(),
+    waypoints:
+      source.waypoints.map(
+        (waypoint) => ({
+          ...waypoint,
+        }),
+      ),
 
-    name: createCopyName(
-      source.name,
-      trips,
-    ),
+    id:
+      createId(),
+
+    name:
+      createCopyName(
+        source.name,
+        trips,
+      ),
 
     updatedAt:
       new Date().toISOString(),

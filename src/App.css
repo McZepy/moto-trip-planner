@@ -1064,3 +1064,370 @@ input {
       auto;
   }
 }
+/* PANNELLO TIPO NUOVA TAPPA */
+
+.waypoint-mode-panel {
+  margin-bottom: 20px;
+  padding: 12px;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+
+  background: #f9fafb;
+}
+
+.waypoint-mode-title {
+  display: block;
+
+  font-size: 12px;
+  font-weight: 800;
+
+  color: #374151;
+}
+
+.waypoint-mode-panel
+  .waypoint-type-selector {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.waypoint-mode-description {
+  margin: 0 !important;
+
+  color: #6b7280 !important;
+
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+/* ITINERARIO DINAMICO */
+
+.endpoint-card,
+.waypoint-card,
+.waypoint-editor {
+  margin-top: 14px;
+
+  padding: 12px;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+
+  background: #ffffff;
+}
+
+.endpoint-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-bottom: 6px;
+}
+
+.endpoint-badge,
+.waypoint-number {
+  width: 28px;
+  height: 28px;
+
+  flex: 0 0 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.start-endpoint .endpoint-badge {
+  background: #10b981;
+}
+
+.destination-endpoint .endpoint-badge {
+  background: #e11d48;
+}
+
+.waypoint-number {
+  background: #2563eb;
+}
+
+.endpoint-card
+  .search-field {
+  margin-top: 8px;
+}
+
+.insert-waypoint-row {
+  position: relative;
+
+  display: flex;
+  justify-content: center;
+
+  margin: 10px 0;
+}
+
+.insert-waypoint-row::before {
+  content: '';
+
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+
+  height: 1px;
+
+  background: #e5e7eb;
+}
+
+.insert-waypoint-row button {
+  position: relative;
+  z-index: 1;
+
+  padding: 6px 12px;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+
+  background: #ffffff;
+  color: #374151;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.insert-waypoint-row button:hover {
+  border-color: #f97316;
+  color: #ea580c;
+}
+
+.waypoint-card {
+  background: #f9fafb;
+}
+
+.waypoint-card-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.waypoint-info {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.waypoint-info strong {
+  font-size: 14px;
+}
+
+.waypoint-info small {
+  overflow: hidden;
+
+  color: #6b7280;
+
+  font-size: 11px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.waypoint-card-controls {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    34px
+    34px
+    34px;
+
+  gap: 5px;
+
+  margin-top: 10px;
+}
+
+.waypoint-card-controls select {
+  min-width: 0;
+
+  height: 34px;
+
+  padding: 0 8px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+
+  background: #ffffff;
+  color: #1f2937;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.waypoint-card-controls button {
+  height: 34px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+
+  background: #ffffff;
+  color: #374151;
+
+  cursor: pointer;
+}
+
+.waypoint-card-controls button:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.waypoint-card-controls button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.waypoint-card-controls
+  .waypoint-delete {
+  color: #dc2626;
+}
+
+.waypoint-editor {
+  background: #fff7ed;
+
+  border-color: #fed7aa;
+}
+
+.waypoint-editor-title {
+  margin-bottom: 8px;
+
+  color: #9a3412;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cancel-waypoint {
+  margin-top: 8px;
+
+  padding: 6px 10px;
+
+  border: 0;
+  border-radius: 7px;
+
+  background: #e5e7eb;
+  color: #374151;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+/* SCELTA LOCALITA / CENTRO */
+
+.area-choice-backdrop {
+  position: fixed;
+  inset: 0;
+
+  z-index: 1200;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background: rgba(0, 0, 0, 0.68);
+}
+
+.area-choice-dialog {
+  width: min(460px, 100%);
+
+  padding: 22px;
+
+  background: #181818;
+  color: #ffffff;
+
+  border: 1px solid #3a3a3a;
+  border-radius: 12px;
+
+  box-shadow:
+    0 24px 60px
+    rgba(0, 0, 0, 0.45);
+}
+
+.area-choice-dialog h3 {
+  margin: 0 0 12px;
+
+  font-size: 18px;
+}
+
+.area-choice-dialog p {
+  margin: 8px 0;
+
+  color: #d4d4d4;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.area-choice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  margin-top: 20px;
+}
+
+.area-choice-actions button {
+  height: 38px;
+
+  padding: 0 14px;
+
+  border: 1px solid #444444;
+  border-radius: 8px;
+
+  background: #292929;
+  color: #ffffff;
+
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.area-choice-actions .zone-choice {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  color: #111827;
+}
+
+.area-choice-actions .center-choice {
+  border-color: #2563eb;
+  background: #2563eb;
+}
+
+
+/* PUNTO STRADA */
+
+.waypoint-card.awaiting-road-point {
+  border-color: #0891b2;
+
+  box-shadow:
+    inset 3px 0 0 #0891b2;
+}
+
+.road-point-hint {
+  margin-top: 10px;
+
+  padding: 9px 10px;
+
+  border-radius: 7px;
+
+  background: #ecfeff;
+  color: #155e75;
+
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
