@@ -49,6 +49,9 @@ import {
   type PortResultGroup,
   type SmartGeocodingResult,
 } from './providers/autocompleteProvider'
+import {
+  rankAutocompleteSuggestions,
+} from './providers/autocompleteRanking'
 
 import {
   isAreaResult,
@@ -1645,7 +1648,10 @@ function App() {
         }
 
         setStartResults(
-          results,
+          rankAutocompleteSuggestions(
+            cleanQuery,
+            results,
+          ),
         )
       } catch (error) {
         if (
@@ -1728,7 +1734,10 @@ function App() {
         }
 
         setDestinationResults(
-          results,
+          rankAutocompleteSuggestions(
+            cleanQuery,
+            results,
+          ),
         )
       } catch (error) {
         if (
@@ -1844,7 +1853,11 @@ function App() {
                   loading:
                     false,
 
-                  results,
+                  results:
+                    rankAutocompleteSuggestions(
+                      cleanQuery,
+                      results,
+                    ),
                 }
               : current,
         )
