@@ -1,3 +1,4 @@
+// One-shot integration for autocomplete locality ranking.
 import fs from 'node:fs/promises'
 
 const APP_PATH = new URL('../src/App.tsx', import.meta.url)
