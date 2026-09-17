@@ -2,6 +2,7 @@ import type { GeocodingResult } from '../providers/geocodingProvider'
 import type { RoutingProvider } from '../providers/routingProvider'
 import {
   autocompleteLocalities,
+  autocompletePlaces,
   type SmartGeocodingResult,
 } from '../providers/autocompleteProvider'
 import {
@@ -17,6 +18,10 @@ import type {
 } from '../providers/tripRoutePlanner'
 import type { TripDay } from '../types/tripDay'
 import { getTripDayPlaces } from './itineraryTextParser'
+import {
+  resolveGeographicSearchHint,
+  resolveGeographicSearchQuery,
+} from './geographicAliases'
 
 export type TripDayRouteStats = {
   distanceMeters: number
@@ -210,13 +215,22 @@ async function loadCandidates(
     lng: number
   },
 ): Promise<SmartGeocodingResult[]> {
+  const hint =
+    resolveGeographicSearchHint(
+      name,
+    )
+
   const focusKey =
     focus
       ? focus.lat.toFixed(2) + ',' + focus.lng.toFixed(2)
       : 'global'
 
   const key =
-    normalizeText(name) + '|' + focusKey
+    normalizeText(hint.query) +
+    '|' +
+    hint.kind +
+    '|' +
+    focusKey
 
   const cached =
     candidateCache.get(key)
@@ -226,17 +240,29 @@ async function loadCandidates(
   }
 
   const results =
-    await autocompleteLocalities(
-      name,
-      undefined,
-      { focus },
-    )
+    hint.kind === 'locality'
+      ? await autocompleteLocalities(
+          hint.query,
+          undefined,
+          { focus },
+        )
+      : await autocompletePlaces(
+          hint.query,
+          undefined,
+          { focus },
+        )
 
   if (
     results.length === 0
   ) {
     throw new Error(
-      'Località non trovata: ' + name,
+      'Località non trovata: ' +
+      name +
+      (
+        hint.query !== name
+          ? ' (' + hint.query + ')'
+          : ''
+      ),
     )
   }
 
@@ -460,9 +486,14 @@ async function resolvePlaces(
         focus,
       )
 
+    const searchQuery =
+      resolveGeographicSearchQuery(
+        name,
+      )
+
     const ranked =
       rankAutocompleteSuggestions(
-        name,
+        searchQuery,
         candidates,
         focus,
       )
