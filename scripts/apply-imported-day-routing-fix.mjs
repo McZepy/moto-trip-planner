@@ -13,6 +13,14 @@ function replaceOnce(source, label, search, replacement) {
   return source.slice(0, first) + replacement + source.slice(first + search.length)
 }
 
+function replaceBetween(source, label, startMarker, endMarker, replacement) {
+  const start = source.indexOf(startMarker)
+  if (start < 0) throw new Error(`Patch ${label}: inizio non trovato`)
+  const end = source.indexOf(endMarker, start)
+  if (end < 0) throw new Error(`Patch ${label}: fine non trovata`)
+  return source.slice(0, start) + replacement + source.slice(end)
+}
+
 // 1. Ricerca dedicata alle località degli itinerari: city-first, fallback generico.
 // Riduce le chiamate LocationIQ rispetto all'autocomplete UI e usa il focus geografico.
 let autocomplete = await fs.readFile(AUTOCOMPLETE_PATH, 'utf8')
@@ -101,40 +109,11 @@ import {
 } from '../providers/autocompleteRanking'`,
   )
 
-  day = replaceOnce(
+  day = replaceBetween(
     day,
     'day-load-candidates',
-    `async function loadCandidates(
-  name: string,
-): Promise<SmartGeocodingResult[]> {
-  const key =
-    normalizeText(name)
-
-  const cached =
-    candidateCache.get(key)
-
-  if (cached) {
-    return cached
-  }
-
-  const results =
-    await autocompletePlaces(name)
-
-  if (
-    results.length === 0
-  ) {
-    throw new Error(
-      'Località non trovata: ' + name,
-    )
-  }
-
-  candidateCache.set(
-    key,
-    results,
-  )
-
-  return results
-}`,
+    'async function loadCandidates(',
+    '\nfunction toGeocodingResult(',
     `async function loadCandidates(
   name: string,
   focus?: {
@@ -168,7 +147,7 @@ import {
     results.length === 0
   ) {
     throw new Error(
-      \`Località non trovata: \${name}\`,
+      'Località non trovata: ' + name,
     )
   }
 
@@ -178,31 +157,15 @@ import {
   )
 
   return results
-}`,
+}
+`,
   )
 
-  day = replaceOnce(
+  day = replaceBetween(
     day,
     'day-resolve-places',
-    `async function resolvePlaces(
-  names: string[],
-  anchor?: GeocodingResult,
-) {
-  const candidateGroups:
-    SmartGeocodingResult[][] = []
-
-  for (const name of names) {
-    candidateGroups.push(
-      await loadCandidates(name),
-    )
-  }
-
-  return selectBestGeocodingSequence(
-    names,
-    candidateGroups,
-    anchor,
-  )
-}`,
+    'async function resolvePlaces(',
+    '\nexport function getTripDayRoutingLegs(',
     `async function resolvePlaces(
   names: string[],
   anchor?: GeocodingResult,
@@ -251,7 +214,8 @@ import {
   }
 
   return resolved
-}`,
+}
+`,
   )
 
   await fs.writeFile(DAY_PATH, day)
@@ -380,3 +344,5 @@ console.log('Routing giornate importate e traghetti locali aggiornati')
 // trigger workflow
 
 // trigger retry
+
+// trigger retry 2
