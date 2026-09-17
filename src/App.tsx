@@ -30,6 +30,15 @@ import {
 } from './providers/routingProvider'
 
 import {
+  planFastestRouteAlternatives,
+} from './providers/tripRouteAlternatives'
+
+import {
+  clearPlannedRoute,
+  drawPlannedRoute,
+} from './map/routeSectionRenderer'
+
+import {
   nominatimGeocodingProvider,
   type GeocodingResult,
 } from './providers/geocodingProvider'
@@ -673,6 +682,10 @@ function App() {
       if (!map) {
         return
       }
+
+      clearPlannedRoute(
+        map,
+      )
 
       if (
         map.getLayer(
@@ -2628,6 +2641,126 @@ function App() {
               destinationPlace.lng,
           })
 
+          if (
+            waypoints.length ===
+            0
+          ) {
+            const alternatives =
+              await planFastestRouteAlternatives(
+                points[0],
+                points[
+                  points.length -
+                    1
+                ],
+                tripSettings
+                  .roadPreferences
+                  .allowFerries,
+              )
+
+            if (cancelled) {
+              return
+            }
+
+            const selected =
+              alternatives.selected
+
+            const plan =
+              selected.plan
+
+            removeRoute()
+
+            drawPlannedRoute(
+              map,
+              plan,
+            )
+
+            const coordinates =
+              plan.sections.flatMap(
+                (
+                  section,
+                ) =>
+                  section
+                    .geometry
+                    .coordinates,
+              )
+
+            if (
+              coordinates.length >
+              0
+            ) {
+              const bounds =
+                coordinates.reduce(
+                  (
+                    currentBounds,
+                    coordinate,
+                  ) =>
+                    currentBounds.extend(
+                      coordinate as [
+                        number,
+                        number,
+                      ],
+                    ),
+
+                  new LngLatBounds(
+                    coordinates[0] as [
+                      number,
+                      number,
+                    ],
+
+                    coordinates[0] as [
+                      number,
+                      number,
+                    ],
+                  ),
+                )
+
+              map.fitBounds(
+                bounds,
+                {
+                  padding:
+                    70,
+                },
+              )
+            }
+
+            setDistance(
+              plan.distanceMeters,
+            )
+
+            setDuration(
+              plan.durationSeconds,
+            )
+
+            if (
+              plan.usesFerry
+            ) {
+              const sectionSummary =
+                plan.sections
+                  .map(
+                    (
+                      section,
+                    ) =>
+                      section.type ===
+                      'ferry'
+                        ? 'TRAGHETTO'
+                        : 'STRADA',
+                  )
+                  .join(
+                    ' → ',
+                  )
+
+              setStatus(
+                `Percorso calcolato: ${selected.label} · ${sectionSummary}.`,
+              )
+            } else {
+              setStatus(
+                'Percorso calcolato.',
+              )
+            }
+
+            return
+          }
+
           const route =
             await osrmRoutingProvider
               .calculateRoute(
@@ -2768,6 +2901,9 @@ function App() {
     destinationPlace,
     waypoints,
     pendingRoadPointSelection,
+    tripSettings
+      .roadPreferences
+      .allowFerries,
   ])
 
   const renderAddButton =
