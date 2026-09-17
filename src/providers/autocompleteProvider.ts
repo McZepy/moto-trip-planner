@@ -1,0 +1,1130 @@
+import {
+  getFerryConnections,
+} from './ferryProvider'
+
+export type AutocompleteSuggestionKind =
+  | 'place'
+  | 'address'
+  | 'poi'
+  | 'ferry-terminal'
+
+export type PortResultGroup =
+  | 'recommended'
+  | 'company-terminal'
+  | 'other-port'
+
+export type AutocompleteSuggestion = {
+  id: string
+
+  name: string
+  label: string
+
+  lat: number
+  lng: number
+
+  kind:
+    AutocompleteSuggestionKind
+
+  source:
+    | 'locationiq'
+    | 'ferry-catalog'
+
+  portGroup?:
+    PortResultGroup
+
+  osmType?: string
+  osmId?: string
+
+  category?: string
+  type?: string
+
+  boundingBox?: [
+    number,
+    number,
+    number,
+    number,
+  ]
+}
+
+type LocationIqAddress = {
+  name?: string
+
+  house_number?: string
+  road?: string
+
+  neighbourhood?: string
+  suburb?: string
+
+  city?: string
+  town?: string
+  village?: string
+  municipality?: string
+
+  county?: string
+  state?: string
+  postcode?: string
+  country?: string
+}
+
+type LocationIqResult = {
+  place_id?: string | number
+
+  osm_id?: string | number
+  osm_type?: string
+
+  lat: string
+  lon: string
+
+  boundingbox?: [
+    string,
+    string,
+    string,
+    string,
+  ]
+
+  class?: string
+  type?: string
+
+  name?: string
+
+  display_name?: string
+  display_place?: string
+  display_address?: string
+
+  address?: LocationIqAddress
+}
+
+const LOCATIONIQ_AUTOCOMPLETE_URL =
+  'https://api.locationiq.com/v1/autocomplete'
+
+const LOCATIONIQ_NEARBY_URL =
+  'https://api.locationiq.com/v1/nearby'
+
+const LOCATIONIQ_SEARCH_URL =
+  'https://eu1.locationiq.com/v1/search'
+
+const PORT_WORDS =
+  /\b(porto|port|ferry|traghetto|traghetti|terminal|havn|harbour|harbor)\b/giu
+
+const COMPANY_WORDS =
+  /\b(gnv|tirrenia|moby|grimaldi|corsica ferries|sardinia ferries|fjord line|color line|dfds|stena line|scandlines|torghatten)\b/iu
+
+const CRUISE_WORDS =
+  /\b(msc|crociere|cruise|crociere terminal|cruise terminal)\b/iu
+
+const GENERIC_FERRY_WORDS =
+  /\b(porto passeggeri|terminal traghetti|ferry terminal|stazione marittima|traghetti|passeggeri)\b/iu
+
+const ROAD_LIKE_WORDS =
+  /^(via|viale|strada|piazza|piazzale|corso|lungomare)\b/iu
+
+const MIN_REQUEST_GAP_MS =
+  650
+
+let lastRequestAt =
+  0
+
+const responseCache =
+  new Map<
+    string,
+    LocationIqResult[]
+  >()
+
+function getApiKey() {
+  const key =
+    import.meta.env
+      .VITE_LOCATIONIQ_KEY
+
+  if (
+    !key ||
+    typeof key !==
+      'string'
+  ) {
+    throw new Error(
+      'Chiave LocationIQ non configurata nel file .env.',
+    )
+  }
+
+  return key
+}
+
+function sleep(
+  milliseconds: number,
+) {
+  return new Promise<void>(
+    (
+      resolve,
+    ) => {
+      window.setTimeout(
+        resolve,
+        milliseconds,
+      )
+    },
+  )
+}
+
+async function fetchLocationIq(
+  url: string,
+  signal?:
+    AbortSignal,
+  retry = true,
+): Promise<
+  LocationIqResult[]
+> {
+  const cached =
+    responseCache.get(
+      url,
+    )
+
+  if (cached) {
+    return cached
+  }
+
+  const now =
+    Date.now()
+
+  const wait =
+    Math.max(
+      0,
+      MIN_REQUEST_GAP_MS -
+        (
+          now -
+          lastRequestAt
+        ),
+    )
+
+  if (wait > 0) {
+    await sleep(
+      wait,
+    )
+  }
+
+  if (
+    signal?.aborted
+  ) {
+    throw new DOMException(
+      'Aborted',
+      'AbortError',
+    )
+  }
+
+  lastRequestAt =
+    Date.now()
+
+  const response =
+    await fetch(
+      url,
+      {
+        signal,
+
+        headers: {
+          Accept:
+            'application/json',
+        },
+      },
+    )
+
+  if (
+    response.status ===
+    404
+  ) {
+    return []
+  }
+
+  if (
+    response.status ===
+      429 &&
+    retry
+  ) {
+    await sleep(
+      1200,
+    )
+
+    return fetchLocationIq(
+      url,
+      signal,
+      false,
+    )
+  }
+
+  if (!response.ok) {
+    let detail =
+      ''
+
+    try {
+      detail =
+        await response.text()
+    } catch {
+      // Nessun dettaglio.
+    }
+
+    console.error(
+      'LocationIQ error:',
+      response.status,
+      detail,
+    )
+
+    throw new Error(
+      `LocationIQ non disponibile (${response.status}).`,
+    )
+  }
+
+  const data =
+    (await response.json()) as LocationIqResult[]
+
+  responseCache.set(
+    url,
+    data,
+  )
+
+  return data
+}
+
+function normalizeText(
+  value: string,
+) {
+  return value
+    .normalize('NFD')
+    .replace(
+      /[\u0300-\u036f]/g,
+      '',
+    )
+    .toLowerCase()
+    .trim()
+}
+
+function isPortIntent(
+  query: string,
+) {
+  PORT_WORDS.lastIndex =
+    0
+
+  return PORT_WORDS.test(
+    query,
+  )
+}
+
+function portPlaceQuery(
+  query: string,
+) {
+  PORT_WORDS.lastIndex =
+    0
+
+  const cleaned =
+    query
+      .replace(
+        PORT_WORDS,
+        ' ',
+      )
+      .replace(
+        /\b(di|del|della|dei|degli|de|of|the)\b/giu,
+        ' ',
+      )
+      .replace(
+        /\s+/g,
+        ' ',
+      )
+      .trim()
+
+  return (
+    cleaned ||
+    query.trim()
+  )
+}
+
+function displayPortPlace(
+  query: string,
+) {
+  const cleaned =
+    portPlaceQuery(
+      query,
+    )
+
+  if (!cleaned) {
+    return 'Porto'
+  }
+
+  return cleaned
+    .split(/\s+/)
+    .map(
+      (
+        part,
+      ) =>
+        part.length
+          ? part[0]
+              .toUpperCase() +
+            part
+              .slice(1)
+              .toLowerCase()
+          : part,
+    )
+    .join(' ')
+}
+
+function looksLikeExactAddress(
+  query: string,
+) {
+  return /\d/.test(
+    query,
+  )
+}
+
+function buildAddressName(
+  result:
+    LocationIqResult,
+) {
+  const address =
+    result.address ?? {}
+
+  const roadWithNumber =
+    [
+      address.road,
+      address.house_number,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .trim()
+
+  const fallbackCity =
+    address.city ??
+    address.town ??
+    address.village ??
+    address.municipality
+
+  return (
+    result.name?.trim() ||
+    result.display_place?.trim() ||
+    address.name?.trim() ||
+    roadWithNumber ||
+    fallbackCity?.trim() ||
+    result.display_name?.split(
+      ',',
+    )[0]?.trim() ||
+    'Punto selezionato'
+  )
+}
+
+function buildLabel(
+  result:
+    LocationIqResult,
+) {
+  return (
+    result.display_name?.trim() ||
+    result.display_address?.trim() ||
+    buildAddressName(
+      result,
+    )
+  )
+}
+
+function parseBoundingBox(
+  value:
+    LocationIqResult['boundingbox'],
+) {
+  if (
+    !value ||
+    value.length !==
+      4
+  ) {
+    return undefined
+  }
+
+  const [
+    south,
+    north,
+    west,
+    east,
+  ] =
+    value.map(Number)
+
+  if (
+    ![
+      south,
+      north,
+      west,
+      east,
+    ].every(
+      Number.isFinite,
+    )
+  ) {
+    return undefined
+  }
+
+  return [
+    south,
+    north,
+    west,
+    east,
+  ] as [
+    number,
+    number,
+    number,
+    number,
+  ]
+}
+
+function detectKind(
+  result:
+    LocationIqResult,
+): AutocompleteSuggestionKind {
+  if (
+    result.class ===
+      'amenity' &&
+    result.type ===
+      'ferry_terminal'
+  ) {
+    return 'ferry-terminal'
+  }
+
+  if (
+    result.class ===
+      'place'
+  ) {
+    return 'place'
+  }
+
+  if (
+    result.address
+      ?.road
+  ) {
+    return 'address'
+  }
+
+  return 'poi'
+}
+
+function locationIqToSuggestion(
+  result:
+    LocationIqResult,
+): AutocompleteSuggestion | null {
+  const lat =
+    Number(
+      result.lat,
+    )
+
+  const lng =
+    Number(
+      result.lon,
+    )
+
+  if (
+    !Number.isFinite(
+      lat,
+    ) ||
+    !Number.isFinite(
+      lng,
+    )
+  ) {
+    return null
+  }
+
+  return {
+    id:
+      `locationiq:${result.osm_type ?? 'x'}:${result.osm_id ?? result.place_id ?? `${lat}:${lng}`}`,
+
+    name:
+      buildAddressName(
+        result,
+      ),
+
+    label:
+      buildLabel(
+        result,
+      ),
+
+    lat,
+    lng,
+
+    kind:
+      detectKind(
+        result,
+      ),
+
+    source:
+      'locationiq',
+
+    osmType:
+      result.osm_type,
+
+    osmId:
+      result.osm_id !==
+      undefined
+        ? String(
+            result.osm_id,
+          )
+        : undefined,
+
+    category:
+      result.class,
+
+    type:
+      result.type,
+
+    boundingBox:
+      parseBoundingBox(
+        result.boundingbox,
+      ),
+  }
+}
+
+function resultsToSuggestions(
+  results:
+    LocationIqResult[],
+) {
+  return results
+    .map(
+      locationIqToSuggestion,
+    )
+    .filter(
+      (
+        suggestion,
+      ): suggestion is AutocompleteSuggestion =>
+        suggestion !==
+        null,
+    )
+}
+
+async function locationIqAutocomplete(
+  query: string,
+  signal?:
+    AbortSignal,
+  layers?: string,
+) {
+  const params =
+    new URLSearchParams({
+      key:
+        getApiKey(),
+
+      q:
+        query,
+
+      limit:
+        '10',
+
+      'accept-language':
+        'it',
+
+      normalizecity:
+        '1',
+
+      dedupe:
+        '1',
+    })
+
+  if (layers) {
+    params.set(
+      'layers',
+      layers,
+    )
+  }
+
+  const results =
+    await fetchLocationIq(
+      `${LOCATIONIQ_AUTOCOMPLETE_URL}?${params.toString()}`,
+      signal,
+    )
+
+  return resultsToSuggestions(
+    results,
+  )
+}
+
+async function locationIqAddressSearch(
+  query: string,
+  signal?:
+    AbortSignal,
+) {
+  const params =
+    new URLSearchParams({
+      key:
+        getApiKey(),
+
+      q:
+        query,
+
+      format:
+        'json',
+
+      limit:
+        '8',
+
+      addressdetails:
+        '1',
+
+      normalizeaddress:
+        '1',
+
+      'accept-language':
+        'it',
+    })
+
+  const results =
+    await fetchLocationIq(
+      `${LOCATIONIQ_SEARCH_URL}?${params.toString()}`,
+      signal,
+    )
+
+  return resultsToSuggestions(
+    results,
+  )
+}
+
+async function nearbyFerryTerminals(
+  lat: number,
+  lng: number,
+  signal?:
+    AbortSignal,
+) {
+  const params =
+    new URLSearchParams({
+      key:
+        getApiKey(),
+
+      lat:
+        String(lat),
+
+      lon:
+        String(lng),
+
+      radius:
+        '20000',
+
+      tag:
+        'amenity:ferry_terminal',
+
+      limit:
+        '30',
+
+      dedupe:
+        '1',
+    })
+
+  const results =
+    await fetchLocationIq(
+      `${LOCATIONIQ_NEARBY_URL}?${params.toString()}`,
+      signal,
+    )
+
+  return resultsToSuggestions(
+    results,
+  )
+}
+
+function ferryCatalogSuggestions(
+  query: string,
+) {
+  const normalizedQuery =
+    normalizeText(
+      portPlaceQuery(
+        query,
+      ),
+    )
+
+  if (
+    normalizedQuery.length <
+    3
+  ) {
+    return []
+  }
+
+  const seen =
+    new Set<string>()
+
+  const suggestions:
+    AutocompleteSuggestion[] = []
+
+  for (
+    const connection
+    of getFerryConnections()
+  ) {
+    const ports =
+      [
+        connection
+          .departurePort,
+        connection
+          .arrivalPort,
+      ]
+
+    for (
+      const port
+      of ports
+    ) {
+      const normalizedName =
+        normalizeText(
+          port.name,
+        )
+
+      if (
+        !normalizedName.includes(
+          normalizedQuery,
+        ) &&
+        !normalizedQuery.includes(
+          normalizedName,
+        )
+      ) {
+        continue
+      }
+
+      const key =
+        `${port.name}:${port.point.lat}:${port.point.lng}`
+
+      if (
+        seen.has(
+          key,
+        )
+      ) {
+        continue
+      }
+
+      seen.add(
+        key,
+      )
+
+      suggestions.push({
+        id:
+          `ferry-catalog:${key}`,
+
+        name:
+          `Terminal traghetti ${port.name}`,
+
+        label:
+          `${port.name}, ${port.country}`,
+
+        lat:
+          port.point.lat,
+
+        lng:
+          port.point.lng,
+
+        kind:
+          'ferry-terminal',
+
+        source:
+          'ferry-catalog',
+      })
+    }
+  }
+
+  return suggestions
+}
+
+function dedupeSuggestions(
+  suggestions:
+    AutocompleteSuggestion[],
+) {
+  const seen =
+    new Set<string>()
+
+  return suggestions.filter(
+    (
+      suggestion,
+    ) => {
+      const key =
+        `${suggestion.lat.toFixed(4)}:${suggestion.lng.toFixed(4)}`
+
+      if (
+        seen.has(
+          key,
+        )
+      ) {
+        return false
+      }
+
+      seen.add(
+        key,
+      )
+
+      return true
+    },
+  )
+}
+
+function looksLikeCompanyTerminal(
+  suggestion:
+    AutocompleteSuggestion,
+) {
+  return COMPANY_WORDS.test(
+    suggestion.name,
+  )
+}
+
+function looksLikeCruiseTerminal(
+  suggestion:
+    AutocompleteSuggestion,
+) {
+  return CRUISE_WORDS.test(
+    suggestion.name,
+  )
+}
+
+function looksLikeGenericFerryAccess(
+  suggestion:
+    AutocompleteSuggestion,
+) {
+  return GENERIC_FERRY_WORDS.test(
+    suggestion.name,
+  )
+}
+
+function looksLikeRoadOnly(
+  suggestion:
+    AutocompleteSuggestion,
+) {
+  return ROAD_LIKE_WORDS.test(
+    suggestion.name,
+  )
+}
+
+function classifyPortResults(
+  query: string,
+  catalog:
+    AutocompleteSuggestion[],
+  nearby:
+    AutocompleteSuggestion[],
+  cityAnchor?:
+    AutocompleteSuggestion,
+) {
+  const allTerminals =
+    dedupeSuggestions(
+      [
+        ...catalog,
+        ...nearby,
+      ],
+    )
+
+  const genericCandidate =
+    allTerminals.find(
+      (
+        suggestion,
+      ) =>
+        suggestion.source ===
+        'ferry-catalog',
+    ) ??
+    allTerminals.find(
+      (
+        suggestion,
+      ) =>
+        looksLikeGenericFerryAccess(
+          suggestion,
+        ) &&
+        !looksLikeCompanyTerminal(
+          suggestion,
+        ) &&
+        !looksLikeCruiseTerminal(
+          suggestion,
+        ),
+    )
+
+  const recommended:
+    AutocompleteSuggestion[] = []
+
+  if (genericCandidate) {
+    recommended.push({
+      ...genericCandidate,
+
+      id:
+        `recommended:${genericCandidate.id}`,
+
+      name:
+        `Porto di ${displayPortPlace(query)} – Terminal Traghetti`,
+
+      label:
+        genericCandidate.label,
+
+      portGroup:
+        'recommended',
+    })
+  }
+
+  const company =
+    allTerminals
+      .filter(
+        (
+          suggestion,
+        ) =>
+          suggestion.id !==
+          genericCandidate?.id &&
+          looksLikeCompanyTerminal(
+            suggestion,
+          ) &&
+          !looksLikeCruiseTerminal(
+            suggestion,
+          ),
+      )
+      .map(
+        (
+          suggestion,
+        ) => ({
+          ...suggestion,
+
+          portGroup:
+            'company-terminal' as const,
+        }),
+      )
+
+  const other =
+    allTerminals
+      .filter(
+        (
+          suggestion,
+        ) =>
+          suggestion.id !==
+          genericCandidate?.id &&
+          !looksLikeCompanyTerminal(
+            suggestion,
+          ) &&
+          !looksLikeRoadOnly(
+            suggestion,
+          ),
+      )
+      .map(
+        (
+          suggestion,
+        ) => ({
+          ...suggestion,
+
+          portGroup:
+            'other-port' as const,
+        }),
+      )
+
+  const city =
+    cityAnchor
+      ? [
+          {
+            ...cityAnchor,
+
+            portGroup:
+              'other-port' as const,
+          },
+        ]
+      : []
+
+  return dedupeSuggestions(
+    [
+      ...recommended,
+      ...company,
+      ...other,
+      ...city,
+    ],
+  ).slice(
+    0,
+    12,
+  )
+}
+
+async function portSearch(
+  query: string,
+  signal?:
+    AbortSignal,
+) {
+  const placeQuery =
+    portPlaceQuery(
+      query,
+    )
+
+  const catalog =
+    ferryCatalogSuggestions(
+      query,
+    )
+
+  const cities =
+    await locationIqAutocomplete(
+      placeQuery,
+      signal,
+      'city',
+    )
+
+  const anchor =
+    cities[0]
+
+  if (!anchor) {
+    const generic =
+      await locationIqAutocomplete(
+        placeQuery,
+        signal,
+      )
+
+    return classifyPortResults(
+      query,
+      catalog,
+      [],
+      generic[0],
+    )
+  }
+
+  const nearby =
+    await nearbyFerryTerminals(
+      anchor.lat,
+      anchor.lng,
+      signal,
+    )
+
+  return classifyPortResults(
+    query,
+    catalog,
+    nearby,
+    anchor,
+  )
+}
+
+export async function autocompletePlaces(
+  query: string,
+  signal?:
+    AbortSignal,
+): Promise<
+  AutocompleteSuggestion[]
+> {
+  const trimmedQuery =
+    query.trim()
+
+  if (
+    trimmedQuery.length <
+    3
+  ) {
+    return []
+  }
+
+  if (
+    isPortIntent(
+      trimmedQuery,
+    )
+  ) {
+    return portSearch(
+      trimmedQuery,
+      signal,
+    )
+  }
+
+  if (
+    looksLikeExactAddress(
+      trimmedQuery,
+    )
+  ) {
+    return locationIqAddressSearch(
+      trimmedQuery,
+      signal,
+    )
+  }
+
+  const general =
+    await locationIqAutocomplete(
+      trimmedQuery,
+      signal,
+    )
+
+  const catalog =
+    ferryCatalogSuggestions(
+      trimmedQuery,
+    )
+
+  return dedupeSuggestions(
+    [
+      ...general,
+      ...catalog,
+    ],
+  ).slice(
+    0,
+    10,
+  )
+}
