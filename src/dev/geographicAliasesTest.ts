@@ -31,7 +31,7 @@ check(
   resolveGeographicSearchQuery(
     'Lucerna',
   ),
-  'Luzern',
+  'Luzern, Switzerland',
 )
 
 check(
@@ -39,7 +39,7 @@ check(
   resolveGeographicSearchQuery(
     'Basilea',
   ),
-  'Basel',
+  'Basel, Switzerland',
 )
 
 check(
@@ -47,7 +47,7 @@ check(
   resolveGeographicSearchQuery(
     'Francoforte',
   ),
-  'Frankfurt am Main',
+  'Frankfurt am Main, Germany',
 )
 
 check(
@@ -91,8 +91,112 @@ check(
   resolveGeographicSearchQuery(
     'Copenaghen',
   ),
-  'København',
+  'København, Denmark',
 )
+
+const copenhagenPoint =
+  resolveGeographicFixedPoint(
+    'Copenaghen',
+  )
+
+tests.push({
+  name:
+    'Copenaghen ha coordinate fisse',
+
+  ok:
+    Boolean(
+      copenhagenPoint &&
+      Math.abs(
+        copenhagenPoint.lat -
+          55.6761,
+      ) < 0.001 &&
+      Math.abs(
+        copenhagenPoint.lng -
+          12.5683,
+      ) < 0.001,
+    ),
+
+  detail:
+    copenhagenPoint
+      ? `${copenhagenPoint.lat.toFixed(4)}, ${copenhagenPoint.lng.toFixed(4)}`
+      : 'coordinate mancanti',
+})
+
+const frankfurtPoint =
+  resolveGeographicFixedPoint(
+    'Francoforte',
+  )
+
+tests.push({
+  name:
+    'Francoforte ha coordinate fisse',
+
+  ok:
+    Boolean(
+      frankfurtPoint &&
+      Math.abs(
+        frankfurtPoint.lat -
+          50.1109,
+      ) < 0.001 &&
+      Math.abs(
+        frankfurtPoint.lng -
+          8.6821,
+      ) < 0.001,
+    ),
+
+  detail:
+    frankfurtPoint
+      ? `${frankfurtPoint.lat.toFixed(4)}, ${frankfurtPoint.lng.toFixed(4)}`
+      : 'coordinate mancanti',
+})
+
+const luzernPoint =
+  resolveGeographicFixedPoint(
+    'Lucerna',
+  )
+
+tests.push({
+  name:
+    'Lucerna ha coordinate fisse',
+
+  ok:
+    Boolean(
+      luzernPoint &&
+      Math.abs(
+        luzernPoint.lat -
+          47.0502,
+      ) < 0.001,
+    ),
+
+  detail:
+    luzernPoint
+      ? `${luzernPoint.lat.toFixed(4)}, ${luzernPoint.lng.toFixed(4)}`
+      : 'coordinate mancanti',
+})
+
+const baselPoint =
+  resolveGeographicFixedPoint(
+    'Basilea',
+  )
+
+tests.push({
+  name:
+    'Basilea ha coordinate fisse',
+
+  ok:
+    Boolean(
+      baselPoint &&
+      Math.abs(
+        baselPoint.lat -
+          47.5596,
+      ) < 0.001,
+    ),
+
+  detail:
+    baselPoint
+      ? `${baselPoint.lat.toFixed(4)}, ${baselPoint.lng.toFixed(4)}`
+      : 'coordinate mancanti',
+})
 
 check(
   'Atlantic Road usa Atlanterhavsvegen',
