@@ -39,6 +39,14 @@ export type AutocompleteSearchContext = {
     lat: number
     lng: number
   }
+
+  /*
+   * Usato dall'importazione itinerari: limita la ricerca a una
+   * finestra ampia attorno alla tappa precedente per evitare
+   * omonimi in altri paesi/continenti. L'autocomplete manuale
+   * resta invece con preferenza geografica morbida.
+   */
+  boundedToFocus?: boolean
 }
 
 type LocationIqAddress = {
@@ -727,6 +735,7 @@ async function locationIqAutocomplete(
     AbortSignal,
   layers?: string,
   focus?: { lat: number; lng: number },
+  boundedToFocus = false,
 ) {
   const params =
     new URLSearchParams({
@@ -757,8 +766,21 @@ async function locationIqAutocomplete(
   }
 
   if (focus) {
-    const latitudeSpan = 3.5
-    const longitudeSpan = 5
+    /*
+     * Finestra volutamente ampia:
+     * circa 650 km N/S e oltre 700 km E/O alle latitudini europee.
+     * È abbastanza grande anche per tappe lunghe ma esclude gli
+     * omonimi palesemente fuori corridoio.
+     */
+    const latitudeSpan =
+      boundedToFocus
+        ? 6
+        : 3.5
+
+    const longitudeSpan =
+      boundedToFocus
+        ? 9
+        : 5
 
     params.set(
       'viewbox',
@@ -770,7 +792,12 @@ async function locationIqAutocomplete(
       ].join(','),
     )
 
-    params.set('bounded', '0')
+    params.set(
+      'bounded',
+      boundedToFocus
+        ? '1'
+        : '0',
+    )
   }
 
   const results =
@@ -1248,6 +1275,7 @@ export async function autocompleteLocalities(
       signal,
       'city',
       context.focus,
+      context.boundedToFocus,
     )
 
   if (cities.length > 0) {
@@ -1265,6 +1293,7 @@ export async function autocompleteLocalities(
       signal,
       undefined,
       context.focus,
+      context.boundedToFocus,
     )
 
   return dedupeSuggestions(
@@ -1322,6 +1351,7 @@ export async function autocompletePlaces(
       signal,
       'city',
       context.focus,
+      context.boundedToFocus,
     )
 
   const general =
@@ -1330,6 +1360,7 @@ export async function autocompletePlaces(
       signal,
       undefined,
       context.focus,
+      context.boundedToFocus,
     )
 
   const catalog =
