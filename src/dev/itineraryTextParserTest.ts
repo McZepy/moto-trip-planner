@@ -55,6 +55,17 @@ Amburgo → Hannover → Göttingen → Kassel → Francoforte
 Francoforte → Karlsruhe → Basilea → Lucerna → Airolo → Bellinzona → Chiasso → Como → Viganò
 `
 
+const SEPARATOR_SAMPLE = `
+1. 1/9
+Milano - Como - Lugano
+2. 2/9
+Lugano_Bellinzona_Airolo
+3. 3/9
+Airolo, Lucerna, Basilea
+4. 4/9
+Basilea; Karlsruhe; Baden-Baden
+`
+
 type TestResult = {
   name: string
   ok: boolean
@@ -63,6 +74,11 @@ type TestResult = {
 
 const parsed =
   parseItineraryText(SAMPLE)
+
+const separators =
+  parseItineraryText(
+    SEPARATOR_SAMPLE,
+  )
 
 const tests: TestResult[] = []
 
@@ -179,6 +195,39 @@ check(
   parsed.days[19]?.notes.join(' · ') ?? 'nessuna nota',
 )
 
+const separatorPlaces =
+  separators.days.map(
+    getTripDayPlaces,
+  )
+
+check(
+  'Accetta il trattino con spazi',
+  separatorPlaces[0]?.join('|') ===
+    'Milano|Como|Lugano',
+  separatorPlaces[0]?.join(' → ') ?? '',
+)
+
+check(
+  'Accetta underscore',
+  separatorPlaces[1]?.join('|') ===
+    'Lugano|Bellinzona|Airolo',
+  separatorPlaces[1]?.join(' → ') ?? '',
+)
+
+check(
+  'Accetta virgola',
+  separatorPlaces[2]?.join('|') ===
+    'Airolo|Lucerna|Basilea',
+  separatorPlaces[2]?.join(' → ') ?? '',
+)
+
+check(
+  'Accetta punto e virgola senza spezzare Baden-Baden',
+  separatorPlaces[3]?.join('|') ===
+    'Basilea|Karlsruhe|Baden-Baden',
+  separatorPlaces[3]?.join(' → ') ?? '',
+)
+
 const root =
   document.getElementById(
     'test-root',
@@ -201,7 +250,7 @@ root.innerHTML = `
     ${passed}/${tests.length} test superati
   </div>
   <div class="note">
-    Caso reale: itinerario Capo Nord di 22 giornate, con traghetti e note di percorso.
+    Caso reale Capo Nord + separatori alternativi: freccia, trattino con spazi, underscore, virgola e punto e virgola.
   </div>
   ${tests
     .map(
