@@ -1,0 +1,48 @@
+name: Apply contextual autocomplete
+
+on:
+  push:
+    paths:
+      - 'scripts/apply-contextual-autocomplete.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply integration
+        run: node scripts/apply-contextual-autocomplete.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Commit integration if changed
+        shell: bash
+        run: |
+          if git diff --quiet -- src/App.tsx src/providers/autocompleteProvider.ts src/providers/autocompleteRanking.ts src/dev/autocomplete-ranking-test.ts; then
+            echo "Autocomplete contestuale già integrato"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.tsx src/providers/autocompleteProvider.ts src/providers/autocompleteRanking.ts src/dev/autocomplete-ranking-test.ts
+          git commit -m "V0.5C6 - autocomplete contestuale localita"
+          git pull --rebase origin main
+          git push
