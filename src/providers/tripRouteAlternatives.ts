@@ -1,5 +1,6 @@
 import type {
   RoutePoint,
+  RoutingProvider,
 } from './routingProvider'
 
 import {
@@ -217,7 +218,7 @@ function convertAlternative(
         'road-only',
 
       label:
-        'Percorso diretto OSRM',
+        'Percorso diretto stradale',
 
       kind:
         'road-only',
@@ -257,6 +258,8 @@ export async function planFastestRouteAlternatives(
   start: RoutePoint,
   destination: RoutePoint,
   allowFerries: boolean,
+  routingProvider?:
+    RoutingProvider,
 ): Promise<RouteAlternativesResult> {
   const evaluated =
     await evaluateFerryRouteAlternatives(
@@ -265,6 +268,7 @@ export async function planFastestRouteAlternatives(
       {
         includeKnownFerries:
           allowFerries,
+        routingProvider,
       },
     )
 

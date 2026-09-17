@@ -30,6 +30,10 @@ import {
 } from './providers/routingProvider'
 
 import {
+  createTomTomRoutingProvider,
+} from './providers/tomTomRoutingProvider'
+
+import {
   multiLegPlanToTripRoutePlan,
   planMultiLegRoute,
 } from './providers/multiLegTripPlanner'
@@ -145,6 +149,19 @@ function cloneTripSettings(
       ...settings.roadPreferences,
     },
   }
+}
+
+function createRoadRoutingProvider(
+  settings: TripSettings,
+) {
+  return createTomTomRoutingProvider({
+    routeStyle:
+      settings.routeStyle,
+    roadPreferences:
+      settings.roadPreferences,
+    traffic:
+      false,
+  })
 }
 
 function formatDistance(
@@ -1488,6 +1505,10 @@ function App() {
           await planTripDayRoute(
             day,
             tripSettings.roadPreferences.allowFerries,
+            undefined,
+            createRoadRoutingProvider(
+              tripSettings,
+            ),
           )
 
         showTripRoutePlan(
@@ -1558,6 +1579,9 @@ function App() {
                   '.',
               )
             },
+            createRoadRoutingProvider(
+              tripSettings,
+            ),
           )
 
         showTripRoutePlan(
@@ -3501,6 +3525,10 @@ function App() {
               tripSettings
                 .roadPreferences
                 .allowFerries,
+
+              createRoadRoutingProvider(
+                tripSettings,
+              ),
             )
 
           if (cancelled) {
@@ -3663,8 +3691,25 @@ function App() {
     pendingRoadPointSelection,
     pendingEndpointMapSelection,
     tripSettings
+      .routeStyle,
+    tripSettings
       .roadPreferences
       .allowFerries,
+    tripSettings
+      .roadPreferences
+      .avoidUnpaved,
+    tripSettings
+      .roadPreferences
+      .avoidMotorways,
+    tripSettings
+      .roadPreferences
+      .avoidTolls,
+    tripSettings
+      .roadPreferences
+      .avoidNarrowRoads,
+    tripSettings
+      .roadPreferences
+      .avoidUrbanAreas,
   ])
 
   const renderAddButton =

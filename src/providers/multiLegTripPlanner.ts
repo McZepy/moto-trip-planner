@@ -1,5 +1,6 @@
 import type {
   RoutePoint,
+  RoutingProvider,
 } from './routingProvider'
 
 import {
@@ -98,6 +99,8 @@ export async function planMultiLegRoute(
     RoutePoint[],
   allowFerries:
     boolean,
+  routingProvider?:
+    RoutingProvider,
 ): Promise<MultiLegRoutePlan> {
   if (
     points.length < 2
@@ -132,6 +135,7 @@ export async function planMultiLegRoute(
         from,
         to,
         allowFerries,
+        routingProvider,
       )
 
     const selected =

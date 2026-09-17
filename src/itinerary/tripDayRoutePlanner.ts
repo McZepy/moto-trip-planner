@@ -1,4 +1,5 @@
 import type { GeocodingResult } from '../providers/geocodingProvider'
+import type { RoutingProvider } from '../providers/routingProvider'
 import {
   autocompletePlaces,
   type SmartGeocodingResult,
@@ -548,6 +549,8 @@ async function planDayLeg(
   leg: TripDayRoutingLeg,
   from: GeocodingResult,
   to: GeocodingResult,
+  routingProvider?:
+    RoutingProvider,
 ): Promise<TripRoutePlan> {
   const result =
     await planFastestRouteAlternatives(
@@ -560,6 +563,7 @@ async function planDayLeg(
         lng: to.lng,
       },
       leg.explicitFerry,
+      routingProvider,
     )
 
   let selected =
@@ -635,6 +639,8 @@ export async function planTripDayRoute(
   day: TripDay,
   _allowAutomaticFerries: boolean,
   anchor?: GeocodingResult,
+  routingProvider?:
+    RoutingProvider,
 ): Promise<TripDayRouteResult> {
   const names =
     getTripDayPlaces(day)
@@ -699,6 +705,7 @@ export async function planTripDayRoute(
         leg,
         from,
         to,
+        routingProvider,
       ),
     )
   }
@@ -731,6 +738,8 @@ export async function planTripDaysRoute(
     total: number,
     day: TripDay,
   ) => void,
+  routingProvider?:
+    RoutingProvider,
 ): Promise<TripDaysRouteResult> {
   if (days.length === 0) {
     throw new Error(
@@ -757,6 +766,7 @@ export async function planTripDaysRoute(
         day,
         allowAutomaticFerries,
         anchor,
+        routingProvider,
       )
 
     dayResults.push(
