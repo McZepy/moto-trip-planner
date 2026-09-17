@@ -7,6 +7,16 @@ export type GeographicSearchKind =
 export type GeographicSearchHint = {
   query: string
   kind: GeographicSearchKind
+
+  /*
+   * Solo per località che il geocoder ha dimostrato di
+   * interpretare in modo ambiguo nel viaggio reale.
+   */
+  fixedPoint?: {
+    lat: number
+    lng: number
+    label: string
+  }
 }
 
 function normalizeAliasKey(
@@ -44,8 +54,15 @@ const GEOGRAPHIC_ALIASES:
     kind: 'locality',
   },
   amburgo: {
-    query: 'Hamburg',
+    query: 'Hamburg, Germany',
     kind: 'locality',
+
+    fixedPoint: {
+      lat: 53.5511,
+      lng: 9.9937,
+      label:
+        'Hamburg, Deutschland',
+    },
   },
   copenaghen: {
     query: 'København',
@@ -133,4 +150,13 @@ export function resolveGeographicSearchQuery(
   return resolveGeographicSearchHint(
     value,
   ).query
+}
+
+
+export function resolveGeographicFixedPoint(
+  value: string,
+) {
+  return resolveGeographicSearchHint(
+    value,
+  ).fixedPoint
 }
