@@ -3,21 +3,39 @@ import {
 } from './ferryCatalogSeed'
 
 import type {
+  FerryCatalogData,
   FerryPort,
   FerryRoute,
   FerryService,
   FerryTerminal,
 } from './ferryCatalogTypes'
 
+let ACTIVE_FERRY_CATALOG:
+  FerryCatalogData =
+    FERRY_CATALOG_SEED
+
 export function getFerryCatalog() {
-  return FERRY_CATALOG_SEED
+  return ACTIVE_FERRY_CATALOG
+}
+
+export function setFerryCatalog(
+  catalog:
+    FerryCatalogData,
+) {
+  ACTIVE_FERRY_CATALOG =
+    catalog
+}
+
+export function resetFerryCatalog() {
+  ACTIVE_FERRY_CATALOG =
+    FERRY_CATALOG_SEED
 }
 
 export function getFerryPortById(
   id: string,
 ) {
   return (
-    FERRY_CATALOG_SEED
+    ACTIVE_FERRY_CATALOG
       .ports
       .find(
         (port) =>
@@ -31,7 +49,7 @@ export function getFerryTerminalById(
   id: string,
 ) {
   return (
-    FERRY_CATALOG_SEED
+    ACTIVE_FERRY_CATALOG
       .terminals
       .find(
         (terminal) =>
@@ -45,7 +63,7 @@ export function getFerryRouteById(
   id: string,
 ) {
   return (
-    FERRY_CATALOG_SEED
+    ACTIVE_FERRY_CATALOG
       .routes
       .find(
         (route) =>
@@ -59,7 +77,7 @@ export function getFerryServicesForRoute(
   routeId: string,
 ) {
   return (
-    FERRY_CATALOG_SEED
+    ACTIVE_FERRY_CATALOG
       .services
       .filter(
         (service) =>
@@ -74,7 +92,7 @@ export function findFerryRoutesBetweenPorts(
   secondPortId: string,
 ) {
   return (
-    FERRY_CATALOG_SEED
+    ACTIVE_FERRY_CATALOG
       .routes
       .filter(
         (route) =>
@@ -99,7 +117,7 @@ export function findFerryRoutesForPort(
   portId: string,
 ) {
   return (
-    FERRY_CATALOG_SEED
+    ACTIVE_FERRY_CATALOG
       .routes
       .filter(
         (route) =>
@@ -137,7 +155,7 @@ export function searchFerryPorts(
   }
 
   return (
-    FERRY_CATALOG_SEED
+    ACTIVE_FERRY_CATALOG
       .ports
       .filter(
         (port) => {
@@ -188,7 +206,7 @@ export function listFerryServiceViews():
 
   for (
     const service
-    of FERRY_CATALOG_SEED
+    of ACTIVE_FERRY_CATALOG
       .services
   ) {
     const route =
