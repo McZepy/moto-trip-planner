@@ -74,8 +74,10 @@ import {
   type WaypointType,
 } from './types/waypoint'
 
+import type { TripDay } from './types/tripDay'
 import { TripsModal } from './components/TripsModal'
 import { TripSettingsModal } from './components/TripSettingsModal'
+import { DaysHotelPanel } from './components/DaysHotelPanel'
 
 setWorkerUrl(workerUrl)
 
@@ -677,6 +679,12 @@ function App() {
     >([])
 
   const [
+    days,
+    setDays,
+  ] =
+    useState<TripDay[]>([])
+
+  const [
     editingWaypoint,
     setEditingWaypoint,
   ] =
@@ -1061,6 +1069,7 @@ function App() {
       setEditingDestination(true)
 
       setWaypoints([])
+      setDays([])
 
       closeWaypointEditor()
 
@@ -1122,11 +1131,12 @@ function App() {
       }
 
       if (
-        !startPlace ||
-        !destinationPlace
+        (!startPlace ||
+          !destinationPlace) &&
+        days.length === 0
       ) {
         setStatus(
-          'Imposta partenza e destinazione prima di salvare.',
+          'Imposta partenza e destinazione oppure crea almeno una giornata prima di salvare.',
         )
 
         return
@@ -1154,6 +1164,8 @@ function App() {
 
             waypoints,
 
+            days,
+
             settings:
               cloneTripSettings(
                 tripSettings,
@@ -1179,6 +1191,10 @@ function App() {
         cloneTripSettings(
           saved.settings,
         ),
+      )
+
+      setDays(
+        saved.days ?? [],
       )
 
       refreshSavedTrips()
@@ -1260,6 +1276,10 @@ function App() {
         trip.waypoints ?? [],
       )
 
+      setDays(
+        trip.days ?? [],
+      )
+
       setDistance(
         trip.distance,
       )
@@ -1333,7 +1353,9 @@ function App() {
       )
 
       setActiveSection(
-        'itinerary',
+        (trip.days?.length ?? 0) > 0
+          ? 'days'
+          : 'itinerary',
       )
 
       setTripsModalOpen(
@@ -4316,20 +4338,15 @@ function App() {
               Giornate & Hotel
             </h2>
 
-            <div className="placeholder-card">
-              <strong>
-                Viaggio multi-giorno
-              </strong>
+            <DaysHotelPanel
+              days={days}
+              onChange={setDays}
+              onStatus={setStatus}
+            />
 
-              <p>
-                Qui divideremo il tour in giornate,
-                pernottamenti e timeline.
-              </p>
-
-              <span>
-                Funzione in preparazione
-              </span>
-            </div>
+            <p className="route-status">
+              {status}
+            </p>
           </section>
         )
       }
