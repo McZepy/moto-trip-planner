@@ -79,6 +79,35 @@ function cloneDays(
         ),
       notes:
         [...day.notes],
+
+      routingOverride:
+        day.routingOverride
+          ? {
+              startPlace: {
+                ...day.routingOverride
+                  .startPlace,
+              },
+              destinationPlace: {
+                ...day.routingOverride
+                  .destinationPlace,
+              },
+              waypoints:
+                day.routingOverride
+                  .waypoints
+                  .map(
+                    (waypoint) => ({
+                      ...waypoint,
+
+                      boundingBox:
+                        waypoint.boundingBox
+                          ? {
+                              ...waypoint.boundingBox,
+                            }
+                          : undefined,
+                    }),
+                  ),
+            }
+          : undefined,
     }),
   )
 }
