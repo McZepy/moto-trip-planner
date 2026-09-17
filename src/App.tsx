@@ -75,6 +75,13 @@ import {
 } from './types/waypoint'
 
 import type { TripDay } from './types/tripDay'
+import {
+  clearTripDayPlaceCache,
+  planTripDayRoute,
+  planTripDaysRoute,
+  type TripDayRouteStats,
+} from './itinerary/tripDayRoutePlanner'
+import { showTripRoutePlan } from './map/showTripRoutePlan'
 import { TripsModal } from './components/TripsModal'
 import { TripSettingsModal } from './components/TripSettingsModal'
 import { DaysHotelPanel } from './components/DaysHotelPanel'
@@ -685,6 +692,30 @@ function App() {
     useState<TripDay[]>([])
 
   const [
+    selectedDayId,
+    setSelectedDayId,
+  ] =
+    useState<string | null>(null)
+
+  const [
+    dayRouteStats,
+    setDayRouteStats,
+  ] =
+    useState<Record<string, TripDayRouteStats>>({})
+
+  const [
+    daysRoutingBusy,
+    setDaysRoutingBusy,
+  ] =
+    useState(false)
+
+  const [
+    daysRoutingProgress,
+    setDaysRoutingProgress,
+  ] =
+    useState<string | null>(null)
+
+  const [
     editingWaypoint,
     setEditingWaypoint,
   ] =
@@ -1070,6 +1101,11 @@ function App() {
 
       setWaypoints([])
       setDays([])
+      setSelectedDayId(null)
+      setDayRouteStats({})
+      setDaysRoutingBusy(false)
+      setDaysRoutingProgress(null)
+      clearTripDayPlaceCache()
 
       closeWaypointEditor()
 
@@ -1280,6 +1316,12 @@ function App() {
         trip.days ?? [],
       )
 
+      setSelectedDayId(null)
+      setDayRouteStats({})
+      setDaysRoutingBusy(false)
+      setDaysRoutingProgress(null)
+      clearTripDayPlaceCache()
+
       setDistance(
         trip.distance,
       )
@@ -1410,6 +1452,152 @@ function App() {
       setStatus(
         `Viaggio "${trip.name}" eliminato.`,
       )
+    }
+
+  const handleDaysChange =
+    (nextDays: TripDay[]) => {
+      setDays(nextDays)
+      setSelectedDayId(null)
+      setDayRouteStats({})
+      setDaysRoutingProgress(null)
+      clearTripDayPlaceCache()
+      removeRoute()
+      setDistance(null)
+      setDuration(null)
+    }
+
+  const handleSelectDayRoute =
+    async (day: TripDay) => {
+      const map = mapRef.current
+
+      if (!map || daysRoutingBusy) {
+        return
+      }
+
+      setDaysRoutingBusy(true)
+      setSelectedDayId(day.id)
+      setDaysRoutingProgress(
+        'Giorno ' + day.dayNumber + ': individuo le località e calcolo il percorso...',
+      )
+
+      try {
+        const result =
+          await planTripDayRoute(
+            day,
+            tripSettings.roadPreferences.allowFerries,
+          )
+
+        showTripRoutePlan(
+          map,
+          result.plan,
+        )
+
+        setDayRouteStats(
+          (current) => ({
+            ...current,
+            [day.id]: result.stats,
+          }),
+        )
+
+        setStatus(
+          'Giorno ' +
+            day.dayNumber +
+            ': ' +
+            formatDistance(result.plan.distanceMeters) +
+            ' · ' +
+            formatDuration(result.plan.durationSeconds) +
+            '.',
+        )
+      } catch (error) {
+        console.error(error)
+        setStatus(
+          error instanceof Error
+            ? error.message
+            : 'Errore durante il calcolo della giornata.',
+        )
+      } finally {
+        setDaysRoutingBusy(false)
+        setDaysRoutingProgress(null)
+      }
+    }
+
+  const handleShowTripOverview =
+    async () => {
+      const map = mapRef.current
+
+      if (
+        !map ||
+        daysRoutingBusy ||
+        days.length === 0
+      ) {
+        return
+      }
+
+      setDaysRoutingBusy(true)
+      setSelectedDayId(null)
+      setDaysRoutingProgress(
+        'Calcolo viaggio completo: 0/' + days.length + ' giornate...',
+      )
+
+      try {
+        const result =
+          await planTripDaysRoute(
+            days,
+            tripSettings.roadPreferences.allowFerries,
+            (completed, total, day) => {
+              setDaysRoutingProgress(
+                'Calcolo viaggio completo: ' +
+                  completed +
+                  '/' +
+                  total +
+                  ' · completato giorno ' +
+                  day.dayNumber +
+                  '.',
+              )
+            },
+          )
+
+        showTripRoutePlan(
+          map,
+          result.plan,
+        )
+
+        const stats =
+          Object.fromEntries(
+            result.dayResults.map(
+              (dayResult) => [
+                dayResult.day.id,
+                dayResult.stats,
+              ],
+            ),
+          ) as Record<string, TripDayRouteStats>
+
+        setDayRouteStats(stats)
+        setDistance(
+          result.plan.distanceMeters,
+        )
+        setDuration(
+          result.plan.durationSeconds,
+        )
+
+        setStatus(
+          'Viaggio completo: ' +
+            formatDistance(result.plan.distanceMeters) +
+            ' · ' +
+            formatDuration(result.plan.durationSeconds) +
+            '.',
+        )
+      } catch (error) {
+        console.error(error)
+        setStatus(
+          error instanceof Error
+            ? error.message
+            : 'Errore durante il calcolo del viaggio completo.',
+        )
+      } finally {
+        setDaysRoutingBusy(false)
+        setDaysRoutingProgress(null)
+      }
     }
 
   const autocompleteStart =
@@ -4340,7 +4528,13 @@ function App() {
 
             <DaysHotelPanel
               days={days}
-              onChange={setDays}
+              selectedDayId={selectedDayId}
+              routeStats={dayRouteStats}
+              routingBusy={daysRoutingBusy}
+              routingProgress={daysRoutingProgress}
+              onChange={handleDaysChange}
+              onSelectDay={handleSelectDayRoute}
+              onShowOverview={handleShowTripOverview}
               onStatus={setStatus}
             />
 
