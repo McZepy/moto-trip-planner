@@ -486,61 +486,6 @@ export function selectBestGeocodingSequence(
   )
 }
 
-async function resolvePlaces(
-  names: string[],
-  anchor?: GeocodingResult,
-) {
-  const resolved:
-    GeocodingResult[] = []
-
-  let focus:
-    GeocodingResult | undefined =
-      anchor
-
-  for (const name of names) {
-    const candidates =
-      await loadCandidates(
-        name,
-        focus,
-      )
-
-    const searchQuery =
-      resolveGeographicSearchQuery(
-        name,
-      )
-
-    const ranked =
-      rankAutocompleteSuggestions(
-        searchQuery,
-        candidates,
-        focus,
-      )
-
-    const selected =
-      ranked[0]
-
-    if (!selected) {
-      throw new Error(
-        'Località non trovata: ' + name,
-      )
-    }
-
-    const place =
-      toGeocodingResult(
-        selected,
-      )
-
-    resolved.push(
-      place,
-    )
-
-    focus =
-      place
-  }
-
-  return resolved
-}
-
 export function getTripDayRoutingLegs(
   day: TripDay,
 ): TripDayRoutingLeg[] {
@@ -691,41 +636,6 @@ async function planDayLeg(
           id:
             `day:${day.dayNumber}:leg:${legIndex}:section:${sectionIndex}:${section.id}`,
         }),
-      ),
-  }
-}
-
-function combineLegPlans(
-  plans:
-    TripRoutePlan[],
-): TripRoutePlan {
-  const sections:
-    TripRouteSection[] =
-      plans.flatMap(
-        (plan) =>
-          plan.sections,
-      )
-
-  return {
-    sections,
-    distanceMeters:
-      plans.reduce(
-        (total, plan) =>
-          total +
-          plan.distanceMeters,
-        0,
-      ),
-    durationSeconds:
-      plans.reduce(
-        (total, plan) =>
-          total +
-          plan.durationSeconds,
-        0,
-      ),
-    usesFerry:
-      plans.some(
-        (plan) =>
-          plan.usesFerry,
       ),
   }
 }
