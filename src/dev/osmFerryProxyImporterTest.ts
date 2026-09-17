@@ -185,15 +185,20 @@ function routeRows(
     .slice(0, 20)
     .map(
       (route) => {
-        const label =
-          route.name ??
+        const routeEndpoints =
           [
             route.fromName,
             route.toName,
           ]
             .filter(Boolean)
-            .join(' → ') ||
-          `${route.osmType} ${route.osmId}`
+            .join(' → ')
+
+        const label =
+          route.name ??
+          (
+            routeEndpoints ||
+            `${route.osmType} ${route.osmId}`
+          )
 
         return `
           <div class="route-row">
