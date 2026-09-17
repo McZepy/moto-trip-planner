@@ -124,7 +124,7 @@ import {
     results.length === 0
   ) {
     throw new Error(
-      \`Località non trovata: \${name}\`,
+      'Località non trovata: ' + name,
     )
   }
 
@@ -144,11 +144,11 @@ import {
 ): Promise<SmartGeocodingResult[]> {
   const focusKey =
     focus
-      ? \`${focus.lat.toFixed(2)},${focus.lng.toFixed(2)}\`
+      ? focus.lat.toFixed(2) + ',' + focus.lng.toFixed(2)
       : 'global'
 
   const key =
-    \`${normalizeText(name)}|${focusKey}\`
+    normalizeText(name) + '|' + focusKey
 
   const cached =
     candidateCache.get(key)
@@ -233,7 +233,7 @@ import {
 
     if (!selected) {
       throw new Error(
-        \`Località non trovata: \${name}\`,
+        'Località non trovata: ' + name,
       )
     }
 
@@ -378,3 +378,5 @@ if (test.includes('Routing stradale forza sempre evita traghetti')) {
 console.log('Routing giornate importate e traghetti locali aggiornati')
 
 // trigger workflow
+
+// trigger retry
