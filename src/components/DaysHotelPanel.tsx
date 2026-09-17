@@ -9,6 +9,10 @@ import {
 } from '../itinerary/itineraryTextParser'
 
 import type {
+  TripDayRouteStats,
+} from '../itinerary/tripDayRoutePlanner'
+
+import type {
   TripDay,
 } from '../types/tripDay'
 
@@ -16,8 +20,16 @@ import './DaysHotelPanel.css'
 
 type DaysHotelPanelProps = {
   days: TripDay[]
+  selectedDayId?: string | null
+  routeStats?: Record<string, TripDayRouteStats>
+  routingBusy?: boolean
+  routingProgress?: string | null
   onChange:
     (days: TripDay[]) => void
+  onSelectDay?:
+    (day: TripDay) => void
+  onShowOverview?:
+    () => void
   onStatus?:
     (message: string) => void
 }
@@ -40,9 +52,40 @@ function daySummary(
   }
 }
 
+function formatDistance(
+  meters: number,
+) {
+  return `${(meters / 1000).toFixed(0)} km`
+}
+
+function formatDuration(
+  seconds: number,
+) {
+  const totalMinutes =
+    Math.round(seconds / 60)
+
+  const hours =
+    Math.floor(totalMinutes / 60)
+
+  const minutes =
+    totalMinutes % 60
+
+  if (hours === 0) {
+    return `${minutes} min`
+  }
+
+  return `${hours} h ${minutes} min`
+}
+
 export function DaysHotelPanel({
   days,
+  selectedDayId = null,
+  routeStats = {},
+  routingBusy = false,
+  routingProgress = null,
   onChange,
+  onSelectDay,
+  onShowOverview,
   onStatus,
 }: DaysHotelPanelProps) {
   const [
@@ -157,7 +200,8 @@ export function DaysHotelPanel({
             type="button"
             className="days-import-primary"
             disabled={
-              !sourceText.trim()
+              !sourceText.trim() ||
+              routingBusy
             }
             onClick={
               handleImport
@@ -166,10 +210,25 @@ export function DaysHotelPanel({
             Crea bozza giornate
           </button>
 
+          {days.length > 0 &&
+          onShowOverview && (
+            <button
+              type="button"
+              className="days-overview-button"
+              disabled={routingBusy}
+              onClick={
+                onShowOverview
+              }
+            >
+              Mostra viaggio completo
+            </button>
+          )}
+
           {days.length > 0 && (
             <button
               type="button"
               className="days-clear-button"
+              disabled={routingBusy}
               onClick={
                 handleClear
               }
@@ -178,6 +237,12 @@ export function DaysHotelPanel({
             </button>
           )}
         </div>
+
+        {routingProgress && (
+          <div className="days-routing-progress">
+            {routingProgress}
+          </div>
+        )}
 
         {warnings.length > 0 && (
           <div className="days-warnings">
@@ -208,7 +273,7 @@ export function DaysHotelPanel({
           </strong>
 
           <p>
-            Incolla il programma del viaggio qui sopra. In questa fase MotoRoute crea la struttura delle giornate senza ancora geocodificare o calcolare i singoli percorsi.
+            Incolla il programma del viaggio qui sopra. MotoRoute crea la struttura delle giornate; cliccando poi una giornata ne calcola e mostra il percorso sulla mappa.
           </p>
         </div>
       ) : (
@@ -218,19 +283,51 @@ export function DaysHotelPanel({
               const summary =
                 daySummary(day)
 
+              const stats =
+                routeStats[day.id]
+
+              const selected =
+                selectedDayId === day.id
+
               return (
-                <article
+                <button
                   key={day.id}
-                  className="trip-day-card"
+                  type="button"
+                  className={
+                    selected
+                      ? 'trip-day-card trip-day-card--selected'
+                      : 'trip-day-card'
+                  }
+                  disabled={
+                    routingBusy ||
+                    !onSelectDay
+                  }
+                  onClick={() =>
+                    onSelectDay?.(day)
+                  }
                 >
                   <div className="trip-day-header">
                     <strong>
                       Giorno {day.dayNumber}
                     </strong>
 
-                    <span>
-                      {day.dateLabel}
-                    </span>
+                    <div className="trip-day-header-right">
+                      {stats && (
+                        <span className="trip-day-route-stats">
+                          {formatDistance(
+                            stats.distanceMeters,
+                          )}
+                          {' · '}
+                          {formatDuration(
+                            stats.durationSeconds,
+                          )}
+                        </span>
+                      )}
+
+                      <span>
+                        {day.dateLabel}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="trip-day-main-route">
@@ -297,7 +394,7 @@ export function DaysHotelPanel({
                       )}
                     </div>
                   )}
-                </article>
+                </button>
               )
             },
           )}
