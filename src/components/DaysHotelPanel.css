@@ -308,3 +308,10 @@
   font-size: 11px;
   line-height: 1.4;
 }
+
+
+.trip-day-header-right
+  .trip-day-custom-badge {
+  background: #24395f;
+  color: #bfdbfe;
+}
