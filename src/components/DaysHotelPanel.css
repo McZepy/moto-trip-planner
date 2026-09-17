@@ -92,9 +92,21 @@
   background: #2f7142;
 }
 
-.days-import-primary:disabled {
+.days-import-primary:disabled,
+.days-overview-button:disabled,
+.days-clear-button:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+.days-overview-button {
+  border: 1px solid #355f91;
+  background: #1d416a;
+  color: #ffffff;
+}
+
+.days-overview-button:hover:not(:disabled) {
+  background: #285681;
 }
 
 .days-clear-button {
@@ -103,8 +115,19 @@
   color: #d4d4d4;
 }
 
-.days-clear-button:hover {
+.days-clear-button:hover:not(:disabled) {
   background: #303030;
+}
+
+.days-routing-progress {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid #294a70;
+  border-radius: 8px;
+  background: #17283a;
+  color: #9fc3ff;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .days-warnings {
@@ -141,7 +164,34 @@
 }
 
 .trip-day-card {
+  width: 100%;
   padding: 12px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    transform 120ms ease;
+}
+
+.trip-day-card:hover:not(:disabled) {
+  border-color: #4b5563;
+  background: #1d1d1d;
+}
+
+.trip-day-card:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.trip-day-card:disabled {
+  cursor: wait;
+}
+
+.trip-day-card--selected {
+  border-color: #3b82f6;
+  background: #172236;
 }
 
 .trip-day-header {
@@ -157,13 +207,26 @@
   font-size: 13px;
 }
 
-.trip-day-header span {
+.trip-day-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.trip-day-header-right > span {
   padding: 3px 7px;
   border-radius: 999px;
   background: #272727;
   color: #d4d4d4;
   font-size: 11px;
   font-weight: 700;
+}
+
+.trip-day-header-right .trip-day-route-stats {
+  background: #1e3a2a;
+  color: #86efac;
 }
 
 .trip-day-main-route {
