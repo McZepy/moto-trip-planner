@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises'
 
+// One-shot integration helper for the V0.5 Giornate UI.
 const APP_PATH = new URL('../src/App.tsx', import.meta.url)
 
 let source = await fs.readFile(APP_PATH, 'utf8')
