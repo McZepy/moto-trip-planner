@@ -84,7 +84,6 @@ import {
 import type { TripDay } from './types/tripDay'
 import {
   clearTripDayPlaceCache,
-  planTripDayRoute,
   planTripDaysRoute,
   resolveTripDayEditorDraft,
   type TripDayRouteStats,
