@@ -1,0 +1,247 @@
+.days-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.days-import-card,
+.days-empty-card,
+.hotel-later-card,
+.trip-day-card {
+  border: 1px solid #2f2f2f;
+  border-radius: 10px;
+  background: #171717;
+}
+
+.days-import-card {
+  padding: 14px;
+}
+
+.days-import-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.days-import-heading strong {
+  display: block;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.days-import-heading p {
+  margin: 5px 0 0;
+  color: #a3a3a3;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.days-count-badge {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #203a2a;
+  color: #86efac;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.days-source-textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  background: #101010;
+  color: #f5f5f5;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+  outline: none;
+}
+
+.days-source-textarea:focus {
+  border-color: #737373;
+}
+
+.days-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.days-import-actions button {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.days-import-primary {
+  border: 1px solid #3f7a50;
+  background: #245a34;
+  color: #ffffff;
+}
+
+.days-import-primary:hover:not(:disabled) {
+  background: #2f7142;
+}
+
+.days-import-primary:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.days-clear-button {
+  border: 1px solid #444444;
+  background: #242424;
+  color: #d4d4d4;
+}
+
+.days-clear-button:hover {
+  background: #303030;
+}
+
+.days-warnings {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border: 1px solid #6b4f22;
+  border-radius: 8px;
+  background: #2b2112;
+  color: #f4d58d;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.days-empty-card {
+  padding: 14px;
+}
+
+.days-empty-card strong {
+  color: #f5f5f5;
+}
+
+.days-empty-card p {
+  margin: 6px 0 0;
+  color: #a3a3a3;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.days-list {
+  display: grid;
+  gap: 10px;
+}
+
+.trip-day-card {
+  padding: 12px;
+}
+
+.trip-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.trip-day-header strong {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.trip-day-header span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #272727;
+  color: #d4d4d4;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.trip-day-main-route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: #e5e5e5;
+  font-size: 12px;
+}
+
+.trip-day-main-route strong:last-child {
+  text-align: right;
+}
+
+.trip-day-detail,
+.trip-day-notes,
+.trip-day-ferry {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.trip-day-detail {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 7px;
+  color: #b7b7b7;
+}
+
+.trip-day-label {
+  color: #7f7f7f;
+  font-weight: 700;
+}
+
+.trip-day-ferry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  background: #3b2510;
+  color: #f6c177;
+}
+
+.trip-day-ferry > span {
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: #6b3f16;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.trip-day-ferry strong {
+  font-size: 11px;
+}
+
+.trip-day-notes {
+  display: grid;
+  gap: 3px;
+  color: #9fc3ff;
+}
+
+.hotel-later-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  opacity: 0.75;
+}
+
+.hotel-later-card strong {
+  color: #f5f5f5;
+  font-size: 12px;
+}
+
+.hotel-later-card span {
+  color: #a3a3a3;
+  font-size: 11px;
+  line-height: 1.4;
+}
