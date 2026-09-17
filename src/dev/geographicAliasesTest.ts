@@ -1,4 +1,5 @@
 import {
+  resolveGeographicFixedPoint,
   resolveGeographicSearchHint,
   resolveGeographicSearchQuery,
 } from '../itinerary/geographicAliases'
@@ -54,8 +55,36 @@ check(
   resolveGeographicSearchQuery(
     'Amburgo',
   ),
-  'Hamburg',
+  'Hamburg, Germany',
 )
+
+const hamburgPoint =
+  resolveGeographicFixedPoint(
+    'Amburgo',
+  )
+
+tests.push({
+  name:
+    'Amburgo ha coordinate fisse',
+
+  ok:
+    Boolean(
+      hamburgPoint &&
+      Math.abs(
+        hamburgPoint.lat -
+          53.5511,
+      ) < 0.001 &&
+      Math.abs(
+        hamburgPoint.lng -
+          9.9937,
+      ) < 0.001,
+    ),
+
+  detail:
+    hamburgPoint
+      ? `${hamburgPoint.lat.toFixed(4)}, ${hamburgPoint.lng.toFixed(4)}`
+      : 'coordinate mancanti',
+})
 
 check(
   'Copenaghen usa il nome locale',
