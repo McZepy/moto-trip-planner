@@ -244,12 +244,20 @@ async function loadCandidates(
       ? await autocompleteLocalities(
           hint.query,
           undefined,
-          { focus },
+          {
+            focus,
+            boundedToFocus:
+              Boolean(focus),
+          },
         )
       : await autocompletePlaces(
           hint.query,
           undefined,
-          { focus },
+          {
+            focus,
+            boundedToFocus:
+              Boolean(focus),
+          },
         )
 
   if (
