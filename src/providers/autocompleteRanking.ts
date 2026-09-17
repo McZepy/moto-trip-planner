@@ -29,10 +29,27 @@ function normalizeText(value: string) {
     .trim()
 }
 
+function distanceKm(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+) {
+  const toRad = (value: number) => (value * Math.PI) / 180
+  const radius = 6371
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const lat1 = toRad(a.lat)
+  const lat2 = toRad(b.lat)
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
+  return 2 * radius * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
+}
+
 function scoreSuggestion(
   query: string,
   suggestion: SmartGeocodingResult,
   sourceIndex: number,
+  focus?: { lat: number; lng: number },
 ) {
   const normalizedQuery = normalizeText(query)
   const normalizedName = normalizeText(suggestion.name)
@@ -84,12 +101,17 @@ function scoreSuggestion(
     score += 90
   }
 
+  if (focus) {
+    score += Math.min(500, distanceKm(focus, suggestion) * 0.08)
+  }
+
   return score
 }
 
 export function rankAutocompleteSuggestions(
   query: string,
   suggestions: SmartGeocodingResult[],
+  focus?: { lat: number; lng: number },
 ) {
   if (PORT_INTENT.test(query)) {
     return suggestions
@@ -102,6 +124,7 @@ export function rankAutocompleteSuggestions(
         query,
         suggestion,
         sourceIndex,
+        focus,
       ),
     }))
     .sort((a, b) => a.score - b.score)

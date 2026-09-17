@@ -34,6 +34,13 @@ export type SmartGeocodingResult =
 export type AutocompleteSuggestion =
   SmartGeocodingResult
 
+export type AutocompleteSearchContext = {
+  focus?: {
+    lat: number
+    lng: number
+  }
+}
+
 type LocationIqAddress = {
   name?: string
 
@@ -719,6 +726,7 @@ async function locationIqAutocomplete(
   signal?:
     AbortSignal,
   layers?: string,
+  focus?: { lat: number; lng: number },
 ) {
   const params =
     new URLSearchParams({
@@ -746,6 +754,23 @@ async function locationIqAutocomplete(
       'layers',
       layers,
     )
+  }
+
+  if (focus) {
+    const latitudeSpan = 3.5
+    const longitudeSpan = 5
+
+    params.set(
+      'viewbox',
+      [
+        focus.lng - longitudeSpan,
+        focus.lat - latitudeSpan,
+        focus.lng + longitudeSpan,
+        focus.lat + latitudeSpan,
+      ].join(','),
+    )
+
+    params.set('bounded', '0')
   }
 
   const results =
@@ -1202,6 +1227,8 @@ export async function autocompletePlaces(
   query: string,
   signal?:
     AbortSignal,
+  context:
+    AutocompleteSearchContext = {},
 ): Promise<
   AutocompleteSuggestion[]
 > {
@@ -1237,10 +1264,20 @@ export async function autocompletePlaces(
     )
   }
 
+  const cities =
+    await locationIqAutocomplete(
+      trimmedQuery,
+      signal,
+      'city',
+      context.focus,
+    )
+
   const general =
     await locationIqAutocomplete(
       trimmedQuery,
       signal,
+      undefined,
+      context.focus,
     )
 
   const catalog =
@@ -1250,6 +1287,7 @@ export async function autocompletePlaces(
 
   return dedupeSuggestions(
     [
+      ...cities,
       ...general,
       ...catalog,
     ],

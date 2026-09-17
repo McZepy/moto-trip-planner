@@ -64,6 +64,20 @@ const tests = [
     },
   },
   {
+    name: 'Como Italia preferito a Como USA con partenza in Brianza',
+    run: () => {
+      const ranked = rankAutocompleteSuggestions(
+        'Como',
+        [
+          item('Como', 'city', 'place', 'place', 33.8688, -89.3356),
+          item('Como', 'city', 'place', 'place', 45.8081, 9.0852),
+        ],
+        { lat: 45.73, lng: 9.32 },
+      )
+      return ranked[0]?.lat === 45.8081
+    },
+  },
+  {
     name: 'Ricerca porto mantiene il ranking specializzato esistente',
     run: () => {
       const port = item(

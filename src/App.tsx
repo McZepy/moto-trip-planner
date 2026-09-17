@@ -1633,10 +1633,16 @@ function App() {
           true,
         )
 
+        const startSearchFocus =
+          destinationPlace
+            ? { lat: destinationPlace.lat, lng: destinationPlace.lng }
+            : undefined
+
         const results =
           await autocompletePlaces(
             cleanQuery,
             controller.signal,
+            { focus: startSearchFocus },
           )
 
         if (
@@ -1651,6 +1657,7 @@ function App() {
           rankAutocompleteSuggestions(
             cleanQuery,
             results,
+            startSearchFocus,
           ),
         )
       } catch (error) {
@@ -1719,10 +1726,16 @@ function App() {
           true,
         )
 
+        const destinationSearchFocus =
+          startPlace
+            ? { lat: startPlace.lat, lng: startPlace.lng }
+            : undefined
+
         const results =
           await autocompletePlaces(
             cleanQuery,
             controller.signal,
+            { focus: destinationSearchFocus },
           )
 
         if (
@@ -1737,6 +1750,7 @@ function App() {
           rankAutocompleteSuggestions(
             cleanQuery,
             results,
+            destinationSearchFocus,
           ),
         )
       } catch (error) {
@@ -1826,10 +1840,26 @@ function App() {
       )
 
       try {
+        const contextIndex =
+          editingExistingWaypointIndex ?? editingInsertIndex
+
+        const previousWaypoint =
+          contextIndex !== null && contextIndex > 0
+            ? waypoints[contextIndex - 1]
+            : null
+
+        const intermediateSearchFocus =
+          previousWaypoint
+            ? { lat: previousWaypoint.lat, lng: previousWaypoint.lng }
+            : startPlace
+              ? { lat: startPlace.lat, lng: startPlace.lng }
+              : undefined
+
         const results =
           await autocompletePlaces(
             cleanQuery,
             controller.signal,
+            { focus: intermediateSearchFocus },
           )
 
         if (
@@ -1857,6 +1887,7 @@ function App() {
                     rankAutocompleteSuggestions(
                       cleanQuery,
                       results,
+                      intermediateSearchFocus,
                     ),
                 }
               : current,
