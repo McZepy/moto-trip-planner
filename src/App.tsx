@@ -25,13 +25,13 @@ import './components/WaypointDrag.css'
 import { mapProvider } from './config/mapProvider'
 
 import {
-  osrmRoutingProvider,
   type RoutePoint,
 } from './providers/routingProvider'
 
 import {
-  planFastestRouteAlternatives,
-} from './providers/tripRouteAlternatives'
+  multiLegPlanToTripRoutePlan,
+  planMultiLegRoute,
+} from './providers/multiLegTripPlanner'
 
 import {
   clearPlannedRoute,
@@ -2641,233 +2641,140 @@ function App() {
               destinationPlace.lng,
           })
 
-          if (
-            waypoints.length ===
-            0
-          ) {
-            const alternatives =
-              await planFastestRouteAlternatives(
-                points[0],
-                points[
-                  points.length -
-                    1
-                ],
-                tripSettings
-                  .roadPreferences
-                  .allowFerries,
-              )
+          const multiLegPlan =
+            await planMultiLegRoute(
+              points,
 
-            if (cancelled) {
-              return
-            }
-
-            const selected =
-              alternatives.selected
-
-            const plan =
-              selected.plan
-
-            removeRoute()
-
-            drawPlannedRoute(
-              map,
-              plan,
+              tripSettings
+                .roadPreferences
+                .allowFerries,
             )
-
-            const coordinates =
-              plan.sections.flatMap(
-                (
-                  section,
-                ) =>
-                  section
-                    .geometry
-                    .coordinates,
-              )
-
-            if (
-              coordinates.length >
-              0
-            ) {
-              const bounds =
-                coordinates.reduce(
-                  (
-                    currentBounds,
-                    coordinate,
-                  ) =>
-                    currentBounds.extend(
-                      coordinate as [
-                        number,
-                        number,
-                      ],
-                    ),
-
-                  new LngLatBounds(
-                    coordinates[0] as [
-                      number,
-                      number,
-                    ],
-
-                    coordinates[0] as [
-                      number,
-                      number,
-                    ],
-                  ),
-                )
-
-              map.fitBounds(
-                bounds,
-                {
-                  padding:
-                    70,
-                },
-              )
-            }
-
-            setDistance(
-              plan.distanceMeters,
-            )
-
-            setDuration(
-              plan.durationSeconds,
-            )
-
-            if (
-              plan.usesFerry
-            ) {
-              const sectionSummary =
-                plan.sections
-                  .map(
-                    (
-                      section,
-                    ) =>
-                      section.type ===
-                      'ferry'
-                        ? 'TRAGHETTO'
-                        : 'STRADA',
-                  )
-                  .join(
-                    ' → ',
-                  )
-
-              setStatus(
-                `Percorso calcolato: ${selected.label} · ${sectionSummary}.`,
-              )
-            } else {
-              setStatus(
-                'Percorso calcolato.',
-              )
-            }
-
-            return
-          }
-
-          const route =
-            await osrmRoutingProvider
-              .calculateRoute(
-                points,
-              )
 
           if (cancelled) {
             return
           }
 
+          const plan =
+            multiLegPlanToTripRoutePlan(
+              multiLegPlan,
+            )
+
           removeRoute()
 
-          map.addSource(
-            'route',
-            {
-              type:
-                'geojson',
-
-              data: {
-                type:
-                  'Feature',
-
-                properties:
-                  {},
-
-                geometry:
-                  route.geometry,
-              },
-            },
+          drawPlannedRoute(
+            map,
+            plan,
           )
 
-          map.addLayer({
-            id:
-              'route',
-
-            type:
-              'line',
-
-            source:
-              'route',
-
-            layout: {
-              'line-join':
-                'round',
-
-              'line-cap':
-                'round',
-            },
-
-            paint: {
-              'line-width':
-                5,
-
-              'line-color':
-                '#2563eb',
-            },
-          })
-
           const coordinates =
-            route.geometry
-              .coordinates
-
-          const bounds =
-            coordinates.reduce(
+            plan.sections.flatMap(
               (
-                currentBounds,
-                coordinate,
+                section,
               ) =>
-                currentBounds.extend(
-                  coordinate as [
+                section
+                  .geometry
+                  .coordinates,
+            )
+
+          if (
+            coordinates.length >
+            0
+          ) {
+            const bounds =
+              coordinates.reduce(
+                (
+                  currentBounds,
+                  coordinate,
+                ) =>
+                  currentBounds.extend(
+                    coordinate as [
+                      number,
+                      number,
+                    ],
+                  ),
+
+                new LngLatBounds(
+                  coordinates[0] as [
+                    number,
+                    number,
+                  ],
+
+                  coordinates[0] as [
                     number,
                     number,
                   ],
                 ),
+              )
 
-              new LngLatBounds(
-                coordinates[0] as [
-                  number,
-                  number,
-                ],
-
-                coordinates[0] as [
-                  number,
-                  number,
-                ],
-              ),
+            map.fitBounds(
+              bounds,
+              {
+                padding:
+                  70,
+              },
             )
-
-          map.fitBounds(
-            bounds,
-            {
-              padding:
-                70,
-            },
-          )
+          }
 
           setDistance(
-            route.distanceMeters,
+            plan.distanceMeters,
           )
 
           setDuration(
-            route.durationSeconds,
+            plan.durationSeconds,
           )
 
-          setStatus(
-            'Percorso calcolato.',
-          )
+          if (
+            plan.usesFerry
+          ) {
+            const sectionSummary =
+              multiLegPlan.legs
+                .map(
+                  (
+                    leg,
+                  ) =>
+                    leg
+                      .selectedAlternative
+                      .plan
+                      .usesFerry
+                      ? 'TRAGHETTO'
+                      : 'STRADA',
+                )
+                .join(
+                  ' → ',
+                )
+
+            const ferryLegs =
+              multiLegPlan.legs
+                .filter(
+                  (
+                    leg,
+                  ) =>
+                    leg
+                      .selectedAlternative
+                      .plan
+                      .usesFerry,
+                )
+                .map(
+                  (
+                    leg,
+                  ) =>
+                    leg
+                      .selectedAlternative
+                      .label,
+                )
+                .join(
+                  ' · ',
+                )
+
+            setStatus(
+              `Percorso calcolato: ${sectionSummary}${ferryLegs ? ` · ${ferryLegs}` : ''}.`,
+            )
+          } else {
+            setStatus(
+              'Percorso calcolato.',
+            )
+          }
+
         } catch (error) {
           console.error(
             error,
