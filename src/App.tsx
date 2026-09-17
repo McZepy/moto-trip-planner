@@ -21,6 +21,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
 import './App.css'
 import './components/WaypointDrag.css'
+import './components/SmartSearch.css'
 
 import { mapProvider } from './config/mapProvider'
 
@@ -38,10 +39,16 @@ import {
   drawPlannedRoute,
 } from './map/routeSectionRenderer'
 
-import {
-  nominatimGeocodingProvider,
-  type GeocodingResult,
+import type {
+  GeocodingResult,
 } from './providers/geocodingProvider'
+
+import {
+  autocompletePlaces,
+  reverseLookupPoint,
+  type PortResultGroup,
+  type SmartGeocodingResult,
+} from './providers/autocompleteProvider'
 
 import {
   isAreaResult,
@@ -81,7 +88,7 @@ type ActiveSection =
 type EditingWaypoint = {
   id: string
   query: string
-  results: GeocodingResult[]
+  results: SmartGeocodingResult[]
   loading: boolean
 }
 
@@ -97,6 +104,11 @@ type PendingRoadPointSelection = {
   insertIndex: number | null
   replaceIndex: number | null
 }
+
+type PendingEndpointMapSelection =
+  | 'start'
+  | 'destination'
+  | null
 
 function createId() {
   if (
@@ -208,18 +220,70 @@ type SearchFieldProps = {
   label?: string
   placeholder: string
   value: string
-  results: GeocodingResult[]
+  results:
+    SmartGeocodingResult[]
   loading: boolean
 
   onChange:
     (value: string) => void
 
-  onSearch: () => void
+  onAutocomplete:
+    (query: string) => void
 
   onSelect:
     (
-      result: GeocodingResult,
+      result:
+        SmartGeocodingResult,
     ) => void
+}
+
+function searchKindLabel(
+  result:
+    SmartGeocodingResult,
+) {
+  if (
+    result.kind ===
+    'ferry-terminal'
+  ) {
+    return 'Terminal'
+  }
+
+  if (
+    result.kind ===
+    'address'
+  ) {
+    return 'Indirizzo'
+  }
+
+  if (
+    result.kind ===
+    'place'
+  ) {
+    return 'Località'
+  }
+
+  return 'POI'
+}
+
+function searchGroupLabel(
+  group:
+    PortResultGroup,
+) {
+  if (
+    group ===
+    'recommended'
+  ) {
+    return 'ACCESSO CONSIGLIATO'
+  }
+
+  if (
+    group ===
+    'company-terminal'
+  ) {
+    return 'TERMINAL COMPAGNIE'
+  }
+
+  return 'ALTRI PUNTI DEL PORTO'
 }
 
 function SearchField({
@@ -229,9 +293,106 @@ function SearchField({
   results,
   loading,
   onChange,
-  onSearch,
+  onAutocomplete,
   onSelect,
 }: SearchFieldProps) {
+  const autocompleteRef =
+    useRef(
+      onAutocomplete,
+    )
+
+  useEffect(() => {
+    autocompleteRef.current =
+      onAutocomplete
+  }, [onAutocomplete])
+
+  useEffect(() => {
+    const query =
+      value.trim()
+
+    if (
+      query.length < 3
+    ) {
+      return
+    }
+
+    const timer =
+      window.setTimeout(
+        () => {
+          autocompleteRef
+            .current(
+              query,
+            )
+        },
+        900,
+      )
+
+    return () => {
+      window.clearTimeout(
+        timer,
+      )
+    }
+  }, [value])
+
+  const renderResult =
+    (
+      result:
+        SmartGeocodingResult,
+    ) => (
+      <button
+        key={result.id}
+        type="button"
+        className="search-result smart-search-result"
+        onClick={() =>
+          onSelect(
+            result,
+          )
+        }
+      >
+        <div className="smart-search-result-main">
+          <div className="smart-search-result-top">
+            <span
+              className={
+                result.kind ===
+                'ferry-terminal'
+                  ? 'smart-search-kind smart-search-kind--ferry'
+                  : 'smart-search-kind'
+              }
+            >
+              {searchKindLabel(
+                result,
+              )}
+            </span>
+
+            <strong>
+              {result.name}
+            </strong>
+          </div>
+
+          <span className="smart-search-result-label">
+            {result.label}
+          </span>
+        </div>
+      </button>
+    )
+
+  const portGroups:
+    PortResultGroup[] = [
+      'recommended',
+      'company-terminal',
+      'other-port',
+    ]
+
+  const hasPortGroups =
+    results.some(
+      (
+        result,
+      ) =>
+        Boolean(
+          result.portGroup,
+        ),
+    )
+
   return (
     <div className="search-field">
       {label && (
@@ -240,7 +401,7 @@ function SearchField({
         </label>
       )}
 
-      <div className="search-controls">
+      <div className="search-controls smart-search-controls">
         <input
           type="text"
           value={value}
@@ -253,64 +414,85 @@ function SearchField({
           }
           onKeyDown={(event) => {
             if (
-              event.key === 'Enter'
+              event.key ===
+              'Enter'
             ) {
               event.preventDefault()
-              onSearch()
+
+              const query =
+                value.trim()
+
+              if (
+                query.length >=
+                3
+              ) {
+                autocompleteRef
+                  .current(
+                    query,
+                  )
+              }
             }
           }}
         />
 
-        <button
-          type="button"
-          className="search-button"
-          disabled={loading}
-          onClick={onSearch}
-        >
-          {loading
-            ? '...'
-            : 'Cerca'}
-        </button>
+        {loading && (
+          <span className="smart-search-loading">
+            …
+          </span>
+        )}
       </div>
 
+      {value.trim().length > 0 &&
+      value.trim().length < 3 && (
+        <div className="smart-search-hint">
+          Scrivi almeno 3 caratteri
+        </div>
+      )}
+
       {results.length > 0 && (
-        <div className="search-results">
-          {results.map(
-            (result) => (
-              <button
-                key={result.id}
-                type="button"
-                className="search-result"
-                onClick={() =>
-                  onSelect(
-                    result,
+        <div className="search-results smart-search-results">
+          {hasPortGroups
+            ? portGroups.map(
+                (
+                  group,
+                ) => {
+                  const groupResults =
+                    results.filter(
+                      (
+                        result,
+                      ) =>
+                        result.portGroup ===
+                        group,
+                    )
+
+                  if (
+                    groupResults.length ===
+                    0
+                  ) {
+                    return null
+                  }
+
+                  return (
+                    <div
+                      key={group}
+                      className="smart-search-group"
+                    >
+                      <div className="smart-search-group-title">
+                        {searchGroupLabel(
+                          group,
+                        )}
+                      </div>
+
+                      {groupResults.map(
+                        renderResult,
+                      )}
+                    </div>
                   )
-                }
-              >
-                <strong>
-                  {result.name}
-                </strong>
-
-                <span>
-                  {result.label}
-                </span>
-
-                {(result.type ||
-                  result.category) && (
-                    <small>
-                      {result.type ?? ''}
-
-                      {result.type &&
-                      result.category
-                        ? ' · '
-                        : ''}
-
-                      {result.category ?? ''}
-                    </small>
-                  )}
-              </button>
-            ),
-          )}
+                },
+              )
+            : results.map(
+                renderResult,
+              )}
         </div>
       )}
     </div>
@@ -325,6 +507,21 @@ function App() {
 
   const mapRef =
     useRef<Map | null>(
+      null,
+    )
+
+  const startAutocompleteControllerRef =
+    useRef<AbortController | null>(
+      null,
+    )
+
+  const destinationAutocompleteControllerRef =
+    useRef<AbortController | null>(
+      null,
+    )
+
+  const waypointAutocompleteControllerRef =
+    useRef<AbortController | null>(
       null,
     )
 
@@ -420,7 +617,7 @@ function App() {
     setStartResults,
   ] =
     useState<
-      GeocodingResult[]
+      SmartGeocodingResult[]
     >([])
 
   const [
@@ -428,7 +625,7 @@ function App() {
     setDestinationResults,
   ] =
     useState<
-      GeocodingResult[]
+      SmartGeocodingResult[]
     >([])
 
   const [
@@ -517,6 +714,14 @@ function App() {
   ] =
     useState<
       PendingRoadPointSelection | null
+    >(null)
+
+  const [
+    pendingEndpointMapSelection,
+    setPendingEndpointMapSelection,
+  ] =
+    useState<
+      PendingEndpointMapSelection
     >(null)
 
   const [
@@ -867,6 +1072,10 @@ function App() {
         null,
       )
 
+      setPendingEndpointMapSelection(
+        null,
+      )
+
       setOpenMenuKey(
         null,
       )
@@ -1069,6 +1278,10 @@ function App() {
         null,
       )
 
+      setPendingEndpointMapSelection(
+        null,
+      )
+
       setDraggedWaypointIndex(
         null,
       )
@@ -1177,44 +1390,69 @@ function App() {
       )
     }
 
-  const searchStart =
-    async () => {
-      const query =
-        startQuery.trim()
+  const autocompleteStart =
+    async (
+      query:
+        string,
+    ) => {
+      const cleanQuery =
+        query.trim()
 
       if (
-        query.length < 3
+        cleanQuery.length <
+        3
       ) {
-        setStatus(
-          'Inserisci almeno 3 caratteri per la partenza.',
-        )
-
         return
       }
+
+      startAutocompleteControllerRef
+        .current
+        ?.abort()
+
+      const controller =
+        new AbortController()
+
+      startAutocompleteControllerRef.current =
+        controller
 
       try {
         setStartLoading(
           true,
         )
 
-        setStartResults([])
-
         const results =
-          await nominatimGeocodingProvider
-            .search(query)
+          await autocompletePlaces(
+            cleanQuery,
+            controller.signal,
+          )
+
+        if (
+          controller
+            .signal
+            .aborted
+        ) {
+          return
+        }
 
         setStartResults(
           results,
         )
-
-        setStatus(
-          results.length
-            ? `${results.length} risultati trovati.`
-            : `Nessun risultato trovato per "${query}".`,
-        )
       } catch (error) {
+        if (
+          error instanceof
+            DOMException &&
+          error.name ===
+            'AbortError'
+        ) {
+          return
+        }
+
         console.error(
           error,
+        )
+
+        setStartResults(
+          [],
         )
 
         setStatus(
@@ -1223,53 +1461,81 @@ function App() {
             : 'Errore durante la ricerca della partenza.',
         )
       } finally {
-        setStartLoading(
-          false,
-        )
+        if (
+          !controller
+            .signal
+            .aborted
+        ) {
+          setStartLoading(
+            false,
+          )
+        }
       }
     }
 
-  const searchDestination =
-    async () => {
-      const query =
-        destinationQuery
-          .trim()
+  const autocompleteDestination =
+    async (
+      query:
+        string,
+    ) => {
+      const cleanQuery =
+        query.trim()
 
       if (
-        query.length < 3
+        cleanQuery.length <
+        3
       ) {
-        setStatus(
-          'Inserisci almeno 3 caratteri per la destinazione.',
-        )
-
         return
       }
+
+      destinationAutocompleteControllerRef
+        .current
+        ?.abort()
+
+      const controller =
+        new AbortController()
+
+      destinationAutocompleteControllerRef.current =
+        controller
 
       try {
         setDestinationLoading(
           true,
         )
 
-        setDestinationResults(
-          [],
-        )
-
         const results =
-          await nominatimGeocodingProvider
-            .search(query)
+          await autocompletePlaces(
+            cleanQuery,
+            controller.signal,
+          )
+
+        if (
+          controller
+            .signal
+            .aborted
+        ) {
+          return
+        }
 
         setDestinationResults(
           results,
         )
-
-        setStatus(
-          results.length
-            ? `${results.length} risultati trovati.`
-            : `Nessun risultato trovato per "${query}".`,
-        )
       } catch (error) {
+        if (
+          error instanceof
+            DOMException &&
+          error.name ===
+            'AbortError'
+        ) {
+          return
+        }
+
         console.error(
           error,
+        )
+
+        setDestinationResults(
+          [],
         )
 
         setStatus(
@@ -1278,78 +1544,132 @@ function App() {
             : 'Errore durante la ricerca della destinazione.',
         )
       } finally {
-        setDestinationLoading(
-          false,
-        )
+        if (
+          !controller
+            .signal
+            .aborted
+        ) {
+          setDestinationLoading(
+            false,
+          )
+        }
       }
     }
 
-  const searchIntermediate =
-    async () => {
+  const autocompleteIntermediate =
+    async (
+      query:
+        string,
+    ) => {
       if (
         !editingWaypoint
       ) {
         return
       }
 
-      const query =
-        editingWaypoint
-          .query
-          .trim()
+      const cleanQuery =
+        query.trim()
 
       if (
-        query.length < 3
+        cleanQuery.length <
+        3
       ) {
-        setStatus(
-          'Inserisci almeno 3 caratteri per la tappa.',
-        )
-
         return
       }
 
-      setEditingWaypoint({
-        ...editingWaypoint,
+      const waypointId =
+        editingWaypoint.id
 
-        loading:
-          true,
+      waypointAutocompleteControllerRef
+        .current
+        ?.abort()
 
-        results:
-          [],
-      })
+      const controller =
+        new AbortController()
+
+      waypointAutocompleteControllerRef.current =
+        controller
+
+      setEditingWaypoint(
+        (
+          current,
+        ) =>
+          current &&
+          current.id ===
+            waypointId
+            ? {
+                ...current,
+
+                loading:
+                  true,
+              }
+            : current,
+      )
 
       try {
         const results =
-          await nominatimGeocodingProvider
-            .search(query)
+          await autocompletePlaces(
+            cleanQuery,
+            controller.signal,
+          )
 
-        setEditingWaypoint({
-          ...editingWaypoint,
+        if (
+          controller
+            .signal
+            .aborted
+        ) {
+          return
+        }
 
-          loading:
-            false,
+        setEditingWaypoint(
+          (
+            current,
+          ) =>
+            current &&
+            current.id ===
+              waypointId
+              ? {
+                  ...current,
 
-          results,
-        })
+                  loading:
+                    false,
 
-        setStatus(
-          results.length
-            ? `${results.length} risultati trovati.`
-            : `Nessun risultato trovato per "${query}".`,
+                  results,
+                }
+              : current,
         )
       } catch (error) {
+        if (
+          error instanceof
+            DOMException &&
+          error.name ===
+            'AbortError'
+        ) {
+          return
+        }
+
         console.error(
           error,
         )
 
-        setEditingWaypoint({
-          ...editingWaypoint,
+        setEditingWaypoint(
+          (
+            current,
+          ) =>
+            current &&
+            current.id ===
+              waypointId
+              ? {
+                  ...current,
 
-          loading:
-            false,
+                  loading:
+                    false,
 
-          results:
-            [],
-        })
+                  results:
+                    [],
+                }
+              : current,
+        )
 
         setStatus(
           error instanceof Error
@@ -1467,6 +1787,47 @@ function App() {
       )
     }
 
+  const startEndpointMapSelection =
+    (
+      endpoint:
+        Exclude<
+          PendingEndpointMapSelection,
+          null
+        >,
+    ) => {
+      setPendingRoadPointSelection(
+        null,
+      )
+
+      setPendingEndpointMapSelection(
+        endpoint,
+      )
+
+      setOpenMenuKey(
+        null,
+      )
+
+      clearRouteData()
+
+      setStatus(
+        endpoint ===
+        'start'
+          ? 'Partenza: clicca sulla strada desiderata nella mappa.'
+          : 'Arrivo: clicca sulla strada desiderata nella mappa.',
+      )
+    }
+
+  const cancelEndpointMapSelection =
+    () => {
+      setPendingEndpointMapSelection(
+        null,
+      )
+
+      setStatus(
+        'Selezione sulla mappa annullata.',
+      )
+    }
+
   const startInsertWaypoint =
     (
       index:
@@ -1511,6 +1872,10 @@ function App() {
       closeWaypointEditor()
 
       setOpenMenuKey(
+        null,
+      )
+
+      setPendingEndpointMapSelection(
         null,
       )
 
@@ -2126,6 +2491,10 @@ function App() {
           null,
         )
 
+        setPendingEndpointMapSelection(
+          null,
+        )
+
         setPendingRoadPointSelection({
           waypointId:
             waypoint.id,
@@ -2226,6 +2595,235 @@ function App() {
         )
       }
     }
+
+  useEffect(() => {
+    const map =
+      mapRef.current
+
+    if (
+      !map ||
+      !pendingEndpointMapSelection
+    ) {
+      return
+    }
+
+    map.getCanvas().style.cursor =
+      'crosshair'
+
+    const endpoint =
+      pendingEndpointMapSelection
+
+    const handleEndpointMapClick =
+      async (
+        event:
+          MapMouseEvent,
+      ) => {
+        try {
+          setStatus(
+            endpoint ===
+            'start'
+              ? 'Aggancio la partenza alla strada più vicina...'
+              : 'Aggancio l’arrivo alla strada più vicina...',
+          )
+
+          const resolved =
+            await resolveRoadPoint({
+              lng:
+                event.lngLat.lng,
+
+              lat:
+                event.lngLat.lat,
+            })
+
+          const coordinateLabel =
+            `${resolved.lat.toFixed(5)}, ${resolved.lng.toFixed(5)}`
+
+          let reverseResult:
+            GeocodingResult
+
+          try {
+            reverseResult =
+              await reverseLookupPoint(
+                resolved,
+              )
+          } catch (
+            reverseError
+          ) {
+            console.warn(
+              'Reverse geocoding non disponibile:',
+              reverseError,
+            )
+
+            reverseResult = {
+              id:
+                `map-point-${Date.now()}`,
+
+              name:
+                coordinateLabel,
+
+              label:
+                coordinateLabel,
+
+              lat:
+                resolved.lat,
+
+              lng:
+                resolved.lng,
+            }
+          }
+
+          if (
+            endpoint ===
+            'start'
+          ) {
+            const result:
+              GeocodingResult = {
+                ...reverseResult,
+
+                id:
+                  `map-start-${Date.now()}`,
+
+                lat:
+                  resolved.lat,
+
+                lng:
+                  resolved.lng,
+              }
+
+            setStartPlace(
+              result,
+            )
+
+            setStartQuery(
+              result.name,
+            )
+
+            setStartResults(
+              [],
+            )
+
+            setEditingStart(
+              false,
+            )
+
+            startMarkerRef
+              .current
+              ?.remove()
+
+            startMarkerRef.current =
+              new Marker({
+                element:
+                  createMapMarkerElement(
+                    'A',
+                    'start',
+                  ),
+              })
+                .setLngLat([
+                  result.lng,
+                  result.lat,
+                ])
+                .addTo(
+                  map,
+                )
+          } else {
+            const result:
+              GeocodingResult = {
+                ...reverseResult,
+
+                id:
+                  `map-destination-${Date.now()}`,
+
+                lat:
+                  resolved.lat,
+
+                lng:
+                  resolved.lng,
+              }
+
+            setDestinationPlace(
+              result,
+            )
+
+            setDestinationQuery(
+              result.name,
+            )
+
+            setDestinationResults(
+              [],
+            )
+
+            setEditingDestination(
+              false,
+            )
+
+            destinationMarkerRef
+              .current
+              ?.remove()
+
+            destinationMarkerRef.current =
+              new Marker({
+                element:
+                  createMapMarkerElement(
+                    'B',
+                    'destination',
+                  ),
+              })
+                .setLngLat([
+                  result.lng,
+                  result.lat,
+                ])
+                .addTo(
+                  map,
+                )
+          }
+
+          setPendingEndpointMapSelection(
+            null,
+          )
+
+          clearRouteData()
+
+          setStatus(
+            endpoint ===
+            'start'
+              ? 'Partenza impostata dalla mappa.'
+              : 'Arrivo impostato dalla mappa.',
+          )
+        } catch (
+          error
+        ) {
+          console.error(
+            error,
+          )
+
+          setStatus(
+            error instanceof
+            Error
+              ? error.message
+              : 'Errore durante la selezione del punto sulla mappa.',
+          )
+        }
+      }
+
+    map.once(
+      'click',
+      handleEndpointMapClick,
+    )
+
+    return () => {
+      map.getCanvas().style.cursor =
+        ''
+
+      map.off(
+        'click',
+        handleEndpointMapClick,
+      )
+    }
+  }, [
+    pendingEndpointMapSelection,
+    startPlace,
+    destinationPlace,
+  ])
 
   useEffect(() => {
     const map =
@@ -2521,7 +3119,8 @@ function App() {
     }
 
     if (
-      pendingRoadPointSelection
+      pendingRoadPointSelection ||
+      pendingEndpointMapSelection
     ) {
       return
     }
@@ -2808,6 +3407,7 @@ function App() {
     destinationPlace,
     waypoints,
     pendingRoadPointSelection,
+    pendingEndpointMapSelection,
     tripSettings
       .roadPreferences
       .allowFerries,
@@ -2921,8 +3521,8 @@ function App() {
                     [],
                 })
               }
-              onSearch={
-                searchIntermediate
+              onAutocomplete={
+                autocompleteIntermediate
               }
               onSelect={
                 selectIntermediateWaypoint
@@ -3015,8 +3615,8 @@ function App() {
                     [],
                 })
               }
-              onSearch={
-                searchIntermediate
+              onAutocomplete={
+                autocompleteIntermediate
               }
               onSelect={
                 selectIntermediateWaypoint
@@ -3279,8 +3879,8 @@ function App() {
               loading={
                 startLoading
               }
-              onSearch={
-                searchStart
+              onAutocomplete={
+                autocompleteStart
               }
               onChange={(
                 value,
@@ -3297,6 +3897,36 @@ function App() {
                 selectStart
               }
             />
+
+            {pendingEndpointMapSelection ===
+            'start' ? (
+              <div className="road-point-pending-inline">
+                <span>
+                  📍 Clicca sulla mappa
+                </span>
+
+                <button
+                  type="button"
+                  onClick={
+                    cancelEndpointMapSelection
+                  }
+                >
+                  Annulla
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="road-point-map-button"
+                onClick={() =>
+                  startEndpointMapSelection(
+                    'start',
+                  )
+                }
+              >
+                📍 Scegli sulla mappa
+              </button>
+            )}
 
             {startPlace && (
               <button
@@ -3378,6 +4008,17 @@ function App() {
                 >
                   Modifica località
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    startEndpointMapSelection(
+                      'start',
+                    )
+                  }
+                >
+                  Sposta sulla mappa
+                </button>
               </div>
             )}
           </div>
@@ -3414,8 +4055,8 @@ function App() {
               loading={
                 destinationLoading
               }
-              onSearch={
-                searchDestination
+              onAutocomplete={
+                autocompleteDestination
               }
               onChange={(
                 value,
@@ -3432,6 +4073,36 @@ function App() {
                 selectDestination
               }
             />
+
+            {pendingEndpointMapSelection ===
+            'destination' ? (
+              <div className="road-point-pending-inline">
+                <span>
+                  📍 Clicca sulla mappa
+                </span>
+
+                <button
+                  type="button"
+                  onClick={
+                    cancelEndpointMapSelection
+                  }
+                >
+                  Annulla
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="road-point-map-button"
+                onClick={() =>
+                  startEndpointMapSelection(
+                    'destination',
+                  )
+                }
+              >
+                📍 Scegli sulla mappa
+              </button>
+            )}
 
             {destinationPlace && (
               <button
@@ -3512,6 +4183,17 @@ function App() {
                   }}
                 >
                   Modifica località
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    startEndpointMapSelection(
+                      'destination',
+                    )
+                  }
+                >
+                  Sposta sulla mappa
                 </button>
               </div>
             )}

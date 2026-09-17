@@ -1,3 +1,8 @@
+import type {
+  GeoBoundingBox,
+  GeocodingResult,
+} from './geocodingProvider'
+
 import {
   getFerryConnections,
 } from './ferryProvider'
@@ -13,38 +18,21 @@ export type PortResultGroup =
   | 'company-terminal'
   | 'other-port'
 
-export type AutocompleteSuggestion = {
-  id: string
+export type SmartGeocodingResult =
+  GeocodingResult & {
+    kind:
+      AutocompleteSuggestionKind
 
-  name: string
-  label: string
+    source:
+      | 'locationiq'
+      | 'ferry-catalog'
 
-  lat: number
-  lng: number
+    portGroup?:
+      PortResultGroup
+  }
 
-  kind:
-    AutocompleteSuggestionKind
-
-  source:
-    | 'locationiq'
-    | 'ferry-catalog'
-
-  portGroup?:
-    PortResultGroup
-
-  osmType?: string
-  osmId?: string
-
-  category?: string
-  type?: string
-
-  boundingBox?: [
-    number,
-    number,
-    number,
-    number,
-  ]
-}
+export type AutocompleteSuggestion =
+  SmartGeocodingResult
 
 type LocationIqAddress = {
   name?: string
@@ -54,6 +42,9 @@ type LocationIqAddress = {
 
   neighbourhood?: string
   suburb?: string
+  locality?: string
+  hamlet?: string
+  quarter?: string
 
   city?: string
   town?: string
@@ -103,6 +94,9 @@ const LOCATIONIQ_NEARBY_URL =
 const LOCATIONIQ_SEARCH_URL =
   'https://eu1.locationiq.com/v1/search'
 
+const LOCATIONIQ_REVERSE_URL =
+  'https://eu1.locationiq.com/v1/reverse'
+
 const PORT_WORDS =
   /\b(porto|port|ferry|traghetto|traghetti|terminal|havn|harbour|harbor)\b/giu
 
@@ -128,6 +122,13 @@ const responseCache =
   new Map<
     string,
     LocationIqResult[]
+  >()
+
+
+const reverseResponseCache =
+  new Map<
+    string,
+    LocationIqResult | null
   >()
 
 function getApiKey() {
@@ -273,6 +274,132 @@ async function fetchLocationIq(
     (await response.json()) as LocationIqResult[]
 
   responseCache.set(
+    url,
+    data,
+  )
+
+  return data
+}
+
+async function fetchLocationIqSingle(
+  url: string,
+  signal?:
+    AbortSignal,
+  retry = true,
+): Promise<
+  LocationIqResult | null
+> {
+  if (
+    reverseResponseCache.has(
+      url,
+    )
+  ) {
+    return (
+      reverseResponseCache.get(
+        url,
+      ) ??
+      null
+    )
+  }
+
+  const now =
+    Date.now()
+
+  const wait =
+    Math.max(
+      0,
+      MIN_REQUEST_GAP_MS -
+        (
+          now -
+          lastRequestAt
+        ),
+    )
+
+  if (wait > 0) {
+    await sleep(
+      wait,
+    )
+  }
+
+  if (
+    signal?.aborted
+  ) {
+    throw new DOMException(
+      'Aborted',
+      'AbortError',
+    )
+  }
+
+  lastRequestAt =
+    Date.now()
+
+  const response =
+    await fetch(
+      url,
+      {
+        signal,
+
+        headers: {
+          Accept:
+            'application/json',
+        },
+      },
+    )
+
+  if (
+    response.status ===
+    404
+  ) {
+    reverseResponseCache.set(
+      url,
+      null,
+    )
+
+    return null
+  }
+
+  if (
+    response.status ===
+      429 &&
+    retry
+  ) {
+    await sleep(
+      1200,
+    )
+
+    return fetchLocationIqSingle(
+      url,
+      signal,
+      false,
+    )
+  }
+
+  if (!response.ok) {
+    let detail =
+      ''
+
+    try {
+      detail =
+        await response.text()
+    } catch {
+      // Nessun dettaglio.
+    }
+
+    console.error(
+      'LocationIQ reverse error:',
+      response.status,
+      detail,
+    )
+
+    throw new Error(
+      `LocationIQ reverse non disponibile (${response.status}).`,
+    )
+  }
+
+  const data =
+    (await response.json()) as LocationIqResult
+
+  reverseResponseCache.set(
     url,
     data,
   )
@@ -450,17 +577,15 @@ function parseBoundingBox(
     return undefined
   }
 
-  return [
-    south,
-    north,
-    west,
-    east,
-  ] as [
-    number,
-    number,
-    number,
-    number,
-  ]
+  const box:
+    GeoBoundingBox = {
+      south,
+      north,
+      west,
+      east,
+    }
+
+  return box
 }
 
 function detectKind(
@@ -548,8 +673,13 @@ function locationIqToSuggestion(
 
     osmId:
       result.osm_id !==
-      undefined
-        ? String(
+      undefined &&
+      Number.isFinite(
+        Number(
+          result.osm_id,
+        ),
+      )
+        ? Number(
             result.osm_id,
           )
         : undefined,
@@ -1127,4 +1257,213 @@ export async function autocompletePlaces(
     0,
     10,
   )
+}
+
+
+function reverseLocality(
+  address:
+    LocationIqAddress,
+) {
+  return (
+    address.city ??
+    address.town ??
+    address.village ??
+    address.municipality ??
+    address.locality ??
+    address.hamlet ??
+    address.suburb ??
+    address.neighbourhood ??
+    address.quarter
+  )
+}
+
+function reverseName(
+  result:
+    LocationIqResult,
+  lat: number,
+  lng: number,
+) {
+  const address =
+    result.address ?? {}
+
+  const locality =
+    reverseLocality(
+      address,
+    )
+
+  const road =
+    address.road
+      ?.trim()
+
+  const houseNumber =
+    address.house_number
+      ?.trim()
+
+  if (
+    road &&
+    houseNumber &&
+    locality
+  ) {
+    return `${road} ${houseNumber}, ${locality}`
+  }
+
+  if (
+    road &&
+    locality
+  ) {
+    return `${road}, ${locality}`
+  }
+
+  const placeName =
+    result.name
+      ?.trim() ||
+    address.name
+      ?.trim()
+
+  if (
+    placeName &&
+    locality &&
+    normalizeText(
+      placeName,
+    ) !==
+      normalizeText(
+        locality,
+      )
+  ) {
+    return `${placeName}, ${locality}`
+  }
+
+  if (locality) {
+    return locality
+  }
+
+  return (
+    `${lat.toFixed(5)}, ` +
+    `${lng.toFixed(5)}`
+  )
+}
+
+export async function reverseLookupPoint(
+  point: {
+    lat: number
+    lng: number
+  },
+  signal?:
+    AbortSignal,
+): Promise<
+  GeocodingResult
+> {
+  const params =
+    new URLSearchParams({
+      key:
+        getApiKey(),
+
+      lat:
+        String(
+          point.lat,
+        ),
+
+      lon:
+        String(
+          point.lng,
+        ),
+
+      format:
+        'json',
+
+      addressdetails:
+        '1',
+
+      normalizeaddress:
+        '1',
+
+      normalizecity:
+        '1',
+
+      zoom:
+        '18',
+
+      'accept-language':
+        'it',
+    })
+
+  const result =
+    await fetchLocationIqSingle(
+      `${LOCATIONIQ_REVERSE_URL}?${params.toString()}`,
+      signal,
+    )
+
+  const fallback =
+    `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`
+
+  if (!result) {
+    return {
+      id:
+        `reverse:${point.lat}:${point.lng}`,
+
+      name:
+        fallback,
+
+      label:
+        fallback,
+
+      lat:
+        point.lat,
+
+      lng:
+        point.lng,
+    }
+  }
+
+  const name =
+    reverseName(
+      result,
+      point.lat,
+      point.lng,
+    )
+
+  return {
+    id:
+      `reverse:${result.osm_type ?? 'x'}:${result.osm_id ?? result.place_id ?? `${point.lat}:${point.lng}`}`,
+
+    name,
+
+    label:
+      result.display_name
+        ?.trim() ||
+      fallback,
+
+    lat:
+      point.lat,
+
+    lng:
+      point.lng,
+
+    osmType:
+      result.osm_type,
+
+    osmId:
+      result.osm_id !==
+      undefined &&
+      Number.isFinite(
+        Number(
+          result.osm_id,
+        ),
+      )
+        ? Number(
+            result.osm_id,
+          )
+        : undefined,
+
+    category:
+      result.class,
+
+    type:
+      result.type,
+
+    boundingBox:
+      parseBoundingBox(
+        result.boundingbox,
+      ),
+  }
 }
