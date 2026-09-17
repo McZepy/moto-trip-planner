@@ -17,7 +17,6 @@ import {
 } from '../providers/tripRouteAlternatives'
 import type {
   TripRoutePlan,
-  TripRouteSection,
 } from '../providers/tripRoutePlanner'
 import {
   multiLegPlanToTripRoutePlan,
