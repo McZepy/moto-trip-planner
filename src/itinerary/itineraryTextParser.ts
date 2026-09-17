@@ -24,10 +24,8 @@ function cleanMarkdown(
   value: string,
 ) {
   return value
-    .replace(/\*\*/g, '')
-    .replace(/__/g, '')
-    .replace(/`/g, '')
-    .replace(/^\s*[-*+]\s+/, '')
+    .replace(/[*_`]/g, '')
+    .replace(/^\s*[-+]\s+/, '')
     .trim()
 }
 
