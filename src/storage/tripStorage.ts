@@ -1,6 +1,7 @@
 import type { GeocodingResult } from '../providers/geocodingProvider'
 import type { TripSettings } from '../types/trip'
 import { defaultTripSettings } from '../types/trip'
+import type { TripDay } from '../types/tripDay'
 import type { Waypoint } from '../types/waypoint'
 
 export type TripRecord = {
@@ -11,6 +12,7 @@ export type TripRecord = {
   destinationPlace: GeocodingResult | null
 
   waypoints: Waypoint[]
+  days: TripDay[]
 
   settings: TripSettings
 
@@ -63,6 +65,24 @@ function normalizeSettings(
   }
 }
 
+function cloneDays(
+  days: TripDay[] | undefined,
+): TripDay[] {
+  return (days ?? []).map(
+    (day) => ({
+      ...day,
+      steps:
+        day.steps.map(
+          (step) => ({
+            ...step,
+          }),
+        ),
+      notes:
+        [...day.notes],
+    }),
+  )
+}
+
 export function getSavedTrips(): TripRecord[] {
   try {
     const raw =
@@ -78,9 +98,10 @@ export function getSavedTrips(): TripRecord[] {
       JSON.parse(raw) as Array<
         Omit<
           TripRecord,
-          'settings'
+          'settings' | 'days'
         > & {
           settings?: Partial<TripSettings>
+          days?: TripDay[]
         }
       >
 
@@ -90,6 +111,11 @@ export function getSavedTrips(): TripRecord[] {
 
         waypoints:
           trip.waypoints ?? [],
+
+        days:
+          cloneDays(
+            trip.days,
+          ),
 
         settings:
           normalizeSettings(
@@ -142,6 +168,11 @@ export function saveTrip(
 
   const savedTrip: TripRecord = {
     ...trip,
+
+    days:
+      cloneDays(
+        trip.days,
+      ),
 
     settings:
       normalizeSettings(
@@ -255,6 +286,11 @@ export function duplicateTrip(
                 }
               : undefined,
         }),
+      ),
+
+    days:
+      cloneDays(
+        source.days,
       ),
 
     settings: {
