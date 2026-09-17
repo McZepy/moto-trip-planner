@@ -38,20 +38,48 @@ function normalizeAliasKey(
 const GEOGRAPHIC_ALIASES:
   Record<string, GeographicSearchHint> = {
   lucerna: {
-    query: 'Luzern',
+    query: 'Luzern, Switzerland',
     kind: 'locality',
+
+    fixedPoint: {
+      lat: 47.0502,
+      lng: 8.3093,
+      label:
+        'Luzern, Schweiz',
+    },
   },
   basilea: {
-    query: 'Basel',
+    query: 'Basel, Switzerland',
     kind: 'locality',
+
+    fixedPoint: {
+      lat: 47.5596,
+      lng: 7.5886,
+      label:
+        'Basel, Schweiz',
+    },
   },
   francoforte: {
-    query: 'Frankfurt am Main',
+    query: 'Frankfurt am Main, Germany',
     kind: 'locality',
+
+    fixedPoint: {
+      lat: 50.1109,
+      lng: 8.6821,
+      label:
+        'Frankfurt am Main, Deutschland',
+    },
   },
   'francoforte sul meno': {
-    query: 'Frankfurt am Main',
+    query: 'Frankfurt am Main, Germany',
     kind: 'locality',
+
+    fixedPoint: {
+      lat: 50.1109,
+      lng: 8.6821,
+      label:
+        'Frankfurt am Main, Deutschland',
+    },
   },
   amburgo: {
     query: 'Hamburg, Germany',
@@ -65,8 +93,15 @@ const GEOGRAPHIC_ALIASES:
     },
   },
   copenaghen: {
-    query: 'København',
+    query: 'København, Denmark',
     kind: 'locality',
+
+    fixedPoint: {
+      lat: 55.6761,
+      lng: 12.5683,
+      label:
+        'København, Danmark',
+    },
   },
   'capo nord': {
     query: 'Nordkapp',
