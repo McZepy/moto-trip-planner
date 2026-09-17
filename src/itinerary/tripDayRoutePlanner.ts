@@ -28,6 +28,7 @@ import {
 import type { TripDay } from '../types/tripDay'
 import { getTripDayPlaces } from './itineraryTextParser'
 import {
+  resolveGeographicFixedPoint,
   resolveGeographicSearchHint,
   resolveGeographicSearchQuery,
 } from './geographicAliases'
@@ -643,6 +644,38 @@ async function resolveSinglePlace(
   name: string,
   focus?: GeocodingResult,
 ) {
+  const fixedPoint =
+    resolveGeographicFixedPoint(
+      name,
+    )
+
+  if (fixedPoint) {
+    return {
+      id:
+        'fixed:' +
+        normalizeText(
+          name,
+        ),
+
+      name,
+
+      label:
+        fixedPoint.label,
+
+      lat:
+        fixedPoint.lat,
+
+      lng:
+        fixedPoint.lng,
+
+      category:
+        'place',
+
+      type:
+        'city',
+    }
+  }
+
   const candidates =
     await loadCandidates(
       name,
