@@ -24,7 +24,7 @@ function cleanMarkdown(
   value: string,
 ) {
   return value
-    .replace(/[*_`]/g, '')
+    .replace(/[*`]/g, '')
     .replace(/^\s*[-+]\s+/, '')
     .trim()
 }
@@ -58,6 +58,17 @@ function createDayId(
   dateLabel: string,
 ) {
   return `day-${dayNumber}-${dateLabel.replace(/[^0-9]/g, '-')}`
+}
+
+function splitRouteTokens(
+  routeText: string,
+) {
+  return routeText
+    .split(
+      /\s*(?:→|->|=>|⟶|➜|_|,|;|\s+-\s+)\s*/g,
+    )
+    .map(cleanRouteToken)
+    .filter(Boolean)
 }
 
 function parsePendingDay(
@@ -96,10 +107,9 @@ function parsePendingDay(
     )
 
   const rawTokens =
-    routeText
-      .split(/\s*(?:→|->|=>|⟶|➜)\s*/g)
-      .map(cleanRouteToken)
-      .filter(Boolean)
+    splitRouteTokens(
+      routeText,
+    )
 
   const steps: TripDayStep[] =
     rawTokens.map((token) =>
