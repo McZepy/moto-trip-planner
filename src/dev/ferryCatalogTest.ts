@@ -196,6 +196,21 @@ function runTests() {
       'Bergen deve essere una normale rotta del catalogo.',
   })
 
+  tests.push({
+    name:
+      'Bodø → Moskenes presente',
+
+    ok:
+      findFerryRoutesBetweenPorts(
+        'bodo',
+        'moskenes',
+      ).length >
+      0,
+
+    detail:
+      'La rotta Torghatten per le Lofoten deve essere disponibile nel catalogo.',
+  })
+
   const sardiniaRouteIds =
     new Set(
       [
@@ -279,6 +294,11 @@ function runTests() {
         (view) =>
           view.route.id ===
             'hirtshals-kristiansand',
+      ) &&
+      routable.some(
+        (view) =>
+          view.route.id ===
+            'bodo-moskenes',
       ),
 
     detail:
