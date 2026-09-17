@@ -67,6 +67,28 @@ const GRIMALDI_SARDINIA =
     'Sardinia routes',
   )
 
+const TORGHATTEN_BODO_MOSKENES =
+  operatorSource(
+    'Torghatten',
+    'https://www.torghatten.no/en/our-routes/18-782',
+  )
+
+const BODO_FERRY_TERMINAL_SOURCE:
+  FerryDataSource = {
+  kind: 'manual-verified',
+  provider: 'OpenStreetMap',
+  reference: 'node 7329411948 · Bodø ferjekai',
+  checkedAt: CHECKED_AT,
+}
+
+const MOSKENES_FERRY_TERMINAL_SOURCE:
+  FerryDataSource = {
+  kind: 'manual-verified',
+  provider: 'Havspor / OpenStreetMap',
+  reference: 'Moskenes ferjekai',
+  checkedAt: CHECKED_AT,
+}
+
 export const FERRY_CATALOG_SEED:
   FerryCatalogData = {
   ports: [
@@ -110,6 +132,30 @@ export const FERRY_CATALOG_SEED:
         'Norvegia',
       sources: [
         FJORD_BERGEN,
+      ],
+    },
+
+    {
+      id: 'bodo',
+      name: 'Bodø',
+      countryCode: 'NO',
+      countryName:
+        'Norvegia',
+      aliases: [
+        'Bodo',
+      ],
+      sources: [
+        TORGHATTEN_BODO_MOSKENES,
+      ],
+    },
+    {
+      id: 'moskenes',
+      name: 'Moskenes',
+      countryCode: 'NO',
+      countryName:
+        'Norvegia',
+      sources: [
+        TORGHATTEN_BODO_MOSKENES,
       ],
     },
 
@@ -300,6 +346,59 @@ export const FERRY_CATALOG_SEED:
 
     {
       id:
+        'bodo-torghatten',
+      portId:
+        'bodo',
+
+      name:
+        'Bodø ferjekai',
+
+      terminalPoint: {
+        lat: 67.28835,
+        lng: 14.39415,
+      },
+
+      vehicleAccessPoint: {
+        lat: 67.28835,
+        lng: 14.39415,
+      },
+
+      sources: [
+        BODO_FERRY_TERMINAL_SOURCE,
+        TORGHATTEN_BODO_MOSKENES,
+      ],
+    },
+
+    {
+      id:
+        'moskenes-torghatten',
+      portId:
+        'moskenes',
+
+      name:
+        'Moskenes ferjekai',
+
+      address:
+        'Birger Eriksens vei 35, 8392 Moskenes',
+
+      terminalPoint: {
+        lat: 67.8998,
+        lng: 13.0440,
+      },
+
+      vehicleAccessPoint: {
+        lat: 67.8998,
+        lng: 13.0440,
+      },
+
+      sources: [
+        MOSKENES_FERRY_TERMINAL_SOURCE,
+        TORGHATTEN_BODO_MOSKENES,
+      ],
+    },
+
+    {
+      id:
         'bergen-fjord-line',
       portId:
         'bergen',
@@ -375,6 +474,21 @@ export const FERRY_CATALOG_SEED:
       sources: [
         FJORD_HIRTSHALS,
         FJORD_BERGEN,
+      ],
+    },
+
+    {
+      id:
+        'bodo-moskenes',
+      portAId:
+        'bodo',
+      portBId:
+        'moskenes',
+      bidirectional:
+        true,
+
+      sources: [
+        TORGHATTEN_BODO_MOSKENES,
       ],
     },
 
@@ -558,6 +672,39 @@ export const FERRY_CATALOG_SEED:
       sources: [
         FJORD_HIRTSHALS,
         FJORD_BERGEN,
+      ],
+    },
+
+    {
+      id:
+        'torghatten-bodo-moskenes',
+
+      routeId:
+        'bodo-moskenes',
+
+      operator:
+        'Torghatten',
+
+      terminalAId:
+        'bodo-torghatten',
+
+      terminalBId:
+        'moskenes-torghatten',
+
+      motorcycleAllowed:
+        true,
+
+      durationMinutesMin:
+        210,
+
+      durationMinutesMax:
+        240,
+
+      seasonNotes:
+        'Durata indicativa per il routing. Verificare orari e prenotazione per la data del viaggio.',
+
+      sources: [
+        TORGHATTEN_BODO_MOSKENES,
       ],
     },
 
