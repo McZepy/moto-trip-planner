@@ -29,8 +29,18 @@ export type TripDaysRouteResult = {
   dayResults: TripDayRouteResult[]
 }
 
-const placeCache =
-  new Map<string, GeocodingResult>()
+type CandidateChoice = {
+  candidate: SmartGeocodingResult
+  sourceIndex: number
+}
+
+type SequenceNode = {
+  cost: number
+  previousIndex: number | null
+}
+
+const candidateCache =
+  new Map<string, SmartGeocodingResult[]>()
 
 function normalizeText(
   value: string,
@@ -76,12 +86,29 @@ function distanceKm(
   )
 }
 
-function candidateScore(
-  query: string,
-  candidate: SmartGeocodingResult,
-  anchor?: GeocodingResult,
+function isLocalityType(
+  value?: string,
 ) {
-  let score = 0
+  return [
+    'city',
+    'town',
+    'village',
+    'municipality',
+    'hamlet',
+    'locality',
+  ].includes(
+    normalizeText(
+      value ?? '',
+    ),
+  )
+}
+
+function baseCandidateScore(
+  query: string,
+  choice: CandidateChoice,
+) {
+  const candidate =
+    choice.candidate
 
   const queryNormalized =
     normalizeText(query)
@@ -89,39 +116,83 @@ function candidateScore(
   const nameNormalized =
     normalizeText(candidate.name)
 
-  if (nameNormalized === queryNormalized) {
-    score -= 80
+  let score =
+    choice.sourceIndex * 7
+
+  if (
+    nameNormalized ===
+    queryNormalized
+  ) {
+    score -= 120
   } else if (
-    nameNormalized.includes(queryNormalized) ||
-    queryNormalized.includes(nameNormalized)
+    nameNormalized.includes(
+      queryNormalized,
+    ) ||
+    queryNormalized.includes(
+      nameNormalized,
+    )
+  ) {
+    score -= 35
+  }
+
+  if (
+    candidate.kind ===
+    'place'
   ) {
     score -= 25
   }
 
-  if (candidate.kind === 'place') {
-    score -= 20
+  if (
+    isLocalityType(
+      candidate.type,
+    )
+  ) {
+    score -= 18
   }
 
-  if (anchor) {
-    score +=
-      Math.min(
-        distanceKm(anchor, candidate),
-        3000,
-      ) / 8
+  if (
+    candidate.kind ===
+    'address'
+  ) {
+    score += 20
+  }
+
+  if (
+    candidate.kind ===
+    'ferry-terminal'
+  ) {
+    score += 12
   }
 
   return score
 }
 
-async function resolvePlace(
+function transitionScore(
+  from: {
+    lat: number
+    lng: number
+  },
+  to: {
+    lat: number
+    lng: number
+  },
+) {
+  return (
+    distanceKm(
+      from,
+      to,
+    ) * 0.45
+  )
+}
+
+async function loadCandidates(
   name: string,
-  anchor?: GeocodingResult,
-): Promise<GeocodingResult> {
+): Promise<SmartGeocodingResult[]> {
   const key =
     normalizeText(name)
 
   const cached =
-    placeCache.get(key)
+    candidateCache.get(key)
 
   if (cached) {
     return cached
@@ -130,44 +201,234 @@ async function resolvePlace(
   const results =
     await autocompletePlaces(name)
 
-  if (results.length === 0) {
+  if (
+    results.length === 0
+  ) {
     throw new Error(
       `Località non trovata: ${name}`,
     )
   }
 
-  const best =
-    [...results].sort(
-      (a, b) =>
-        candidateScore(name, a, anchor) -
-        candidateScore(name, b, anchor),
-    )[0]
-
-  if (!best) {
-    throw new Error(
-      `Località non trovata: ${name}`,
-    )
-  }
-
-  const resolved: GeocodingResult = {
-    id: best.id,
-    name: best.name,
-    label: best.label,
-    lat: best.lat,
-    lng: best.lng,
-    category: best.category,
-    type: best.type,
-    osmType: best.osmType,
-    osmId: best.osmId,
-    boundingBox: best.boundingBox,
-  }
-
-  placeCache.set(
+  candidateCache.set(
     key,
-    resolved,
+    results,
   )
 
-  return resolved
+  return results
+}
+
+function toGeocodingResult(
+  candidate: SmartGeocodingResult,
+): GeocodingResult {
+  return {
+    id: candidate.id,
+    name: candidate.name,
+    label: candidate.label,
+    lat: candidate.lat,
+    lng: candidate.lng,
+    category: candidate.category,
+    type: candidate.type,
+    osmType: candidate.osmType,
+    osmId: candidate.osmId,
+    boundingBox: candidate.boundingBox,
+  }
+}
+
+export function selectBestGeocodingSequence(
+  names: string[],
+  candidateGroups: SmartGeocodingResult[][],
+  anchor?: GeocodingResult,
+): GeocodingResult[] {
+  if (
+    names.length === 0 ||
+    candidateGroups.length !==
+      names.length
+  ) {
+    throw new Error(
+      'Sequenza località non valida.',
+    )
+  }
+
+  const groups:
+    CandidateChoice[][] =
+      candidateGroups.map(
+        (group) =>
+          group
+            .slice(0, 10)
+            .map(
+              (candidate, sourceIndex) => ({
+                candidate,
+                sourceIndex,
+              }),
+            ),
+      )
+
+  if (
+    groups.some(
+      (group) =>
+        group.length === 0,
+    )
+  ) {
+    throw new Error(
+      'Una o più località non hanno candidati utilizzabili.',
+    )
+  }
+
+  const matrix:
+    SequenceNode[][] = []
+
+  matrix[0] =
+    groups[0].map(
+      (choice) => ({
+        cost:
+          baseCandidateScore(
+            names[0],
+            choice,
+          ) +
+          (
+            anchor
+              ? transitionScore(
+                  anchor,
+                  choice.candidate,
+                )
+              : 0
+          ),
+        previousIndex:
+          null,
+      }),
+    )
+
+  for (
+    let groupIndex = 1;
+    groupIndex < groups.length;
+    groupIndex += 1
+  ) {
+    const previousGroup =
+      groups[groupIndex - 1]
+
+    const previousNodes =
+      matrix[groupIndex - 1]
+
+    matrix[groupIndex] =
+      groups[groupIndex].map(
+        (choice) => {
+          let bestCost =
+            Number.POSITIVE_INFINITY
+
+          let bestPreviousIndex =
+            0
+
+          previousGroup.forEach(
+            (
+              previousChoice,
+              previousIndex,
+            ) => {
+              const previousNode =
+                previousNodes[previousIndex]
+
+              const cost =
+                previousNode.cost +
+                transitionScore(
+                  previousChoice.candidate,
+                  choice.candidate,
+                ) +
+                baseCandidateScore(
+                  names[groupIndex],
+                  choice,
+                )
+
+              if (
+                cost < bestCost
+              ) {
+                bestCost =
+                  cost
+
+                bestPreviousIndex =
+                  previousIndex
+              }
+            },
+          )
+
+          return {
+            cost:
+              bestCost,
+            previousIndex:
+              bestPreviousIndex,
+          }
+        },
+      )
+  }
+
+  const lastNodes =
+    matrix.at(-1) ?? []
+
+  let selectedIndex =
+    lastNodes.reduce(
+      (
+        bestIndex,
+        node,
+        index,
+      ) =>
+        node.cost <
+        lastNodes[bestIndex].cost
+          ? index
+          : bestIndex,
+      0,
+    )
+
+  const selected:
+    SmartGeocodingResult[] =
+      new Array(groups.length)
+
+  for (
+    let groupIndex =
+      groups.length - 1;
+    groupIndex >= 0;
+    groupIndex -= 1
+  ) {
+    selected[groupIndex] =
+      groups[groupIndex][
+        selectedIndex
+      ].candidate
+
+    const previousIndex =
+      matrix[groupIndex][
+        selectedIndex
+      ].previousIndex
+
+    if (
+      previousIndex === null
+    ) {
+      break
+    }
+
+    selectedIndex =
+      previousIndex
+  }
+
+  return selected.map(
+    toGeocodingResult,
+  )
+}
+
+async function resolvePlaces(
+  names: string[],
+  anchor?: GeocodingResult,
+) {
+  const candidateGroups:
+    SmartGeocodingResult[][] = []
+
+  for (const name of names) {
+    candidateGroups.push(
+      await loadCandidates(name),
+    )
+  }
+
+  return selectBestGeocodingSequence(
+    names,
+    candidateGroups,
+    anchor,
+  )
 }
 
 function dayHasExplicitFerry(
@@ -193,19 +454,11 @@ export async function planTripDayRoute(
     )
   }
 
-  const places: GeocodingResult[] = []
-  let previous = anchor
-
-  for (const name of names) {
-    const resolved =
-      await resolvePlace(
-        name,
-        previous,
-      )
-
-    places.push(resolved)
-    previous = resolved
-  }
+  const places =
+    await resolvePlaces(
+      names,
+      anchor,
+    )
 
   const multiLeg =
     await planMultiLegRoute(
@@ -322,5 +575,5 @@ export async function planTripDaysRoute(
 }
 
 export function clearTripDayPlaceCache() {
-  placeCache.clear()
+  candidateCache.clear()
 }
