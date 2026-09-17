@@ -34,6 +34,16 @@ type DaysHotelPanelProps = {
     (message: string) => void
 }
 
+type PendingConfirmation =
+  | {
+      kind: 'clear'
+    }
+  | {
+      kind: 'replace'
+      days: TripDay[]
+    }
+  | null
+
 function daySummary(
   day: TripDay,
 ) {
@@ -100,6 +110,29 @@ export function DaysHotelPanel({
   ] =
     useState<string[]>([])
 
+  const [
+    pendingConfirmation,
+    setPendingConfirmation,
+  ] =
+    useState<PendingConfirmation>(
+      null,
+    )
+
+  const applyImportedDays =
+    (importedDays: TripDay[]) => {
+      onChange(
+        importedDays,
+      )
+
+      setPendingConfirmation(
+        null,
+      )
+
+      onStatus?.(
+        `${importedDays.length} giornate importate dal testo.`,
+      )
+    }
+
   const handleImport =
     () => {
       const parsed =
@@ -120,37 +153,54 @@ export function DaysHotelPanel({
         return
       }
 
-      if (
-        days.length > 0 &&
-        !window.confirm(
-          `Sostituire le ${days.length} giornate attuali con le ${parsed.days.length} giornate appena riconosciute?`,
-        )
-      ) {
+      if (days.length > 0) {
+        setPendingConfirmation({
+          kind:
+            'replace',
+          days:
+            parsed.days,
+        })
         return
       }
 
-      onChange(
+      applyImportedDays(
         parsed.days,
-      )
-
-      onStatus?.(
-        `${parsed.days.length} giornate importate dal testo.`,
       )
     }
 
   const handleClear =
     () => {
+      if (days.length === 0) {
+        return
+      }
+
+      setPendingConfirmation({
+        kind:
+          'clear',
+      })
+    }
+
+  const confirmPendingAction =
+    () => {
+      if (!pendingConfirmation) {
+        return
+      }
+
       if (
-        days.length > 0 &&
-        !window.confirm(
-          'Eliminare tutte le giornate importate?',
-        )
+        pendingConfirmation.kind ===
+        'replace'
       ) {
+        applyImportedDays(
+          pendingConfirmation.days,
+        )
         return
       }
 
       onChange([])
       setWarnings([])
+      setPendingConfirmation(
+        null,
+      )
 
       onStatus?.(
         'Giornate eliminate.',
@@ -167,7 +217,7 @@ export function DaysHotelPanel({
             </strong>
 
             <p>
-              Incolla giornate con data e località separate da →. MotoRoute riconosce anche traghetti e note tra parentesi.
+              Incolla giornate con data e località separate da →, trattino, _, virgola o punto e virgola. MotoRoute riconosce anche traghetti e note tra parentesi.
             </p>
           </div>
 
@@ -184,7 +234,7 @@ export function DaysHotelPanel({
             sourceText
           }
           placeholder={
-            '1. 24/7\nViganò → Como → ... → Fulda\n\n2. 25/7\nFulda → ... → Schleswig'
+            '1. 24/7\nViganò → Como → ... → Fulda\n\n2. 25/7\nFulda - Kassel - Hannover - Schleswig'
           }
           onChange={(
             event,
@@ -410,6 +460,56 @@ export function DaysHotelPanel({
           La gestione pernottamenti resta separata e verrà collegata alle giornate in una fase successiva.
         </span>
       </div>
+
+      {pendingConfirmation && (
+        <div className="confirm-backdrop">
+          <div className="confirm-dialog">
+            <h3>
+              {pendingConfirmation.kind ===
+              'clear'
+                ? 'Svuotare tutte le giornate?'
+                : 'Sostituire le giornate?'}
+            </h3>
+
+            <p>
+              {pendingConfirmation.kind ===
+              'clear'
+                ? `Stai per eliminare tutte le ${days.length} giornate del viaggio.`
+                : `Stai per sostituire le ${days.length} giornate attuali con ${pendingConfirmation.days.length} nuove giornate.`}
+            </p>
+
+            <p className="confirm-note">
+              Questa operazione modifica la bozza corrente del viaggio.
+            </p>
+
+            <div className="confirm-actions">
+              <button
+                type="button"
+                onClick={() =>
+                  setPendingConfirmation(
+                    null,
+                  )
+                }
+              >
+                Annulla
+              </button>
+
+              <button
+                type="button"
+                className="confirm-delete"
+                onClick={
+                  confirmPendingAction
+                }
+              >
+                {pendingConfirmation.kind ===
+                'clear'
+                  ? 'Svuota'
+                  : 'Sostituisci'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
