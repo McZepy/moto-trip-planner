@@ -105,16 +105,18 @@ async function run() {
     })
 
   check(
-    'Preferenze tradotte in ferries/unpaved/motorways/tollRoads',
+    'Preferenze tradotte in unpaved/motorways/tollRoads',
     [
-      'ferries',
       'unpavedRoads',
       'motorways',
       'tollRoads',
     ].every(
       (item) =>
         avoids.includes(item),
-    ),
+    ) &&
+      !avoids.includes(
+        'ferries',
+      ),
     avoids.join(', '),
   )
 
@@ -127,11 +129,30 @@ async function run() {
     })
 
   check(
-    'Routing stradale forza sempre evita traghetti',
-    settings.avoids.includes(
+    'Traghetti locali consentiti quando attivi',
+    !settings.avoids.includes(
       'ferries',
     ),
     settings.avoids.join(', '),
+  )
+
+  const noFerrySettings =
+    buildTomTomRoutingParameters({
+      routeStyle:
+        'fast',
+      roadPreferences: {
+        ...preferences,
+        allowFerries:
+          false,
+      },
+    })
+
+  check(
+    'Evita traghetti viene applicato quando disattivati',
+    noFerrySettings.avoids.includes(
+      'ferries',
+    ),
+    noFerrySettings.avoids.join(', '),
   )
 
   if (

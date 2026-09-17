@@ -146,11 +146,15 @@ export function getTomTomAvoids(
     TripRoadPreferences,
 ) {
   const avoids:
-    string[] = [
-      // I traghetti restano responsabilità del FerryCatalog MotoRoute.
-      // In questo modo il motore stradale non inserisce traghetti nascosti.
+    string[] = []
+
+  if (
+    !preferences.allowFerries
+  ) {
+    avoids.push(
       'ferries',
-    ]
+    )
+  }
 
   if (
     preferences.avoidUnpaved

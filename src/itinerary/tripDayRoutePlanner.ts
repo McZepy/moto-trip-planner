@@ -1,9 +1,12 @@
 import type { GeocodingResult } from '../providers/geocodingProvider'
 import type { RoutingProvider } from '../providers/routingProvider'
 import {
-  autocompletePlaces,
+  autocompleteLocalities,
   type SmartGeocodingResult,
 } from '../providers/autocompleteProvider'
+import {
+  rankAutocompleteSuggestions,
+} from '../providers/autocompleteRanking'
 import {
   planFastestRouteAlternatives,
   type RouteAlternative,
@@ -202,9 +205,18 @@ function transitionScore(
 
 async function loadCandidates(
   name: string,
+  focus?: {
+    lat: number
+    lng: number
+  },
 ): Promise<SmartGeocodingResult[]> {
+  const focusKey =
+    focus
+      ? focus.lat.toFixed(2) + ',' + focus.lng.toFixed(2)
+      : 'global'
+
   const key =
-    normalizeText(name)
+    normalizeText(name) + '|' + focusKey
 
   const cached =
     candidateCache.get(key)
@@ -214,13 +226,17 @@ async function loadCandidates(
   }
 
   const results =
-    await autocompletePlaces(name)
+    await autocompleteLocalities(
+      name,
+      undefined,
+      { focus },
+    )
 
   if (
     results.length === 0
   ) {
     throw new Error(
-      `Località non trovata: ${name}`,
+      'Località non trovata: ' + name,
     )
   }
 
@@ -430,20 +446,50 @@ async function resolvePlaces(
   names: string[],
   anchor?: GeocodingResult,
 ) {
-  const candidateGroups:
-    SmartGeocodingResult[][] = []
+  const resolved:
+    GeocodingResult[] = []
+
+  let focus:
+    GeocodingResult | undefined =
+      anchor
 
   for (const name of names) {
-    candidateGroups.push(
-      await loadCandidates(name),
+    const candidates =
+      await loadCandidates(
+        name,
+        focus,
+      )
+
+    const ranked =
+      rankAutocompleteSuggestions(
+        name,
+        candidates,
+        focus,
+      )
+
+    const selected =
+      ranked[0]
+
+    if (!selected) {
+      throw new Error(
+        'Località non trovata: ' + name,
+      )
+    }
+
+    const place =
+      toGeocodingResult(
+        selected,
+      )
+
+    resolved.push(
+      place,
     )
+
+    focus =
+      place
   }
 
-  return selectBestGeocodingSequence(
-    names,
-    candidateGroups,
-    anchor,
-  )
+  return resolved
 }
 
 export function getTripDayRoutingLegs(

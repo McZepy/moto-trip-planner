@@ -1223,6 +1223,58 @@ async function portSearch(
   )
 }
 
+export async function autocompleteLocalities(
+  query: string,
+  signal?:
+    AbortSignal,
+  context:
+    AutocompleteSearchContext = {},
+): Promise<
+  AutocompleteSuggestion[]
+> {
+  const trimmedQuery =
+    query.trim()
+
+  if (
+    trimmedQuery.length <
+    2
+  ) {
+    return []
+  }
+
+  const cities =
+    await locationIqAutocomplete(
+      trimmedQuery,
+      signal,
+      'city',
+      context.focus,
+    )
+
+  if (cities.length > 0) {
+    return dedupeSuggestions(
+      cities,
+    ).slice(
+      0,
+      10,
+    )
+  }
+
+  const general =
+    await locationIqAutocomplete(
+      trimmedQuery,
+      signal,
+      undefined,
+      context.focus,
+    )
+
+  return dedupeSuggestions(
+    general,
+  ).slice(
+    0,
+    10,
+  )
+}
+
 export async function autocompletePlaces(
   query: string,
   signal?:
