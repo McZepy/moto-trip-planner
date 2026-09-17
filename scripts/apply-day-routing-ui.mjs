@@ -1,3 +1,4 @@
+// One-shot patch for V0.5C day routing integration.
 import fs from 'node:fs/promises'
 
 const APP_PATH = new URL('../src/App.tsx', import.meta.url)
