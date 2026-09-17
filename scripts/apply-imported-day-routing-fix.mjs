@@ -376,3 +376,5 @@ if (test.includes('Routing stradale forza sempre evita traghetti')) {
 }
 
 console.log('Routing giornate importate e traghetti locali aggiornati')
+
+// trigger workflow
