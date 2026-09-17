@@ -40,4 +40,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/data/osm-ferries-europe.json
           git commit -m "data: aggiorna catalogo traghetti OSM [skip ci]"
-          git push
+
+          # Il branch può avanzare mentre il catalogo viene costruito.
+          # Ribasiamo il commit dati prima del push per evitare non-fast-forward.
+          git pull --rebase origin main
+          git push origin HEAD:main
