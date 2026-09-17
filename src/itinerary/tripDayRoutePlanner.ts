@@ -4,10 +4,13 @@ import {
   type SmartGeocodingResult,
 } from '../providers/autocompleteProvider'
 import {
-  multiLegPlanToTripRoutePlan,
-  planMultiLegRoute,
-} from '../providers/multiLegTripPlanner'
-import type { TripRoutePlan } from '../providers/tripRoutePlanner'
+  planFastestRouteAlternatives,
+  type RouteAlternative,
+} from '../providers/tripRouteAlternatives'
+import type {
+  TripRoutePlan,
+  TripRouteSection,
+} from '../providers/tripRoutePlanner'
 import type { TripDay } from '../types/tripDay'
 import { getTripDayPlaces } from './itineraryTextParser'
 
@@ -29,6 +32,14 @@ export type TripDaysRouteResult = {
   dayResults: TripDayRouteResult[]
 }
 
+export type TripDayRoutingLeg = {
+  from: string
+  to: string
+  fromPlaceIndex: number
+  toPlaceIndex: number
+  explicitFerry: boolean
+}
+
 type CandidateChoice = {
   candidate: SmartGeocodingResult
   sourceIndex: number
@@ -41,6 +52,9 @@ type SequenceNode = {
 
 const candidateCache =
   new Map<string, SmartGeocodingResult[]>()
+
+const EXPLICIT_FERRY_ENDPOINT_TOLERANCE_KM =
+  60
 
 function normalizeText(
   value: string,
@@ -431,18 +445,195 @@ async function resolvePlaces(
   )
 }
 
-function dayHasExplicitFerry(
+export function getTripDayRoutingLegs(
   day: TripDay,
+): TripDayRoutingLeg[] {
+  const legs:
+    TripDayRoutingLeg[] = []
+
+  let previousName:
+    string | null = null
+
+  let previousPlaceIndex =
+    -1
+
+  let currentPlaceIndex =
+    -1
+
+  let explicitFerry =
+    false
+
+  for (const step of day.steps) {
+    if (step.kind === 'ferry') {
+      explicitFerry =
+        true
+      continue
+    }
+
+    currentPlaceIndex += 1
+
+    if (previousName !== null) {
+      legs.push({
+        from:
+          previousName,
+        to:
+          step.name,
+        fromPlaceIndex:
+          previousPlaceIndex,
+        toPlaceIndex:
+          currentPlaceIndex,
+        explicitFerry,
+      })
+    }
+
+    previousName =
+      step.name
+
+    previousPlaceIndex =
+      currentPlaceIndex
+
+    explicitFerry =
+      false
+  }
+
+  return legs
+}
+
+function explicitFerryAlternative(
+  alternatives:
+    RouteAlternative[],
+  from:
+    GeocodingResult,
+  to:
+    GeocodingResult,
 ) {
-  return day.steps.some(
-    (step) =>
-      step.kind === 'ferry',
-  )
+  return alternatives
+    .filter(
+      (alternative) => {
+        if (
+          alternative.kind !==
+          'ferry' ||
+          !alternative.ferryCandidate
+        ) {
+          return false
+        }
+
+        const candidate =
+          alternative.ferryCandidate
+
+        return (
+          distanceKm(
+            from,
+            candidate.departurePoint,
+          ) <=
+            EXPLICIT_FERRY_ENDPOINT_TOLERANCE_KM &&
+          distanceKm(
+            to,
+            candidate.arrivalPoint,
+          ) <=
+            EXPLICIT_FERRY_ENDPOINT_TOLERANCE_KM
+        )
+      },
+    )
+    .sort(
+      (first, second) =>
+        first.plan.durationSeconds -
+        second.plan.durationSeconds,
+    )[0]
+}
+
+async function planDayLeg(
+  day: TripDay,
+  legIndex: number,
+  leg: TripDayRoutingLeg,
+  from: GeocodingResult,
+  to: GeocodingResult,
+): Promise<TripRoutePlan> {
+  const result =
+    await planFastestRouteAlternatives(
+      {
+        lat: from.lat,
+        lng: from.lng,
+      },
+      {
+        lat: to.lat,
+        lng: to.lng,
+      },
+      leg.explicitFerry,
+    )
+
+  let selected =
+    result.selected
+
+  if (leg.explicitFerry) {
+    const ferry =
+      explicitFerryAlternative(
+        result.alternatives,
+        from,
+        to,
+      )
+
+    if (!ferry) {
+      throw new Error(
+        `Giorno ${day.dayNumber}: il traghetto esplicito ${leg.from} → ${leg.to} non è disponibile nel catalogo con dati sufficienti per il calcolo.`,
+      )
+    }
+
+    selected =
+      ferry
+  }
+
+  return {
+    ...selected.plan,
+    sections:
+      selected.plan.sections.map(
+        (section, sectionIndex) => ({
+          ...section,
+          id:
+            `day:${day.dayNumber}:leg:${legIndex}:section:${sectionIndex}:${section.id}`,
+        }),
+      ),
+  }
+}
+
+function combineLegPlans(
+  plans:
+    TripRoutePlan[],
+): TripRoutePlan {
+  const sections:
+    TripRouteSection[] =
+      plans.flatMap(
+        (plan) =>
+          plan.sections,
+      )
+
+  return {
+    sections,
+    distanceMeters:
+      plans.reduce(
+        (total, plan) =>
+          total +
+          plan.distanceMeters,
+        0,
+      ),
+    durationSeconds:
+      plans.reduce(
+        (total, plan) =>
+          total +
+          plan.durationSeconds,
+        0,
+      ),
+    usesFerry:
+      plans.some(
+        (plan) =>
+          plan.usesFerry,
+      ),
+  }
 }
 
 export async function planTripDayRoute(
   day: TripDay,
-  allowFerries: boolean,
+  _allowAutomaticFerries: boolean,
   anchor?: GeocodingResult,
 ): Promise<TripDayRouteResult> {
   const names =
@@ -460,21 +651,61 @@ export async function planTripDayRoute(
       anchor,
     )
 
-  const multiLeg =
-    await planMultiLegRoute(
-      places.map(
-        (place) => ({
-          lat: place.lat,
-          lng: place.lng,
-        }),
-      ),
-      allowFerries ||
-        dayHasExplicitFerry(day),
+  const legs =
+    getTripDayRoutingLegs(
+      day,
     )
 
+  if (
+    legs.length !==
+    places.length - 1
+  ) {
+    throw new Error(
+      `Giorno ${day.dayNumber}: struttura delle tappe non coerente.`,
+    )
+  }
+
+  const legPlans:
+    TripRoutePlan[] = []
+
+  for (
+    let legIndex = 0;
+    legIndex < legs.length;
+    legIndex += 1
+  ) {
+    const leg =
+      legs[legIndex]
+
+    const from =
+      places[
+        leg.fromPlaceIndex
+      ]
+
+    const to =
+      places[
+        leg.toPlaceIndex
+      ]
+
+    if (!from || !to) {
+      throw new Error(
+        `Giorno ${day.dayNumber}: estremi del tratto ${leg.from} → ${leg.to} non disponibili.`,
+      )
+    }
+
+    legPlans.push(
+      await planDayLeg(
+        day,
+        legIndex,
+        leg,
+        from,
+        to,
+      ),
+    )
+  }
+
   const plan =
-    multiLegPlanToTripRoutePlan(
-      multiLeg,
+    combineLegPlans(
+      legPlans,
     )
 
   return {
@@ -494,7 +725,7 @@ export async function planTripDayRoute(
 
 export async function planTripDaysRoute(
   days: TripDay[],
-  allowFerries: boolean,
+  allowAutomaticFerries: boolean,
   onProgress?: (
     completed: number,
     total: number,
@@ -518,16 +749,19 @@ export async function planTripDaysRoute(
     index < days.length;
     index += 1
   ) {
-    const day = days[index]
+    const day =
+      days[index]
 
     const result =
       await planTripDayRoute(
         day,
-        allowFerries,
+        allowAutomaticFerries,
         anchor,
       )
 
-    dayResults.push(result)
+    dayResults.push(
+      result,
+    )
 
     anchor =
       result.places.at(-1)
