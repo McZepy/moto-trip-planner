@@ -14,7 +14,14 @@ function replaceOnce(source, label, search, replacement) {
   return source.slice(0, first) + replacement + source.slice(first + search.length)
 }
 
-// Provider: aggiunge un focus geografico morbido e cerca esplicitamente anche le città.
+function replaceFrom(source, label, sectionMarker, search, replacement) {
+  const section = source.indexOf(sectionMarker)
+  if (section < 0) throw new Error(`Patch ${label}: sezione non trovata`)
+  const first = source.indexOf(search, section)
+  if (first < 0) throw new Error(`Patch ${label}: blocco non trovato`)
+  return source.slice(0, first) + replacement + source.slice(first + search.length)
+}
+
 let provider = await fs.readFile(PROVIDER_PATH, 'utf8')
 if (!provider.includes('export type AutocompleteSearchContext')) {
   provider = replaceOnce(
@@ -35,7 +42,7 @@ if (!provider.includes('export type AutocompleteSearchContext')) {
     provider,
     'provider-viewbox',
     `  if (layers) {\n    params.set(\n      'layers',\n      layers,\n    )\n  }\n\n  const results =`,
-    `  if (layers) {\n    params.set(\n      'layers',\n      layers,\n    )\n  }\n\n  if (focus) {\n    const latitudeSpan = 3.5\n    const longitudeSpan = 5\n\n    params.set(\n      'viewbox',\n      [\n        focus.lng - longitudeSpan,\n        focus.lat - latitudeSpan,\n        focus.lng + longitudeSpan,\n        focus.lat + latitudeSpan,\n      ].join(','),\n    )\n\n    // Preferenza geografica, non vincolo: restano possibili destinazioni lontane.\n    params.set('bounded', '0')\n  }\n\n  const results =`,
+    `  if (layers) {\n    params.set(\n      'layers',\n      layers,\n    )\n  }\n\n  if (focus) {\n    const latitudeSpan = 3.5\n    const longitudeSpan = 5\n\n    params.set(\n      'viewbox',\n      [\n        focus.lng - longitudeSpan,\n        focus.lat - latitudeSpan,\n        focus.lng + longitudeSpan,\n        focus.lat + latitudeSpan,\n      ].join(','),\n    )\n\n    params.set('bounded', '0')\n  }\n\n  const results =`,
   )
 
   provider = replaceOnce(
@@ -62,7 +69,6 @@ if (!provider.includes('export type AutocompleteSearchContext')) {
   await fs.writeFile(PROVIDER_PATH, provider)
 }
 
-// Ranking: tra omonimi preferisce quello coerente con il punto già selezionato.
 let ranking = await fs.readFile(RANKING_PATH, 'utf8')
 if (!ranking.includes('function distanceKm(')) {
   ranking = replaceOnce(
@@ -83,7 +89,7 @@ if (!ranking.includes('function distanceKm(')) {
     ranking,
     'ranking-focus-score',
     `  if (suggestion.kind === 'ferry-terminal') {\n    score += 90\n  }\n\n  return score`,
-    `  if (suggestion.kind === 'ferry-terminal') {\n    score += 90\n  }\n\n  if (focus) {\n    // Serve soprattutto a disambiguare omonimi: Como (Italia) deve battere Como (USA)\n    // quando la partenza è già nell'area lombarda. Il tetto evita di bloccare viaggi lontani.\n    score += Math.min(500, distanceKm(focus, suggestion) * 0.08)\n  }\n\n  return score`,
+    `  if (suggestion.kind === 'ferry-terminal') {\n    score += 90\n  }\n\n  if (focus) {\n    score += Math.min(500, distanceKm(focus, suggestion) * 0.08)\n  }\n\n  return score`,
   )
 
   ranking = replaceOnce(
@@ -103,54 +109,61 @@ if (!ranking.includes('function distanceKm(')) {
   await fs.writeFile(RANKING_PATH, ranking)
 }
 
-// App: usa come focus l'altro estremo o il punto precedente.
 let app = await fs.readFile(APP_PATH, 'utf8')
 if (!app.includes('const destinationSearchFocus =')) {
-  app = replaceOnce(
+  const baseSearch = `        const results =\n          await autocompletePlaces(\n            cleanQuery,\n            controller.signal,\n          )`
+
+  app = replaceFrom(
     app,
     'app-start-focus',
-    `        const results =\n          await autocompletePlaces(\n            cleanQuery,\n            controller.signal,\n          )`,
+    'const autocompleteStart =',
+    baseSearch,
     `        const startSearchFocus =\n          destinationPlace\n            ? { lat: destinationPlace.lat, lng: destinationPlace.lng }\n            : undefined\n\n        const results =\n          await autocompletePlaces(\n            cleanQuery,\n            controller.signal,\n            { focus: startSearchFocus },\n          )`,
   )
 
-  app = replaceOnce(
+  app = replaceFrom(
     app,
     'app-start-rank',
+    'const autocompleteStart =',
     `            cleanQuery,\n            results,\n          ),`,
     `            cleanQuery,\n            results,\n            startSearchFocus,\n          ),`,
   )
 
-  const destinationSearch = `        const results =\n          await autocompletePlaces(\n            cleanQuery,\n            controller.signal,\n          )`
-  const destIndex = app.indexOf(destinationSearch)
-  if (destIndex < 0) throw new Error('Patch app-destination-focus: blocco non trovato')
-  app = app.slice(0, destIndex) +
-    `        const destinationSearchFocus =\n          startPlace\n            ? { lat: startPlace.lat, lng: startPlace.lng }\n            : undefined\n\n        const results =\n          await autocompletePlaces(\n            cleanQuery,\n            controller.signal,\n            { focus: destinationSearchFocus },\n          )` +
-    app.slice(destIndex + destinationSearch.length)
+  app = replaceFrom(
+    app,
+    'app-destination-focus',
+    'const autocompleteDestination =',
+    baseSearch,
+    `        const destinationSearchFocus =\n          startPlace\n            ? { lat: startPlace.lat, lng: startPlace.lng }\n            : undefined\n\n        const results =\n          await autocompletePlaces(\n            cleanQuery,\n            controller.signal,\n            { focus: destinationSearchFocus },\n          )`,
+  )
 
-  const destinationRank = `            cleanQuery,\n            results,\n          ),`
-  const destRankIndex = app.indexOf(destinationRank, app.indexOf('const autocompleteDestination'))
-  if (destRankIndex < 0) throw new Error('Patch app-destination-rank: blocco non trovato')
-  app = app.slice(0, destRankIndex) +
-    `            cleanQuery,\n            results,\n            destinationSearchFocus,\n          ),` +
-    app.slice(destRankIndex + destinationRank.length)
+  app = replaceFrom(
+    app,
+    'app-destination-rank',
+    'const autocompleteDestination =',
+    `            cleanQuery,\n            results,\n          ),`,
+    `            cleanQuery,\n            results,\n            destinationSearchFocus,\n          ),`,
+  )
 
-  const intermediateSearch = `        const results =\n          await autocompletePlaces(\n            cleanQuery,\n            controller.signal,\n          )`
-  const intIndex = app.indexOf(intermediateSearch, app.indexOf('const autocompleteIntermediate'))
-  if (intIndex < 0) throw new Error('Patch app-intermediate-focus: blocco non trovato')
-  const intermediateReplacement = `        const contextIndex =\n          editingExistingWaypointIndex ?? editingInsertIndex\n\n        const previousWaypoint =\n          contextIndex !== null && contextIndex > 0\n            ? waypoints[contextIndex - 1]\n            : null\n\n        const intermediateSearchFocus =\n          previousWaypoint\n            ? { lat: previousWaypoint.lat, lng: previousWaypoint.lng }\n            : startPlace\n              ? { lat: startPlace.lat, lng: startPlace.lng }\n              : undefined\n\n        const results =\n          await autocompletePlaces(\n            cleanQuery,\n            controller.signal,\n            { focus: intermediateSearchFocus },\n          )`
-  app = app.slice(0, intIndex) + intermediateReplacement + app.slice(intIndex + intermediateSearch.length)
+  app = replaceFrom(
+    app,
+    'app-intermediate-focus',
+    'const autocompleteIntermediate =',
+    baseSearch,
+    `        const contextIndex =\n          editingExistingWaypointIndex ?? editingInsertIndex\n\n        const previousWaypoint =\n          contextIndex !== null && contextIndex > 0\n            ? waypoints[contextIndex - 1]\n            : null\n\n        const intermediateSearchFocus =\n          previousWaypoint\n            ? { lat: previousWaypoint.lat, lng: previousWaypoint.lng }\n            : startPlace\n              ? { lat: startPlace.lat, lng: startPlace.lng }\n              : undefined\n\n        const results =\n          await autocompletePlaces(\n            cleanQuery,\n            controller.signal,\n            { focus: intermediateSearchFocus },\n          )`,
+  )
 
-  const intermediateRank = `                      cleanQuery,\n                      results,\n                    ),`
-  const intRankIndex = app.indexOf(intermediateRank, app.indexOf('const autocompleteIntermediate'))
-  if (intRankIndex < 0) throw new Error('Patch app-intermediate-rank: blocco non trovato')
-  app = app.slice(0, intRankIndex) +
-    `                      cleanQuery,\n                      results,\n                      intermediateSearchFocus,\n                    ),` +
-    app.slice(intRankIndex + intermediateRank.length)
+  app = replaceFrom(
+    app,
+    'app-intermediate-rank',
+    'const autocompleteIntermediate =',
+    `                      cleanQuery,\n                      results,\n                    ),`,
+    `                      cleanQuery,\n                      results,\n                      intermediateSearchFocus,\n                    ),`,
+  )
 
   await fs.writeFile(APP_PATH, app)
 }
 
-// Test: aggiunge caso reale Como Italia vs omonimo USA con focus Viganò.
 let test = await fs.readFile(TEST_PATH, 'utf8')
 if (!test.includes('Como Italia preferito a Como USA')) {
   test = replaceOnce(
