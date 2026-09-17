@@ -86,6 +86,7 @@ import {
   clearTripDayPlaceCache,
   planTripDayRoute,
   planTripDaysRoute,
+  resolveTripDayEditorDraft,
   type TripDayRouteStats,
 } from './itinerary/tripDayRoutePlanner'
 import { showTripRoutePlan } from './map/showTripRoutePlan'
@@ -125,6 +126,23 @@ type PendingEndpointMapSelection =
   | 'start'
   | 'destination'
   | null
+
+type DayEditorSnapshot = {
+  startPlace:
+    GeocodingResult | null
+
+  destinationPlace:
+    GeocodingResult | null
+
+  waypoints:
+    Waypoint[]
+
+  distance:
+    number | null
+
+  duration:
+    number | null
+}
 
 function createId() {
   if (
@@ -574,6 +592,11 @@ function App() {
       new globalThis.Map(),
     )
 
+  const dayEditorSnapshotRef =
+    useRef<
+      DayEditorSnapshot | null
+    >(null)
+
   const [
     activeSection,
     setActiveSection,
@@ -714,6 +737,12 @@ function App() {
   const [
     selectedDayId,
     setSelectedDayId,
+  ] =
+    useState<string | null>(null)
+
+  const [
+    editingDayId,
+    setEditingDayId,
   ] =
     useState<string | null>(null)
 
@@ -1122,6 +1151,9 @@ function App() {
       setWaypoints([])
       setDays([])
       setSelectedDayId(null)
+      setEditingDayId(null)
+      dayEditorSnapshotRef.current =
+        null
       setDayRouteStats({})
       setDaysRoutingBusy(false)
       setDaysRoutingProgress(null)
@@ -1337,6 +1369,9 @@ function App() {
       )
 
       setSelectedDayId(null)
+      setEditingDayId(null)
+      dayEditorSnapshotRef.current =
+        null
       setDayRouteStats({})
       setDaysRoutingBusy(false)
       setDaysRoutingProgress(null)
@@ -1474,10 +1509,155 @@ function App() {
       )
     }
 
+  const cloneEditorWaypoints =
+    (
+      source:
+        Waypoint[],
+    ) =>
+      source.map(
+        (waypoint) => ({
+          ...waypoint,
+
+          boundingBox:
+            waypoint.boundingBox
+              ? {
+                  ...waypoint.boundingBox,
+                }
+              : undefined,
+        }),
+      )
+
+  const restoreDayEditorWorkspace =
+    () => {
+      const snapshot =
+        dayEditorSnapshotRef
+          .current
+
+      if (!snapshot) {
+        return
+      }
+
+      const map =
+        mapRef.current
+
+      startMarkerRef
+        .current
+        ?.remove()
+
+      destinationMarkerRef
+        .current
+        ?.remove()
+
+      startMarkerRef.current =
+        null
+
+      destinationMarkerRef.current =
+        null
+
+      removeWaypointMarkers()
+      removeRoute()
+
+      setStartPlace(
+        snapshot.startPlace,
+      )
+
+      setDestinationPlace(
+        snapshot.destinationPlace,
+      )
+
+      setStartQuery(
+        snapshot.startPlace
+          ?.name ?? '',
+      )
+
+      setDestinationQuery(
+        snapshot.destinationPlace
+          ?.name ?? '',
+      )
+
+      setEditingStart(
+        !snapshot.startPlace,
+      )
+
+      setEditingDestination(
+        !snapshot
+          .destinationPlace,
+      )
+
+      setWaypoints(
+        cloneEditorWaypoints(
+          snapshot.waypoints,
+        ),
+      )
+
+      setDistance(
+        snapshot.distance,
+      )
+
+      setDuration(
+        snapshot.duration,
+      )
+
+      if (
+        map &&
+        snapshot.startPlace
+      ) {
+        startMarkerRef.current =
+          new Marker({
+            element:
+              createMapMarkerElement(
+                'A',
+                'start',
+              ),
+          })
+            .setLngLat([
+              snapshot.startPlace
+                .lng,
+              snapshot.startPlace
+                .lat,
+            ])
+            .addTo(map)
+      }
+
+      if (
+        map &&
+        snapshot
+          .destinationPlace
+      ) {
+        destinationMarkerRef.current =
+          new Marker({
+            element:
+              createMapMarkerElement(
+                'B',
+                'destination',
+              ),
+          })
+            .setLngLat([
+              snapshot
+                .destinationPlace
+                .lng,
+              snapshot
+                .destinationPlace
+                .lat,
+            ])
+            .addTo(map)
+      }
+
+      syncWaypointMarkers(
+        snapshot.waypoints,
+      )
+
+      dayEditorSnapshotRef.current =
+        null
+    }
+
   const handleDaysChange =
     (nextDays: TripDay[]) => {
       setDays(nextDays)
       setSelectedDayId(null)
+      setEditingDayId(null)
+      dayEditorSnapshotRef.current =
+        null
       setDayRouteStats({})
       setDaysRoutingProgress(null)
       clearTripDayPlaceCache()
@@ -1488,61 +1668,295 @@ function App() {
 
   const handleSelectDayRoute =
     async (day: TripDay) => {
-      const map = mapRef.current
+      const map =
+        mapRef.current
 
-      if (!map || daysRoutingBusy) {
+      if (
+        !map ||
+        daysRoutingBusy
+      ) {
         return
       }
 
       setDaysRoutingBusy(true)
-      setSelectedDayId(day.id)
+      setSelectedDayId(
+        day.id,
+      )
+
       setDaysRoutingProgress(
-        'Giorno ' + day.dayNumber + ': individuo le località e calcolo il percorso...',
+        'Giorno ' +
+          day.dayNumber +
+          ': preparo Itinerario & Tappe...',
       )
 
       try {
-        const result =
-          await planTripDayRoute(
+        if (
+          !editingDayId &&
+          !dayEditorSnapshotRef
+            .current
+        ) {
+          dayEditorSnapshotRef.current = {
+            startPlace,
+            destinationPlace,
+            waypoints:
+              cloneEditorWaypoints(
+                waypoints,
+              ),
+            distance,
+            duration,
+          }
+        }
+
+        const draft =
+          await resolveTripDayEditorDraft(
             day,
-            tripSettings.roadPreferences.allowFerries,
-            undefined,
-            createRoadRoutingProvider(
-              tripSettings,
-            ),
           )
 
-        showTripRoutePlan(
-          map,
-          result.plan,
+        startMarkerRef
+          .current
+          ?.remove()
+
+        destinationMarkerRef
+          .current
+          ?.remove()
+
+        startMarkerRef.current =
+          null
+
+        destinationMarkerRef.current =
+          null
+
+        removeWaypointMarkers()
+        removeRoute()
+
+        setStartPlace(
+          draft.startPlace,
         )
 
-        setDayRouteStats(
-          (current) => ({
-            ...current,
-            [day.id]: result.stats,
-          }),
+        setDestinationPlace(
+          draft.destinationPlace,
+        )
+
+        setStartQuery(
+          draft.startPlace.name,
+        )
+
+        setDestinationQuery(
+          draft
+            .destinationPlace
+            .name,
+        )
+
+        setStartResults([])
+        setDestinationResults([])
+
+        setEditingStart(false)
+        setEditingDestination(false)
+
+        setWaypoints(
+          cloneEditorWaypoints(
+            draft.waypoints,
+          ),
+        )
+
+        startMarkerRef.current =
+          new Marker({
+            element:
+              createMapMarkerElement(
+                'A',
+                'start',
+              ),
+          })
+            .setLngLat([
+              draft.startPlace.lng,
+              draft.startPlace.lat,
+            ])
+            .addTo(map)
+
+        destinationMarkerRef.current =
+          new Marker({
+            element:
+              createMapMarkerElement(
+                'B',
+                'destination',
+              ),
+          })
+            .setLngLat([
+              draft.destinationPlace
+                .lng,
+              draft.destinationPlace
+                .lat,
+            ])
+            .addTo(map)
+
+        syncWaypointMarkers(
+          draft.waypoints,
+        )
+
+        setDistance(null)
+        setDuration(null)
+
+        setEditingDayId(
+          day.id,
+        )
+
+        setActiveSection(
+          'itinerary',
         )
 
         setStatus(
           'Giorno ' +
             day.dayNumber +
-            ': ' +
-            formatDistance(result.plan.distanceMeters) +
-            ' · ' +
-            formatDuration(result.plan.durationSeconds) +
-            '.',
+            ': percorso aperto in Itinerario & Tappe. Partenza e arrivo sono obbligatori; aggiungi solo i punti realmente necessari.',
         )
       } catch (error) {
-        console.error(error)
+        console.error(
+          error,
+        )
+
         setStatus(
           error instanceof Error
             ? error.message
-            : 'Errore durante il calcolo della giornata.',
+            : 'Errore durante l’apertura della giornata.',
         )
       } finally {
         setDaysRoutingBusy(false)
         setDaysRoutingProgress(null)
       }
+    }
+
+  const handleApplyDayRoute =
+    () => {
+      if (
+        !editingDayId ||
+        !startPlace ||
+        !destinationPlace
+      ) {
+        setStatus(
+          'Partenza e arrivo della giornata devono essere impostati.',
+        )
+
+        return
+      }
+
+      if (
+        pendingRoadPointSelection ||
+        pendingEndpointMapSelection
+      ) {
+        setStatus(
+          'Completa prima la selezione sulla mappa.',
+        )
+
+        return
+      }
+
+      const currentDay =
+        days.find(
+          (day) =>
+            day.id ===
+            editingDayId,
+        )
+
+      if (!currentDay) {
+        setStatus(
+          'Giornata da modificare non trovata.',
+        )
+
+        return
+      }
+
+      const editedDayId =
+        editingDayId
+
+      setDays(
+        (current) =>
+          current.map(
+            (day) =>
+              day.id ===
+              editedDayId
+                ? {
+                    ...day,
+
+                    routingOverride: {
+                      startPlace: {
+                        ...startPlace,
+                      },
+
+                      destinationPlace: {
+                        ...destinationPlace,
+                      },
+
+                      waypoints:
+                        cloneEditorWaypoints(
+                          waypoints,
+                        ),
+                    },
+                  }
+                : day,
+          ),
+      )
+
+      setDayRouteStats(
+        (current) => {
+          const updated = {
+            ...current,
+          }
+
+          delete updated[
+            editedDayId
+          ]
+
+          return updated
+        },
+      )
+
+      clearTripDayPlaceCache()
+
+      setEditingDayId(null)
+
+      restoreDayEditorWorkspace()
+
+      setActiveSection(
+        'days',
+      )
+
+      setSelectedDayId(
+        editedDayId,
+      )
+
+      setStatus(
+        'Giorno ' +
+          currentDay.dayNumber +
+          ': percorso personalizzato applicato. Premi Salva per conservarlo nel viaggio.',
+      )
+    }
+
+  const handleCancelDayRouteEdit =
+    () => {
+      const currentDay =
+        editingDayId
+          ? days.find(
+              (day) =>
+                day.id ===
+                editingDayId,
+            )
+          : undefined
+
+      setEditingDayId(null)
+
+      restoreDayEditorWorkspace()
+
+      setActiveSection(
+        'days',
+      )
+
+      setStatus(
+        currentDay
+          ? 'Modifica del Giorno ' +
+              currentDay.dayNumber +
+              ' annullata.'
+          : 'Modifica giornata annullata.',
+      )
     }
 
   const handleShowTripOverview =
@@ -4501,12 +4915,56 @@ function App() {
       )
     }
 
+  const editingDay =
+    editingDayId
+      ? days.find(
+          (day) =>
+            day.id ===
+            editingDayId,
+        )
+      : undefined
+
   const renderItinerary =
     () => (
       <section className="sidebar-section">
         <h2>
           Itinerario & Tappe
         </h2>
+
+        {editingDay && (
+          <div className="day-route-editor-banner">
+            <div>
+              <strong>
+                Giorno {editingDay.dayNumber} · {editingDay.dateLabel}
+              </strong>
+
+              <span>
+                Modifica il percorso con partenza, arrivo e solo i punti di passaggio realmente necessari.
+              </span>
+            </div>
+
+            <div className="day-route-editor-actions">
+              <button
+                type="button"
+                onClick={
+                  handleCancelDayRouteEdit
+                }
+              >
+                Annulla
+              </button>
+
+              <button
+                type="button"
+                className="day-route-editor-apply"
+                onClick={
+                  handleApplyDayRoute
+                }
+              >
+                Applica al giorno
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="compact-itinerary">
           {renderStart()}
