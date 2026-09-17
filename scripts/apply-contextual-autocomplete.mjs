@@ -1,3 +1,4 @@
+// One-shot integration for contextual autocomplete.
 import fs from 'node:fs/promises'
 
 const PROVIDER_PATH = new URL('../src/providers/autocompleteProvider.ts', import.meta.url)
@@ -119,7 +120,6 @@ if (!app.includes('const destinationSearchFocus =')) {
     `            cleanQuery,\n            results,\n            startSearchFocus,\n          ),`,
   )
 
-  // Seconda occorrenza autocompletePlaces: destinazione.
   const destinationSearch = `        const results =\n          await autocompletePlaces(\n            cleanQuery,\n            controller.signal,\n          )`
   const destIndex = app.indexOf(destinationSearch)
   if (destIndex < 0) throw new Error('Patch app-destination-focus: blocco non trovato')
@@ -134,7 +134,6 @@ if (!app.includes('const destinationSearchFocus =')) {
     `            cleanQuery,\n            results,\n            destinationSearchFocus,\n          ),` +
     app.slice(destRankIndex + destinationRank.length)
 
-  // Terza occorrenza: tappa intermedia, focus sul punto precedente o sulla partenza.
   const intermediateSearch = `        const results =\n          await autocompletePlaces(\n            cleanQuery,\n            controller.signal,\n          )`
   const intIndex = app.indexOf(intermediateSearch, app.indexOf('const autocompleteIntermediate'))
   if (intIndex < 0) throw new Error('Patch app-intermediate-focus: blocco non trovato')
