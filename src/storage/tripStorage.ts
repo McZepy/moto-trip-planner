@@ -149,9 +149,10 @@ function writeTrips(
 export function saveTrip(
   trip: Omit<
     TripRecord,
-    'id' | 'updatedAt' | 'settings'
+    'id' | 'updatedAt' | 'settings' | 'days'
   > & {
     settings?: TripSettings
+    days?: TripDay[]
   },
   existingId?: string | null,
 ): TripRecord {
@@ -171,7 +172,8 @@ export function saveTrip(
 
     days:
       cloneDays(
-        trip.days,
+        trip.days ??
+          existingTrip?.days,
       ),
 
     settings:
