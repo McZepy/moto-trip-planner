@@ -1003,3 +1003,64 @@ input {
       auto;
   }
 }
+
+/* =========================================
+   DAY ROUTE EDITOR
+   ========================================= */
+.day-route-editor-banner {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 11px 12px;
+  border: 1px solid #315b91;
+  border-radius: 9px;
+  background: #17263a;
+}
+
+.day-route-editor-banner > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.day-route-editor-banner strong {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.day-route-editor-banner span {
+  color: #b8cbea;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.day-route-editor-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.day-route-editor-actions button {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #42546b;
+  border-radius: 7px;
+  background: #243348;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.day-route-editor-actions button:hover {
+  background: #30445e;
+}
+
+.day-route-editor-actions
+  .day-route-editor-apply {
+  border-color: #2563eb;
+  background: #2563eb;
+}
+
+.day-route-editor-actions
+  .day-route-editor-apply:hover {
+  background: #1d4ed8;
+}
