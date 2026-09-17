@@ -9,8 +9,16 @@ import {
 
 import {
   proposeFerry,
-  type FerryCandidate,
+  type FerryCandidate as LegacyFerryCandidate,
 } from './ferryProvider'
+
+import type {
+  FerryCandidate as CatalogFerryCandidate,
+} from '../ferries/ferryCandidateFinder'
+
+export type FerrySectionCandidate =
+  | LegacyFerryCandidate
+  | CatalogFerryCandidate
 
 export type RoadRouteSection = {
   id: string
@@ -30,7 +38,7 @@ export type FerryRouteSection = {
   distanceMeters: number
   durationSeconds: number
   geometry: RouteGeometry
-  candidate: FerryCandidate
+  candidate: FerrySectionCandidate
 }
 
 export type TripRouteSection =
@@ -112,7 +120,7 @@ function distanceKm(
 }
 
 function createFerryGeometry(
-  candidate: FerryCandidate,
+  candidate: LegacyFerryCandidate,
 ): RouteGeometry {
   return {
     type: 'LineString',
@@ -173,7 +181,7 @@ async function createRoadSection(
 }
 
 function createFerrySection(
-  candidate: FerryCandidate,
+  candidate: LegacyFerryCandidate,
 ): FerryRouteSection {
   return {
     id:

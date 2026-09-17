@@ -1,16 +1,15 @@
 import type {
-  RouteGeometry,
   RoutePoint,
 } from './routingProvider'
 
 import {
-  osrmRoutingProvider,
-} from './routingProvider'
+  evaluateFerryRouteAlternatives,
+  type EvaluatedRouteAlternative,
+} from '../ferries/ferryRouteEvaluator'
 
-import {
-  findFerryCandidates,
-  type FerryCandidate,
-} from './ferryProvider'
+import type {
+  FerryCandidate,
+} from '../ferries/ferryCandidateFinder'
 
 import type {
   FerryRouteSection,
@@ -41,70 +40,6 @@ export type RouteAlternativesResult = {
 
   selected:
     RouteAlternative
-}
-
-const MIN_ROAD_SECTION_KM =
-  1
-
-function toRadians(
-  value: number,
-) {
-  return (
-    value *
-    Math.PI /
-    180
-  )
-}
-
-function distanceKm(
-  first: RoutePoint,
-  second: RoutePoint,
-) {
-  const earthRadiusKm =
-    6371
-
-  const deltaLat =
-    toRadians(
-      second.lat -
-        first.lat,
-    )
-
-  const deltaLng =
-    toRadians(
-      second.lng -
-        first.lng,
-    )
-
-  const firstLat =
-    toRadians(
-      first.lat,
-    )
-
-  const secondLat =
-    toRadians(
-      second.lat,
-    )
-
-  const a =
-    Math.sin(
-      deltaLat / 2,
-    ) ** 2 +
-    Math.cos(firstLat) *
-      Math.cos(secondLat) *
-      Math.sin(
-        deltaLng / 2,
-      ) ** 2
-
-  return (
-    earthRadiusKm *
-    2 *
-    Math.atan2(
-      Math.sqrt(a),
-      Math.sqrt(
-        1 - a,
-      ),
-    )
-  )
 }
 
 function summarizeSections(
@@ -147,213 +82,171 @@ function summarizeSections(
   }
 }
 
-async function createRoadSection(
-  id: string,
-  from: RoutePoint,
-  to: RoutePoint,
-): Promise<RoadRouteSection> {
-  const route =
-    await osrmRoutingProvider
-      .calculateRoute(
-        [
-          from,
-          to,
-        ],
-      )
-
-  return {
-    id,
-    type: 'road',
-
-    from,
-    to,
-
-    distanceMeters:
-      route.distanceMeters,
-
-    durationSeconds:
-      route.durationSeconds,
-
-    geometry:
-      route.geometry,
+function convertRoadSection(
+  section:
+    EvaluatedRouteAlternative['sections'][number],
+): RoadRouteSection | null {
+  if (
+    section.type !==
+    'road'
+  ) {
+    return null
   }
-}
 
-function createFerryGeometry(
-  candidate:
-    FerryCandidate,
-): RouteGeometry {
-  return {
-    type: 'LineString',
-
-    coordinates: [
-      [
-        candidate
-          .departurePort
-          .point
-          .lng,
-
-        candidate
-          .departurePort
-          .point
-          .lat,
-      ],
-
-      [
-        candidate
-          .arrivalPort
-          .point
-          .lng,
-
-        candidate
-          .arrivalPort
-          .point
-          .lat,
-      ],
-    ],
-  }
-}
-
-function createFerrySection(
-  candidate:
-    FerryCandidate,
-): FerryRouteSection {
   return {
     id:
-      `ferry:${candidate.connection.id}`,
+      section.id,
 
-    type: 'ferry',
+    type:
+      'road',
 
     from:
-      candidate
-        .departurePort
-        .point,
+      section.from,
 
     to:
-      candidate
-        .arrivalPort
-        .point,
+      section.to,
 
     distanceMeters:
-      candidate
-        .connection
-        .distanceKm *
-      1000,
+      section.distanceMeters,
 
     durationSeconds:
-      candidate
-        .connection
-        .durationMinutes *
-      60,
+      section.durationSeconds,
 
     geometry:
-      createFerryGeometry(
-        candidate,
-      ),
+      section.geometry,
+  }
+}
+
+function convertFerrySection(
+  section:
+    EvaluatedRouteAlternative['sections'][number],
+  candidate:
+    FerryCandidate,
+): FerryRouteSection | null {
+  if (
+    section.type !==
+    'ferry'
+  ) {
+    return null
+  }
+
+  return {
+    id:
+      section.id,
+
+    type:
+      'ferry',
+
+    from:
+      section.from,
+
+    to:
+      section.to,
+
+    distanceMeters:
+      section.distanceMeters,
+
+    durationSeconds:
+      section.durationSeconds,
+
+    geometry:
+      section.geometry,
 
     candidate,
   }
 }
 
-async function buildRoadOnlyAlternative(
-  start: RoutePoint,
-  destination: RoutePoint,
-): Promise<RouteAlternative> {
-  const road =
-    await createRoadSection(
-      'road:direct',
-      start,
-      destination,
-    )
-
-  return {
-    id:
-      'road-only',
-
-    label:
-      'Tutto strada',
-
-    kind:
-      'road-only',
-
-    plan:
-      summarizeSections(
-        [
-          road,
-        ],
-      ),
-  }
-}
-
-async function buildFerryAlternative(
-  start: RoutePoint,
-  destination: RoutePoint,
-  candidate:
-    FerryCandidate,
-): Promise<RouteAlternative> {
+function convertAlternative(
+  evaluated:
+    EvaluatedRouteAlternative,
+): RouteAlternative {
   const sections:
     TripRouteSection[] = []
 
-  if (
-    distanceKm(
-      start,
-      candidate
-        .departurePort
-        .point,
-    ) >=
-    MIN_ROAD_SECTION_KM
+  for (
+    const section
+    of evaluated.sections
   ) {
-    sections.push(
-      await createRoadSection(
-        `road:approach:${candidate.connection.id}`,
-        start,
-        candidate
-          .departurePort
-          .point,
-      ),
-    )
+    const road =
+      convertRoadSection(
+        section,
+      )
+
+    if (road) {
+      sections.push(
+        road,
+      )
+
+      continue
+    }
+
+    const candidate =
+      evaluated
+        .ferryCandidate
+
+    if (!candidate) {
+      throw new Error(
+        'Alternativa traghetto senza candidato associato.',
+      )
+    }
+
+    const ferry =
+      convertFerrySection(
+        section,
+        candidate,
+      )
+
+    if (ferry) {
+      sections.push(
+        ferry,
+      )
+    }
   }
 
-  sections.push(
-    createFerrySection(
-      candidate,
-    ),
-  )
+  const plan =
+    summarizeSections(
+      sections,
+    )
 
   if (
-    distanceKm(
-      candidate
-        .arrivalPort
-        .point,
-      destination,
-    ) >=
-    MIN_ROAD_SECTION_KM
+    evaluated.kind ===
+    'direct-osrm'
   ) {
-    sections.push(
-      await createRoadSection(
-        `road:exit:${candidate.connection.id}`,
-        candidate
-          .arrivalPort
-          .point,
-        destination,
-      ),
+    return {
+      id:
+        'road-only',
+
+      label:
+        'Percorso diretto OSRM',
+
+      kind:
+        'road-only',
+
+      plan,
+    }
+  }
+
+  const candidate =
+    evaluated
+      .ferryCandidate
+
+  if (!candidate) {
+    throw new Error(
+      'Alternativa traghetto senza candidato associato.',
     )
   }
 
   return {
     id:
-      `ferry:${candidate.connection.id}`,
+      `ferry:${candidate.serviceView.service.id}`,
 
     label:
-      `Traghetto ${candidate.departurePort.name} → ${candidate.arrivalPort.name}`,
+      evaluated.label,
 
     kind:
       'ferry',
 
-    plan:
-      summarizeSections(
-        sections,
-      ),
+    plan,
 
     ferryCandidate:
       candidate,
@@ -365,47 +258,22 @@ export async function planFastestRouteAlternatives(
   destination: RoutePoint,
   allowFerries: boolean,
 ): Promise<RouteAlternativesResult> {
-  const alternatives:
-    RouteAlternative[] = []
-
-  alternatives.push(
-    await buildRoadOnlyAlternative(
+  const evaluated =
+    await evaluateFerryRouteAlternatives(
       start,
       destination,
-    ),
-  )
+      {
+        includeKnownFerries:
+          allowFerries,
+      },
+    )
 
-  if (allowFerries) {
-    const candidates =
-      findFerryCandidates(
-        start,
-        destination,
+  const alternatives =
+    evaluated
+      .alternatives
+      .map(
+        convertAlternative,
       )
-
-    for (
-      const candidate
-      of candidates
-    ) {
-      alternatives.push(
-        await buildFerryAlternative(
-          start,
-          destination,
-          candidate,
-        ),
-      )
-    }
-  }
-
-  alternatives.sort(
-    (
-      first,
-      second,
-    ) =>
-      first.plan
-        .durationSeconds -
-      second.plan
-        .durationSeconds,
-  )
 
   const selected =
     alternatives[0]

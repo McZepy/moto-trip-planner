@@ -76,10 +76,13 @@ const tests:
               'road-only',
             ) &&
             ids.includes(
-              'ferry:hirtshals-bergen',
+              'ferry:fjord-hirtshals-bergen',
             ) &&
             ids.includes(
-              'ferry:hirtshals-kristiansand',
+              'ferry:color-hirtshals-larvik',
+            ) &&
+            ids.includes(
+              'ferry:fjord-hirtshals-kristiansand',
             ) &&
             result
               .selected
@@ -90,7 +93,7 @@ const tests:
         },
 
       expected:
-        'Confronta strada + entrambe le alternative traghetto e sceglie la più veloce',
+        'Confronta OSRM + Bergen + Larvik + Kristiansand e sceglie la più veloce',
     },
 
     {
@@ -122,7 +125,7 @@ const tests:
             'road-only',
 
       expected:
-        'Solo alternativa stradale',
+        'Solo percorso diretto OSRM',
     },
 
     {
@@ -176,6 +179,16 @@ const tests:
 
       validate:
         (result) => {
+          const ids =
+            result
+              .alternatives
+              .map(
+                (
+                  alternative,
+                ) =>
+                  alternative.id,
+              )
+
           const minimum =
             Math.min(
               ...result
@@ -194,7 +207,10 @@ const tests:
             result
               .alternatives
               .length >=
-              3 &&
+              4 &&
+            ids.includes(
+              'ferry:color-hirtshals-larvik',
+            ) &&
             result
               .selected
               .plan
@@ -205,6 +221,52 @@ const tests:
 
       expected:
         'Confronta strada e più alternative traghetto',
+    },
+
+    {
+      name:
+        'Viganò → Bergen supera il vecchio limite 350 km',
+
+      start: {
+        lat: 45.724,
+        lng: 9.326,
+      },
+
+      destination: {
+        lat: 60.392,
+        lng: 5.311,
+      },
+
+      allowFerries:
+        true,
+
+      validate:
+        (result) => {
+          const ids =
+            result
+              .alternatives
+              .map(
+                (
+                  alternative,
+                ) =>
+                  alternative.id,
+              )
+
+          return (
+            ids.includes(
+              'ferry:fjord-hirtshals-bergen',
+            ) &&
+            ids.includes(
+              'ferry:color-hirtshals-larvik',
+            ) &&
+            ids.includes(
+              'ferry:fjord-hirtshals-kristiansand',
+            )
+          )
+        },
+
+      expected:
+        'Il routing applicativo trova Hirtshals anche da oltre 350 km',
     },
   ]
 
@@ -414,9 +476,8 @@ async function runTests() {
     </p>
 
     <p class="note">
-      Criterio attuale:
-      <strong>Veloce</strong>.
-      Gli altri stili non vengono simulati.
+      Motore attivo:
+      <strong>FerryCatalog + FerryCandidateFinder + OSRM evaluator</strong>.
     </p>
 
     ${rows.join('')}
