@@ -1,5 +1,8 @@
 import type { GeocodingResult } from '../providers/geocodingProvider'
-import type { RoutingProvider } from '../providers/routingProvider'
+import type {
+  RoutePoint,
+  RoutingProvider,
+} from '../providers/routingProvider'
 import {
   autocompleteLocalities,
   autocompletePlaces,
@@ -16,6 +19,13 @@ import type {
   TripRoutePlan,
   TripRouteSection,
 } from '../providers/tripRoutePlanner'
+import {
+  multiLegPlanToTripRoutePlan,
+  planMultiLegRoute,
+} from '../providers/multiLegTripPlanner'
+import {
+  resolveZonePassPoint,
+} from '../providers/waypointResolver'
 import type { TripDay } from '../types/tripDay'
 import { getTripDayPlaces } from './itineraryTextParser'
 import {
@@ -720,15 +730,81 @@ function combineLegPlans(
   }
 }
 
-export async function planTripDayRoute(
+async function resolveSinglePlace(
+  name: string,
+  focus?: GeocodingResult,
+) {
+  const candidates =
+    await loadCandidates(
+      name,
+      focus,
+    )
+
+  const searchQuery =
+    resolveGeographicSearchQuery(
+      name,
+    )
+
+  const ranked =
+    rankAutocompleteSuggestions(
+      searchQuery,
+      candidates,
+      focus,
+    )
+
+  const selected =
+    ranked[0]
+
+  if (!selected) {
+    throw new Error(
+      'Località non trovata: ' +
+      name,
+    )
+  }
+
+  return toGeocodingResult(
+    selected,
+  )
+}
+
+export async function resolveTripDayEditorDraft(
   day: TripDay,
-  _allowAutomaticFerries: boolean,
   anchor?: GeocodingResult,
-  routingProvider?:
-    RoutingProvider,
-): Promise<TripDayRouteResult> {
+) {
+  if (day.routingOverride) {
+    return {
+      startPlace: {
+        ...day.routingOverride
+          .startPlace,
+      },
+
+      destinationPlace: {
+        ...day.routingOverride
+          .destinationPlace,
+      },
+
+      waypoints:
+        day.routingOverride
+          .waypoints
+          .map(
+            (waypoint) => ({
+              ...waypoint,
+
+              boundingBox:
+                waypoint.boundingBox
+                  ? {
+                      ...waypoint.boundingBox,
+                    }
+                  : undefined,
+            }),
+          ),
+    }
+  }
+
   const names =
-    getTripDayPlaces(day)
+    getTripDayPlaces(
+      day,
+    )
 
   if (names.length < 2) {
     throw new Error(
@@ -736,79 +812,236 @@ export async function planTripDayRoute(
     )
   }
 
-  const places =
-    await resolvePlaces(
-      names,
+  const startPlace =
+    await resolveSinglePlace(
+      names[0],
       anchor,
     )
 
-  const legs =
-    getTripDayRoutingLegs(
-      day,
-    )
-
-  if (
-    legs.length !==
-    places.length - 1
-  ) {
-    throw new Error(
-      `Giorno ${day.dayNumber}: struttura delle tappe non coerente.`,
-    )
-  }
-
-  const legPlans:
-    TripRoutePlan[] = []
-
-  for (
-    let legIndex = 0;
-    legIndex < legs.length;
-    legIndex += 1
-  ) {
-    const leg =
-      legs[legIndex]
-
-    const from =
-      places[
-        leg.fromPlaceIndex
-      ]
-
-    const to =
-      places[
-        leg.toPlaceIndex
-      ]
-
-    if (!from || !to) {
-      throw new Error(
-        `Giorno ${day.dayNumber}: estremi del tratto ${leg.from} → ${leg.to} non disponibili.`,
-      )
-    }
-
-    legPlans.push(
-      await planDayLeg(
-        day,
-        legIndex,
-        leg,
-        from,
-        to,
-        routingProvider,
-      ),
-    )
-  }
-
-  const plan =
-    combineLegPlans(
-      legPlans,
+  const destinationPlace =
+    await resolveSinglePlace(
+      names.at(-1) as string,
+      startPlace,
     )
 
   return {
+    startPlace,
+    destinationPlace,
+    waypoints: [],
+  }
+}
+
+async function overrideRoutePoints(
+  day: TripDay,
+): Promise<RoutePoint[]> {
+  const override =
+    day.routingOverride
+
+  if (!override) {
+    return []
+  }
+
+  const points:
+    RoutePoint[] = [
+      {
+        lat:
+          override
+            .startPlace
+            .lat,
+
+        lng:
+          override
+            .startPlace
+            .lng,
+      },
+  ]
+
+  let previous =
+    points[0]
+
+  for (
+    let index = 0;
+    index <
+      override.waypoints.length;
+    index += 1
+  ) {
+    const waypoint =
+      override.waypoints[index]
+
+    let nextReference:
+      RoutePoint = {
+        lat:
+          override
+            .destinationPlace
+            .lat,
+
+        lng:
+          override
+            .destinationPlace
+            .lng,
+      }
+
+    for (
+      let nextIndex =
+        index + 1;
+      nextIndex <
+        override
+          .waypoints
+          .length;
+      nextIndex += 1
+    ) {
+      const candidate =
+        override
+          .waypoints[
+            nextIndex
+          ]
+
+      if (
+        candidate.type !==
+        'zone-pass'
+      ) {
+        nextReference = {
+          lat:
+            candidate.lat,
+
+          lng:
+            candidate.lng,
+        }
+
+        break
+      }
+    }
+
+    if (
+      waypoint.type ===
+      'zone-pass'
+    ) {
+      const resolved =
+        await resolveZonePassPoint(
+          waypoint,
+          previous,
+          nextReference,
+        )
+
+      if (resolved) {
+        points.push(
+          resolved,
+        )
+
+        previous =
+          resolved
+      }
+
+      continue
+    }
+
+    const resolved = {
+      lat:
+        waypoint.lat,
+
+      lng:
+        waypoint.lng,
+    }
+
+    points.push(
+      resolved,
+    )
+
+    previous =
+      resolved
+  }
+
+  points.push({
+    lat:
+      override
+        .destinationPlace
+        .lat,
+
+    lng:
+      override
+        .destinationPlace
+        .lng,
+  })
+
+  return points
+}
+
+export async function planTripDayRoute(
+  day: TripDay,
+  allowAutomaticFerries: boolean,
+  anchor?: GeocodingResult,
+  routingProvider?:
+    RoutingProvider,
+): Promise<TripDayRouteResult> {
+  const draft =
+    await resolveTripDayEditorDraft(
+      day,
+      anchor,
+    )
+
+  let plan:
+    TripRoutePlan
+
+  if (day.routingOverride) {
+    const points =
+      await overrideRoutePoints(
+        day,
+      )
+
+    const multiLeg =
+      await planMultiLegRoute(
+        points,
+        allowAutomaticFerries,
+        routingProvider,
+      )
+
+    plan =
+      multiLegPlanToTripRoutePlan(
+        multiLeg,
+      )
+  } else {
+    const syntheticLeg:
+      TripDayRoutingLeg = {
+      from:
+        draft.startPlace.name,
+      to:
+        draft.destinationPlace.name,
+      fromPlaceIndex:
+        0,
+      toPlaceIndex:
+        1,
+      explicitFerry:
+        false,
+    }
+
+    plan =
+      await planDayLeg(
+        day,
+        0,
+        syntheticLeg,
+        draft.startPlace,
+        draft.destinationPlace,
+        routingProvider,
+      )
+  }
+
+  return {
     day,
-    places,
+
+    places: [
+      draft.startPlace,
+      draft.destinationPlace,
+    ],
+
     plan,
+
     stats: {
       distanceMeters:
         plan.distanceMeters,
+
       durationSeconds:
         plan.durationSeconds,
+
       usesFerry:
         plan.usesFerry,
     },
