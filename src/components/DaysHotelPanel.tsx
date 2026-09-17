@@ -323,7 +323,7 @@ export function DaysHotelPanel({
           </strong>
 
           <p>
-            Incolla il programma del viaggio qui sopra. MotoRoute crea la struttura delle giornate; cliccando poi una giornata ne calcola e mostra il percorso sulla mappa.
+            Incolla il programma del viaggio qui sopra. MotoRoute crea la struttura delle giornate; cliccando una giornata la apri in Itinerario & Tappe per controllare e modificare il percorso.
           </p>
         </div>
       ) : (
@@ -362,6 +362,12 @@ export function DaysHotelPanel({
                     </strong>
 
                     <div className="trip-day-header-right">
+                      {day.routingOverride && (
+                        <span className="trip-day-custom-badge">
+                          Personalizzato
+                        </span>
+                      )}
+
                       {stats && (
                         <span className="trip-day-route-stats">
                           {formatDistance(
@@ -397,7 +403,7 @@ export function DaysHotelPanel({
                   {summary.via.length > 0 && (
                     <div className="trip-day-detail">
                       <span className="trip-day-label">
-                        Passaggi
+                        Passaggi indicativi
                       </span>
 
                       <span>
