@@ -1152,3 +1152,27 @@ input {
   color: #b7a9d6;
   font-size: 9px;
 }
+
+
+.route-map-marker--fuel {
+  width: 31px;
+  height: 31px;
+  background: #15803d;
+  border-color: #ffffff;
+  font-size: 9px;
+  cursor: grab;
+}
+
+.route-map-marker--break {
+  width: 31px;
+  height: 31px;
+  background: #b45309;
+  border-color: #ffffff;
+  font-size: 9px;
+  cursor: grab;
+}
+
+.route-map-marker--fuel:active,
+.route-map-marker--break:active {
+  cursor: grabbing;
+}
