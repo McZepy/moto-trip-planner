@@ -378,6 +378,246 @@ export function TripSettingsModal({
 
           <section className="trip-settings-section">
             <h3>
+              Veicolo & carburante
+            </h3>
+
+            <div className="trip-settings-field">
+              <label>
+                Tipo veicolo
+              </label>
+
+              <select
+                value={
+                  draft.vehicleType
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setDraft(
+                    (
+                      current,
+                    ) => ({
+                      ...current,
+                      vehicleType:
+                        event
+                          .target
+                          .value as TripSettings['vehicleType'],
+                    }),
+                  )
+                }
+              >
+                <option value="motorcycle">
+                  Moto
+                </option>
+
+                <option value="car">
+                  Auto
+                </option>
+
+                <option value="other">
+                  Altro
+                </option>
+              </select>
+            </div>
+
+            <div className="trip-settings-two-columns">
+              <div className="trip-settings-field">
+                <label>
+                  Autonomia prudenziale
+                </label>
+
+                <input
+                  type="number"
+                  min="50"
+                  max="1000"
+                  step="10"
+                  value={
+                    draft.vehicleRangeKm
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setDraft(
+                      (
+                        current,
+                      ) => ({
+                        ...current,
+                        vehicleRangeKm:
+                          Math.max(
+                            50,
+                            Number(
+                              event
+                                .target
+                                .value,
+                            ) ||
+                              250,
+                          ),
+                      }),
+                    )
+                  }
+                />
+
+                <small>
+                  km disponibili con un pieno.
+                </small>
+              </div>
+
+              <div className="trip-settings-field">
+                <label>
+                  Margine sicurezza
+                </label>
+
+                <input
+                  type="number"
+                  min="10"
+                  max="200"
+                  step="10"
+                  value={
+                    draft.fuelSafetyMarginKm
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setDraft(
+                      (
+                        current,
+                      ) => ({
+                        ...current,
+                        fuelSafetyMarginKm:
+                          Math.max(
+                            10,
+                            Math.min(
+                              current
+                                .vehicleRangeKm -
+                                10,
+                              Number(
+                                event
+                                  .target
+                                  .value,
+                              ) ||
+                                50,
+                            ),
+                          ),
+                      }),
+                    )
+                  }
+                />
+
+                <small>
+                  Il rifornimento viene cercato prima di raggiungere il limite di autonomia.
+                </small>
+              </div>
+            </div>
+
+            <div className="trip-settings-two-columns">
+              <div className="trip-settings-field">
+                <label>
+                  Consumo medio
+                </label>
+
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  step="0.1"
+                  placeholder="Es. 20"
+                  value={
+                    draft.kmPerLiter ??
+                    ''
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setDraft(
+                      (
+                        current,
+                      ) => ({
+                        ...current,
+                        kmPerLiter:
+                          event
+                            .target
+                            .value ===
+                          ''
+                            ? null
+                            : Math.max(
+                                1,
+                                Number(
+                                  event
+                                    .target
+                                    .value,
+                                ) ||
+                                  1,
+                              ),
+                      }),
+                    )
+                  }
+                />
+
+                <small>
+                  km/l · opzionale
+                </small>
+              </div>
+
+              <div className="trip-settings-field">
+                <label>
+                  Prezzo carburante
+                </label>
+
+                <input
+                  type="number"
+                  min="0.1"
+                  max="10"
+                  step="0.01"
+                  placeholder="Es. 1,85"
+                  value={
+                    draft.fuelPricePerLiter ??
+                    ''
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setDraft(
+                      (
+                        current,
+                      ) => ({
+                        ...current,
+                        fuelPricePerLiter:
+                          event
+                            .target
+                            .value ===
+                          ''
+                            ? null
+                            : Math.max(
+                                0.1,
+                                Number(
+                                  event
+                                    .target
+                                    .value,
+                                ) ||
+                                  0.1,
+                              ),
+                      }),
+                    )
+                  }
+                />
+
+                <small>
+                  €/l · opzionale per stimare il budget.
+                </small>
+              </div>
+            </div>
+
+            <div className="trip-settings-auto-days">
+              Soglia prudenziale rifornimento: {Math.max(
+                30,
+                draft.vehicleRangeKm -
+                  draft.fuelSafetyMarginKm,
+              )} km
+            </div>
+          </section>
+
+          <section className="trip-settings-section">
+            <h3>
               Stile percorso
             </h3>
 
@@ -393,8 +633,7 @@ export function TripSettingsModal({
               ).map(
                 (value) => {
                   const available =
-                    value ===
-                    'fast'
+                    true
 
                   return (
                     <button
@@ -431,9 +670,7 @@ export function TripSettingsModal({
                       </span>
 
                       <small>
-                        {available
-                          ? 'Disponibile'
-                          : 'Prossimamente'}
+                        Disponibile
                       </small>
                     </button>
                   )
@@ -441,12 +678,8 @@ export function TripSettingsModal({
               )}
             </div>
 
-            <p className="trip-settings-warning">
-              Il motore attuale OSRM supporta
-              realmente soltanto il profilo
-              Veloce. Gli altri profili sono
-              già previsti nel modello dati ma
-              non vengono simulati.
+            <p className="trip-settings-note">
+              I profili vengono applicati al routing TomTom. Curve e Panoramico privilegiano percorsi più adatti alla guida motociclistica rispetto al profilo Veloce.
             </p>
           </section>
 
