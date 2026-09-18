@@ -48,6 +48,9 @@ export type TripDay = {
     lng: number
     checkIn: string
     checkOut: string
+
+    hotelDisplay?: string
+    priceEur?: number
   }
 
   /*
