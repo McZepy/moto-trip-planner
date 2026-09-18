@@ -38,6 +38,10 @@ import {
   planMultiLegRoute,
 } from './providers/multiLegTripPlanner'
 
+import type {
+  TripRoutePlan,
+} from './providers/tripRoutePlanner'
+
 import {
   clearPlannedRoute,
   drawPlannedRoute,
@@ -844,6 +848,14 @@ function App() {
     )
 
   const [
+    currentRoutePlan,
+    setCurrentRoutePlan,
+  ] =
+    useState<
+      TripRoutePlan | null
+    >(null)
+
+  const [
     duration,
     setDuration,
   ] =
@@ -1068,6 +1080,13 @@ function App() {
     () => {
       removeRoute()
 
+      setCurrentRoutePlan(
+        null,
+      )
+
+      setCurrentRoutePlan(
+        null,
+      )
       setDistance(null)
       setDuration(null)
     }
@@ -1184,6 +1203,9 @@ function App() {
         null,
       )
 
+      setCurrentRoutePlan(
+        null,
+      )
       setDistance(null)
       setDuration(null)
 
@@ -1661,6 +1683,9 @@ function App() {
       setDaysRoutingProgress(null)
       clearTripDayPlaceCache()
       removeRoute()
+      setCurrentRoutePlan(
+        null,
+      )
       setDistance(null)
       setDuration(null)
     }
@@ -4009,6 +4034,10 @@ function App() {
             )
           }
 
+          setCurrentRoutePlan(
+            plan,
+          )
+
           setDistance(
             plan.distanceMeters,
           )
@@ -5078,6 +5107,10 @@ function App() {
               routeStats={dayRouteStats}
               routingBusy={daysRoutingBusy}
               routingProgress={daysRoutingProgress}
+              routePlan={currentRoutePlan}
+              startPlace={startPlace}
+              destinationPlace={destinationPlace}
+              settings={tripSettings}
               onChange={handleDaysChange}
               onSelectDay={handleSelectDayRoute}
               onShowOverview={handleShowTripOverview}
