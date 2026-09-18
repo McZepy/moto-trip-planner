@@ -27,6 +27,7 @@ export type TripSettings = {
   durationMode: TripDurationMode
   shape: TripShape
   departureDate: string
+  returnDate: string
   departureTime: string
   plannedDays: number | null
   routeStyle: RouteStyle
@@ -37,6 +38,7 @@ export const defaultTripSettings: TripSettings = {
   durationMode: 'single-day',
   shape: 'one-way',
   departureDate: '',
+  returnDate: '',
   departureTime: '',
   plannedDays: null,
   routeStyle: 'fast',
