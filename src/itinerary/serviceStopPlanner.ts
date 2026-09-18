@@ -63,3 +63,53 @@ export function plannedStopPoints(
 
   return points
 }
+
+
+export function routeSearchPoints(
+  plan:
+    TripRoutePlan,
+  targetKm:
+    number,
+  spanKm =
+    15,
+) {
+  const totalKm =
+    roadDistanceMeters(
+      plan,
+    ) /
+    1000
+
+  return [
+    targetKm,
+    targetKm -
+      spanKm,
+    targetKm +
+      spanKm,
+  ]
+    .filter(
+      (
+        km,
+      ) =>
+        km >
+          0 &&
+        km <
+          totalKm,
+    )
+    .map(
+      (
+        km,
+      ) =>
+        pointAtRoadDistance(
+          plan,
+          km *
+            1000,
+        ),
+    )
+    .filter(
+      (
+        value,
+      ): value is PlannedRouteStopPoint =>
+        value !==
+        null,
+    )
+}
