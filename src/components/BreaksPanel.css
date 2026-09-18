@@ -6,3 +6,12 @@
 .service-stop-badge.break {
   background: #b45309;
 }
+
+
+.service-stop-badge.combined {
+  width: 34px;
+  height: 34px;
+  background: #166534;
+  border-color: #f59e0b;
+  font-size: 8px;
+}
