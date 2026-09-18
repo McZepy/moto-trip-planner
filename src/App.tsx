@@ -872,6 +872,21 @@ function App() {
   ] =
     useState<TripDay[]>([])
 
+  const daysRef =
+    useRef<TripDay[]>(
+      [],
+    )
+
+  useEffect(
+    () => {
+      daysRef.current =
+        days
+    },
+    [
+      days,
+    ],
+  )
+
   const [
     selectedDayId,
     setSelectedDayId,
@@ -1287,6 +1302,153 @@ function App() {
       )
     }
 
+  const buildDaysWithBoundaryPlace =
+    (
+      current:
+        TripDay[],
+      dayId:
+        string,
+      place:
+        GeocodingResult,
+    ) => {
+      const index =
+        current.findIndex(
+          (
+            day,
+          ) =>
+            day.id ===
+            dayId,
+        )
+
+      if (
+        index <
+        0
+      ) {
+        return current
+      }
+
+      const next =
+        current.map(
+          (
+            day,
+          ) => ({
+            ...day,
+
+            steps:
+              day.steps.map(
+                (
+                  step,
+                ) => ({
+                  ...step,
+                }),
+              ),
+
+            routingOverride:
+              day.routingOverride
+                ? {
+                    ...day.routingOverride,
+
+                    startPlace: {
+                      ...day
+                        .routingOverride
+                        .startPlace,
+                    },
+
+                    destinationPlace: {
+                      ...day
+                        .routingOverride
+                        .destinationPlace,
+                    },
+
+                    waypoints:
+                      cloneEditorWaypoints(
+                        day
+                          .routingOverride
+                          .waypoints,
+                      ),
+                  }
+                : undefined,
+
+            overnight:
+              day.overnight
+                ? {
+                    ...day.overnight,
+                  }
+                : undefined,
+          }),
+        )
+
+      const currentDay =
+        next[
+          index
+        ]
+
+      if (
+        currentDay
+          .overnight
+      ) {
+        currentDay.overnight = {
+          ...currentDay.overnight,
+
+          name:
+            place.name,
+
+          label:
+            place.label,
+
+          lat:
+            place.lat,
+
+          lng:
+            place.lng,
+        }
+      }
+
+      currentDay.steps =
+        replaceBoundaryPlaceName(
+          currentDay.steps,
+          'last',
+          place.name,
+        )
+
+      if (
+        currentDay
+          .routingOverride
+      ) {
+        currentDay.routingOverride.destinationPlace = {
+          ...place,
+        }
+      }
+
+      const nextDay =
+        next[
+          index +
+            1
+        ]
+
+      if (
+        nextDay
+      ) {
+        nextDay.steps =
+          replaceBoundaryPlaceName(
+            nextDay.steps,
+            'first',
+            place.name,
+          )
+
+        if (
+          nextDay
+            .routingOverride
+        ) {
+          nextDay.routingOverride.startPlace = {
+            ...place,
+          }
+        }
+      }
+
+      return next
+    }
+
   const applyOvernightPlace =
     (
       dayId:
@@ -1294,153 +1456,21 @@ function App() {
       place:
         GeocodingResult,
     ) => {
+      const next =
+        buildDaysWithBoundaryPlace(
+          daysRef.current,
+          dayId,
+          place,
+        )
+
+      daysRef.current =
+        next
+
       setDays(
-        (
-          current,
-        ) => {
-          const index =
-            current.findIndex(
-              (
-                day,
-              ) =>
-                day.id ===
-                dayId,
-            )
-
-          if (
-            index <
-            0
-          ) {
-            return current
-          }
-
-          const next =
-            current.map(
-              (
-                day,
-              ) => ({
-                ...day,
-
-                steps:
-                  day.steps.map(
-                    (
-                      step,
-                    ) => ({
-                      ...step,
-                    }),
-                  ),
-
-                routingOverride:
-                  day.routingOverride
-                    ? {
-                        ...day.routingOverride,
-
-                        startPlace: {
-                          ...day
-                            .routingOverride
-                            .startPlace,
-                        },
-
-                        destinationPlace: {
-                          ...day
-                            .routingOverride
-                            .destinationPlace,
-                        },
-
-                        waypoints:
-                          day
-                            .routingOverride
-                            .waypoints
-                            .map(
-                              (
-                                waypoint,
-                              ) => ({
-                                ...waypoint,
-                              }),
-                            ),
-                      }
-                    : undefined,
-
-                overnight:
-                  day.overnight
-                    ? {
-                        ...day.overnight,
-                      }
-                    : undefined,
-              }),
-            )
-
-          const currentDay =
-            next[
-              index
-            ]
-
-          if (
-            currentDay
-              .overnight
-          ) {
-            currentDay.overnight = {
-              ...currentDay.overnight,
-
-              name:
-                place.name,
-
-              label:
-                place.label,
-
-              lat:
-                place.lat,
-
-              lng:
-                place.lng,
-            }
-          }
-
-          currentDay.steps =
-            replaceBoundaryPlaceName(
-              currentDay.steps,
-              'last',
-              place.name,
-            )
-
-          if (
-            currentDay
-              .routingOverride
-          ) {
-            currentDay.routingOverride.destinationPlace = {
-              ...place,
-            }
-          }
-
-          const nextDay =
-            next[
-              index +
-                1
-            ]
-
-          if (
-            nextDay
-          ) {
-            nextDay.steps =
-              replaceBoundaryPlaceName(
-                nextDay.steps,
-                'first',
-                place.name,
-              )
-
-            if (
-              nextDay
-                .routingOverride
-            ) {
-              nextDay.routingOverride.startPlace = {
-                ...place,
-              }
-            }
-          }
-
-          return next
-        },
+        next,
       )
+
+      return next
     }
 
   const syncOvernightMarkers =
@@ -2179,6 +2209,9 @@ function App() {
 
   const handleDaysChange =
     (nextDays: TripDay[]) => {
+      daysRef.current =
+        nextDays
+
       setDays(nextDays)
       setSelectedDayId(null)
       setEditingDayId(null)
@@ -5629,6 +5662,7 @@ function App() {
               routePlan={currentRoutePlan}
               startPlace={startPlace}
               destinationPlace={destinationPlace}
+              masterWaypoints={waypoints}
               settings={tripSettings}
               onChange={handleDaysChange}
               onDatesChange={(
