@@ -913,13 +913,14 @@ async function locationIqAddressSearch(
   )
 }
 
-export async function searchNearbyFuelStations(
+async function searchNearbyTags(
   point: {
     lat: number
     lng: number
   },
-  radiusMeters =
-    12000,
+  tags: string,
+  radiusMeters:
+    number,
   signal?:
     AbortSignal,
 ) {
@@ -941,19 +942,19 @@ export async function searchNearbyFuelStations(
       radius:
         String(
           Math.max(
-            1000,
+            300,
             Math.min(
-              30000,
+              10000,
               radiusMeters,
             ),
           ),
         ),
 
       tag:
-        'amenity:fuel',
+        tags,
 
       limit:
-        '20',
+        '30',
 
       dedupe:
         '1',
@@ -967,6 +968,49 @@ export async function searchNearbyFuelStations(
 
   return resultsToSuggestions(
     results,
+  )
+}
+
+export async function searchNearbyFuelStations(
+  point: {
+    lat: number
+    lng: number
+  },
+  radiusMeters =
+    2000,
+  signal?:
+    AbortSignal,
+) {
+  return searchNearbyTags(
+    point,
+    'amenity:fuel,highway:services',
+    radiusMeters,
+    signal,
+  )
+}
+
+export async function searchNearbyRestFacilities(
+  point: {
+    lat: number
+    lng: number
+  },
+  radiusMeters =
+    2000,
+  signal?:
+    AbortSignal,
+) {
+  return searchNearbyTags(
+    point,
+    [
+      'highway:services',
+      'amenity:cafe',
+      'amenity:restaurant',
+      'amenity:fast_food',
+      'amenity:fuel',
+      'tourism:picnic_site',
+    ].join(','),
+    radiusMeters,
+    signal,
   )
 }
 
