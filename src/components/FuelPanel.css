@@ -211,3 +211,67 @@
   color: #93a4ba;
   font-size: 8px;
 }
+
+
+/* =========================================
+   V0.9H14 · LIGHT STOP PLANNER
+   ========================================= */
+.stops-planner-panel .service-panel-card {
+  border-color: #e2e5e9;
+  background: #ffffff;
+}
+
+.stops-planner-panel .service-panel-card > strong {
+  color: #111827;
+}
+
+.stops-planner-panel .service-panel-card > p {
+  color: #6b7280;
+}
+
+.stops-planner-panel .service-panel-grid label > span {
+  color: #374151;
+}
+
+.stops-planner-panel .service-number-row input {
+  border-color: #d1d5db;
+  background: #ffffff;
+  color: #111827;
+}
+
+.stops-planner-panel .service-number-row small {
+  color: #6b7280;
+}
+
+.stops-planner-panel .service-panel-actions button:not(.service-primary) {
+  border-color: #d1d5db;
+  background: #ffffff;
+  color: #374151;
+}
+
+.stops-planner-panel .service-panel-actions button:not(.service-primary):hover {
+  background: #f3f4f6;
+}
+
+.stops-planner-panel .service-warning-list {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.stops-planner-panel .service-warning-list span {
+  color: #92400e;
+}
+
+.stops-planner-panel .service-cost-estimate {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.stops-planner-panel .service-cost-estimate strong {
+  color: #047857;
+}
+
+.stops-planner-panel .service-cost-estimate small {
+  color: #64748b;
+}
