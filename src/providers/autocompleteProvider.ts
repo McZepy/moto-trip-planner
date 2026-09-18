@@ -944,7 +944,7 @@ async function searchNearbyTags(
           Math.max(
             300,
             Math.min(
-              10000,
+              30000,
               radiusMeters,
             ),
           ),
