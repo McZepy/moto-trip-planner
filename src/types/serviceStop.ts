@@ -18,6 +18,7 @@ export type TripServiceStop = {
   lng: number
 
   durationMinutes?: number
+  relaxMinutes?: number
 
   source:
     | 'automatic'
