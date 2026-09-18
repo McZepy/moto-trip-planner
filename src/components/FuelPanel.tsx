@@ -12,10 +12,6 @@ import type {
 } from '../providers/tripRoutePlanner'
 
 import {
-  plannedStopPoints,
-} from '../itinerary/serviceStopPlanner'
-
-import {
   pointAtRoadDistance,
   roadDistanceMeters,
   roadKmAtPoint,
@@ -288,17 +284,6 @@ export function FuelPanel({
       )
 
       try {
-        const targets =
-          plannedStopPoints(
-            routePlan,
-            safeFuelKm,
-            Math.max(
-              30,
-              settings
-                .fuelSafetyMarginKm,
-            ),
-          )
-
         const generated:
           TripServiceStop[] = []
 
@@ -308,10 +293,37 @@ export function FuelPanel({
         let previousFuelKm =
           0
 
-        for (
-          const target
-          of targets
+        let targetKm =
+          safeFuelKm
+
+        let guard =
+          0
+
+        while (
+          targetKm <
+            totalRoadKm -
+              Math.max(
+                20,
+                settings
+                  .fuelSafetyMarginKm,
+              ) &&
+          guard <
+            30
         ) {
+          guard +=
+            1
+
+          const target =
+            pointAtRoadDistance(
+              routePlan,
+              targetKm *
+                1000,
+            )
+
+          if (!target) {
+            break
+          }
+
           const searchRadiusMeters =
             (
               flexibilityKm +
@@ -420,10 +432,10 @@ export function FuelPanel({
 
           if (!best) {
             nextWarnings.push(
-              `Km ${target.routeKm.toFixed(0)}: nessun distributore trovato entro ±${flexibilityKm} km lungo la rotta e ${maxDeviationKm} km di deviazione.`,
+              `Dopo il km ${previousFuelKm.toFixed(0)}: nessun distributore compatibile trovato prima della soglia prudenziale di circa ${targetKm.toFixed(0)} km.`,
             )
 
-            continue
+            break
           }
 
           const segmentKm =
@@ -496,6 +508,14 @@ export function FuelPanel({
 
           previousFuelKm =
             best.routeKm
+
+          /*
+           * Dopo ogni rifornimento il contatore autonomia riparte
+           * dal punto realmente scelto, non dal chilometraggio teorico.
+           */
+          targetKm =
+            previousFuelKm +
+            safeFuelKm
         }
 
         const preserved =
