@@ -17,6 +17,8 @@ export type TripServiceStop = {
   lat: number
   lng: number
 
+  durationMinutes?: number
+
   source:
     | 'automatic'
     | 'manual'
