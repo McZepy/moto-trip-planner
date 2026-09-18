@@ -172,3 +172,233 @@
   color: #ffffff;
   text-align: right;
 }
+
+
+/* =========================================
+   V0.9G · DAY STRIPS INSIDE ITINERARY
+   ========================================= */
+.itinerary-day-planner {
+  margin: 8px 0;
+  padding: 0;
+  border-top: 0;
+}
+
+.itinerary-day-strip-list {
+  display: grid;
+  gap: 7px;
+}
+
+.itinerary-day-strip-wrap {
+  border: 1px solid #2f3642;
+  border-radius: 11px;
+  background: #111317;
+  overflow: visible;
+}
+
+.itinerary-day-strip-wrap.open {
+  border-color: #465366;
+}
+
+.itinerary-day-strip {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 34px;
+  gap: 9px;
+  align-items: center;
+  min-height: 54px;
+  padding: 7px 8px;
+}
+
+.itinerary-day-strip-badge {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #252a31;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.itinerary-day-strip-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.itinerary-day-strip-main strong {
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itinerary-day-strip-main > span {
+  color: #d1d5db;
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.itinerary-day-strip-main > span::first-letter {
+  color: #f59e0b;
+}
+
+.itinerary-day-strip-menu {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #343a44;
+  border-radius: 8px;
+  background: #1a1d22;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.itinerary-day-strip-menu:hover {
+  background: #252a31;
+  border-color: #4b5563;
+}
+
+.itinerary-day-strip-menu-panel {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid #2f3642;
+  background: #0d0f12;
+}
+
+.itinerary-day-strip-menu-section {
+  display: grid;
+  gap: 7px;
+}
+
+.itinerary-day-strip-menu-title {
+  color: #9ca3af;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.itinerary-day-strip-timeline {
+  display: grid;
+  gap: 6px;
+}
+
+.itinerary-day-strip-timeline > div {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 7px;
+  align-items: center;
+}
+
+.itinerary-day-strip-timeline b {
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 8px;
+}
+
+.itinerary-day-strip-timeline span {
+  color: #d1d5db;
+  font-size: 9px;
+  line-height: 1.25;
+}
+
+.itinerary-day-strip-km {
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid #292e37;
+  border-radius: 7px;
+  background: #15181d;
+}
+
+.itinerary-day-strip-km label {
+  color: #9ca3af;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.itinerary-day-strip-km > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.itinerary-day-strip-km input {
+  width: 100%;
+  height: 30px;
+  box-sizing: border-box;
+  border: 1px solid #3b414d;
+  border-radius: 6px;
+  background: #20242b;
+  color: #ffffff;
+  padding: 0 8px;
+  font-size: 10px;
+}
+
+.itinerary-day-strip-km input:disabled {
+  color: #93c5fd;
+  background: #172033;
+}
+
+.itinerary-day-strip-km span,
+.itinerary-day-strip-km small {
+  color: #8f98a7;
+  font-size: 8px;
+}
+
+.itinerary-day-strip-hotel {
+  display: grid;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid #43385d;
+  border-radius: 7px;
+  background: #17131f;
+}
+
+.itinerary-day-strip-hotel span {
+  color: #a78bfa;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.itinerary-day-strip-hotel strong {
+  color: #ffffff;
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.itinerary-day-strip-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.itinerary-day-strip-actions button {
+  min-height: 31px;
+  border: 1px solid #3b82f6;
+  border-radius: 7px;
+  background: #17263a;
+  color: #bfdbfe;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.itinerary-day-strip-actions button:hover {
+  background: #203756;
+}
