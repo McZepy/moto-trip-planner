@@ -10,6 +10,7 @@ export type TripServiceStop = {
   dayNumber?: number
 
   routeKm: number
+  deviationKm?: number
 
   name: string
   label: string
