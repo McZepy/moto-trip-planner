@@ -63,6 +63,18 @@ type ItineraryDayPlannerProps = {
   days:
     TripDay[]
 
+  routeStats?: Record<
+    string,
+    {
+      distanceMeters:
+        number
+      durationSeconds:
+        number
+      usesFerry:
+        boolean
+    }
+  >
+
   onChange:
     (
       days:
@@ -378,6 +390,36 @@ function normalizedDayTargets(
   )
 }
 
+function formatDuration(
+  seconds:
+    number,
+) {
+  const totalMinutes =
+    Math.round(
+      seconds /
+      60,
+    )
+
+  const hours =
+    Math.floor(
+      totalMinutes /
+      60,
+    )
+
+  const minutes =
+    totalMinutes %
+    60
+
+  if (
+    hours <=
+    0
+  ) {
+    return `${minutes} min`
+  }
+
+  return `${hours} h ${minutes} min`
+}
+
 function dayId(
   index:
     number,
@@ -405,6 +447,7 @@ export function ItineraryDayPlanner({
   masterWaypoints,
   settings,
   days,
+  routeStats,
   onChange,
   onOpenDay,
   onStatus,
@@ -445,6 +488,14 @@ export function ItineraryDayPlanner({
     useState(
       false,
     )
+
+  const [
+    openDayId,
+    setOpenDayId,
+  ] =
+    useState<
+      string | null
+    >(null)
 
   const autoKeyRef =
     useRef<
@@ -1293,8 +1344,8 @@ export function ItineraryDayPlanner({
           {busy
             ? 'Calcolo tappe...'
             : days.length > 0
-              ? 'Ricalcola tappe'
-              : 'Genera tappe'}
+              ? 'Ricalcola'
+              : 'Genera'}
         </button>
       </div>
 
@@ -1305,91 +1356,13 @@ export function ItineraryDayPlanner({
         </div>
       )}
 
-      {plannedDays >
-        1 && (
-        <div className="itinerary-day-targets">
-          {normalizedDayTargets(
-            roadKm,
-            dayTargets,
-            plannedDays,
-          ).map(
-            (
-              value,
-              index,
-            ) => (
-              <label
-                key={
-                  index
-                }
-              >
-                <span>
-                  Giorno {index + 1}
-                </span>
-
-                <div>
-                  <input
-                    type="number"
-                    min="20"
-                    step="10"
-                    value={
-                      Math.round(
-                        value,
-                      )
-                    }
-                    disabled={
-                      index ===
-                        plannedDays -
-                          1 ||
-                      busy
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      updateDistance(
-                        index,
-                        Number(
-                          event
-                            .target
-                            .value,
-                        ) ||
-                          20,
-                      )
-                    }
-                    onBlur={() =>
-                      void generateDays(
-                        dayTargets,
-                      )
-                    }
-                    onKeyDown={(
-                      event,
-                    ) => {
-                      if (
-                        event.key ===
-                        'Enter'
-                      ) {
-                        event
-                          .currentTarget
-                          .blur()
-                      }
-                    }}
-                  />
-
-                  <small>
-                    km
-                  </small>
-                </div>
-              </label>
-            ),
-          )}
-        </div>
-      )}
-
       {days.length >
         0 && (
-        <div className="itinerary-day-stage-list">
+        <div className="itinerary-day-strip-list">
           {days.map(
             (
               day,
+              index,
             ) => {
               const from =
                 day.routingOverride
@@ -1399,69 +1372,260 @@ export function ItineraryDayPlanner({
                 day.routingOverride
                   ?.destinationPlace
 
+              const stats =
+                routeStats?.[
+                  day.id
+                ]
+
+              const plannedKm =
+                (
+                  day
+                    .plannedDistanceMeters ??
+                  0
+                ) /
+                1000
+
+              const open =
+                openDayId ===
+                day.id
+
+              const dayTarget =
+                normalizedDayTargets(
+                  roadKm,
+                  dayTargets,
+                  plannedDays,
+                )[
+                  index
+                ] ??
+                plannedKm
+
               return (
                 <div
                   key={
                     day.id
                   }
-                  className="itinerary-day-stage"
+                  className={
+                    open
+                      ? 'itinerary-day-strip-wrap open'
+                      : 'itinerary-day-strip-wrap'
+                  }
                 >
-                  <div className="itinerary-day-stage-top">
-                    <strong>
-                      Giorno {day.dayNumber} · {day.dateLabel}
-                    </strong>
-
-                    <span>
-                      {(
-                        (
-                          day
-                            .plannedDistanceMeters ??
-                          0
-                        ) /
-                        1000
-                      ).toFixed(0)} km
-                    </span>
-                  </div>
-
-                  <div className="itinerary-day-stage-route">
-                    <span>
-                      {from?.name ?? '—'}
+                  <div className="itinerary-day-strip">
+                    <span className="itinerary-day-strip-badge">
+                      G{day.dayNumber}
                     </span>
 
-                    <b>
-                      →
-                    </b>
-
-                    <span>
-                      {to?.name ?? '—'}
-                    </span>
-                  </div>
-
-                  {day.overnight && (
-                    <div className="itinerary-day-hotel-status">
-                      <span>
-                        Destinazione notte:
-                      </span>
-
+                    <div className="itinerary-day-strip-main">
                       <strong>
-                        {day.overnight.hotelDisplay ??
-                          'hotel non definito'}
+                        Giorno {day.dayNumber}: {from?.name ?? '—'} → {to?.name ?? '—'}
                       </strong>
+
+                      <span>
+                        {day.dateLabel}
+                        {' · '}
+                        {(stats
+                          ? stats.distanceMeters /
+                              1000
+                          : plannedKm
+                        ).toFixed(0)} km
+                        {stats && (
+                          <>
+                            {' · '}
+                            ~{formatDuration(
+                              stats.durationSeconds,
+                            )} guida
+                          </>
+                        )}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="itinerary-day-strip-menu"
+                      aria-label={
+                        open
+                          ? 'Chiudi menu giornata'
+                          : 'Apri menu giornata'
+                      }
+                      onClick={() =>
+                        setOpenDayId(
+                          open
+                            ? null
+                            : day.id,
+                        )
+                      }
+                    >
+                      {open
+                        ? '⌃'
+                        : '⋮'}
+                    </button>
+                  </div>
+
+                  {open && (
+                    <div className="itinerary-day-strip-menu-panel">
+                      <div className="itinerary-day-strip-menu-section">
+                        <span className="itinerary-day-strip-menu-title">
+                          Percorso Giorno {day.dayNumber}
+                        </span>
+
+                        <div className="itinerary-day-strip-timeline">
+                          <div>
+                            <b>
+                              A
+                            </b>
+
+                            <span>
+                              {from?.name ?? '—'}
+                            </span>
+                          </div>
+
+                          {day.routingOverride
+                            ?.waypoints
+                            .map(
+                              (
+                                waypoint,
+                                waypointIndex,
+                              ) => (
+                                <div
+                                  key={
+                                    waypoint.id
+                                  }
+                                >
+                                  <b>
+                                    {waypointIndex + 1}
+                                  </b>
+
+                                  <span>
+                                    {waypoint.label ||
+                                      waypoint.name}
+                                  </span>
+                                </div>
+                              ),
+                            )}
+
+                          <div>
+                            <b>
+                              B
+                            </b>
+
+                            <span>
+                              {to?.name ?? '—'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {plannedDays >
+                        1 && (
+                        <div className="itinerary-day-strip-km">
+                          <label>
+                            Km tappa
+                          </label>
+
+                          <div>
+                            <input
+                              type="number"
+                              min="20"
+                              step="10"
+                              value={
+                                Math.round(
+                                  dayTarget,
+                                )
+                              }
+                              disabled={
+                                index ===
+                                  plannedDays -
+                                    1 ||
+                                busy
+                              }
+                              onChange={(
+                                event,
+                              ) =>
+                                updateDistance(
+                                  index,
+                                  Number(
+                                    event
+                                      .target
+                                      .value,
+                                  ) ||
+                                    20,
+                                )
+                              }
+                              onBlur={() =>
+                                void generateDays(
+                                  dayTargets,
+                                )
+                              }
+                              onKeyDown={(
+                                event,
+                              ) => {
+                                if (
+                                  event.key ===
+                                  'Enter'
+                                ) {
+                                  event
+                                    .currentTarget
+                                    .blur()
+                                }
+                              }}
+                            />
+
+                            <span>
+                              km
+                            </span>
+                          </div>
+
+                          {index ===
+                            plannedDays -
+                              1 && (
+                            <small>
+                              Ultima giornata = distanza residua automatica.
+                            </small>
+                          )}
+                        </div>
+                      )}
+
+                      {day.overnight && (
+                        <div className="itinerary-day-strip-hotel">
+                          <span>
+                            Pernottamento
+                          </span>
+
+                          <strong>
+                            {day.overnight.hotelDisplay ??
+                              day.overnight.label ??
+                              'Hotel non definito'}
+                          </strong>
+                        </div>
+                      )}
+
+                      <div className="itinerary-day-strip-actions">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onOpenDay(
+                              day,
+                            )
+                          }
+                        >
+                          Mostra / modifica percorso
+                        </button>
+
+                        {day.overnight && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onOpenDay(
+                                day,
+                              )
+                            }
+                          >
+                            Inserisci hotel / destinazione precisa
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onOpenDay(
-                        day,
-                      )
-                    }
-                  >
-                    {day.overnight
-                      ? 'Modifica tappa / inserisci hotel'
-                      : 'Mostra / modifica tappa'}
-                  </button>
                 </div>
               )
             },
