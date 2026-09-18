@@ -6138,133 +6138,80 @@ function App() {
         <div className="compact-itinerary">
           {renderStart()}
 
-          {renderAddButton(
-            0,
-          )}
+          {(
+            editingDay ||
+            days.length ===
+              0
+          ) && (
+            <>
+              {renderAddButton(
+                0,
+              )}
 
-          {waypoints.map(
-            (
-              waypoint,
-              index,
-            ) => (
-              <div
-                key={
-                  waypoint.id
-                }
-              >
-                {renderWaypoint(
+              {waypoints.map(
+                (
                   waypoint,
                   index,
-                )}
+                ) => (
+                  <div
+                    key={
+                      waypoint.id
+                    }
+                  >
+                    {renderWaypoint(
+                      waypoint,
+                      index,
+                    )}
 
-                {renderAddButton(
-                  index + 1,
-                )}
-              </div>
-            ),
+                    {renderAddButton(
+                      index + 1,
+                    )}
+                  </div>
+                ),
+              )}
+            </>
+          )}
+
+          {!editingDay && (
+            <ItineraryDayPlanner
+              routePlan={
+                routeScopeDayId ===
+                  null
+                  ? currentRoutePlan
+                  : null
+              }
+              startPlace={
+                startPlace
+              }
+              destinationPlace={
+                destinationPlace
+              }
+              masterWaypoints={
+                waypoints
+              }
+              settings={
+                tripSettings
+              }
+              days={
+                days
+              }
+              routeStats={
+                dayRouteStats
+              }
+              onChange={
+                handleDaysChange
+              }
+              onOpenDay={
+                handleSelectDayRoute
+              }
+              onStatus={
+                setStatus
+              }
+            />
           )}
 
           {renderDestination()}
         </div>
-
-        {!editingDay && (
-          <ItineraryDayPlanner
-            routePlan={
-              routeScopeDayId ===
-                null
-                ? currentRoutePlan
-                : null
-            }
-            startPlace={
-              startPlace
-            }
-            destinationPlace={
-              destinationPlace
-            }
-            masterWaypoints={
-              waypoints
-            }
-            settings={
-              tripSettings
-            }
-            days={
-              days
-            }
-            onChange={
-              handleDaysChange
-            }
-            onOpenDay={
-              handleSelectDayRoute
-            }
-            onStatus={
-              setStatus
-            }
-          />
-        )}
-
-        {!editingDay &&
-        days.some(
-          (
-            day,
-          ) =>
-            Boolean(
-              day.overnight,
-            ),
-        ) && (
-          <div className="itinerary-overnight-list">
-            <div className="itinerary-overnight-heading">
-              <strong>
-                Fine giornata / pernottamenti
-              </strong>
-
-              <span>
-                Questi punti dividono il percorso in giornate.
-              </span>
-            </div>
-
-            {days
-              .filter(
-                (
-                  day,
-                ) =>
-                  Boolean(
-                    day.overnight,
-                  ),
-              )
-              .map(
-                (
-                  day,
-                ) => (
-                  <button
-                    key={
-                      day.id
-                    }
-                    type="button"
-                    className="itinerary-overnight-row"
-                    onClick={() =>
-                      void handleSelectDayRoute(
-                        day,
-                      )
-                    }
-                  >
-                    <span className="itinerary-overnight-badge">
-                      N{day.dayNumber}
-                    </span>
-
-                    <span>
-                      <strong>
-                        {day.overnight?.name}
-                      </strong>
-
-                      <small>
-                        Fine Giorno {day.dayNumber} · partenza Giorno {day.dayNumber + 1}
-                      </small>
-                    </span>
-                  </button>
-                ),
-              )}
-          </div>
-        )}
 
         <p className="route-status">
           {status}
