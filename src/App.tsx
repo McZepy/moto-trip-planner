@@ -226,26 +226,24 @@ function waypointToRoutePoint(
 function waypointRoleLabel(
   type: WaypointType,
 ) {
-  if (type === 'zone-pass') {
+  if (
+    type === 'zone-pass' ||
+    type === 'road-point'
+  ) {
     return 'Passaggio'
   }
 
-  if (type === 'road-point') {
-    return 'Punto strada'
-  }
-
-  return 'Sosta'
+  return 'Destinazione precisa'
 }
 
 function waypointRoleClass(
   type: WaypointType,
 ) {
-  if (type === 'zone-pass') {
+  if (
+    type === 'zone-pass' ||
+    type === 'road-point'
+  ) {
     return 'role-pass'
-  }
-
-  if (type === 'road-point') {
-    return 'role-road'
   }
 
   return 'role-stop'
@@ -5429,7 +5427,7 @@ function App() {
                   )
                 }
               >
-                📍 Punto strada sulla mappa
+                📍 Punto di passaggio sulla mappa
               </button>
 
               <button
@@ -5615,7 +5613,7 @@ function App() {
                   }
                 >
                   <span>
-                    Sosta
+                    Destinazione precisa
                   </span>
 
                   {waypoint.type ===
@@ -5628,40 +5626,34 @@ function App() {
 
                 <button
                   type="button"
-                  onClick={() =>
-                    changeWaypointType(
-                      index,
-                      'zone-pass',
-                    )
-                  }
-                >
-                  <span>
-                    Passaggio
-                  </span>
+                  onClick={() => {
+                    if (
+                      waypoint.type ===
+                        'zone-pass' ||
+                      waypoint.type ===
+                        'road-point'
+                    ) {
+                      setOpenMenuKey(
+                        null,
+                      )
 
-                  {waypoint.type ===
-                    'zone-pass' && (
-                    <strong>
-                      ✓
-                    </strong>
-                  )}
-                </button>
+                      return
+                    }
 
-                <button
-                  type="button"
-                  onClick={() =>
                     changeWaypointType(
                       index,
                       'road-point',
                     )
-                  }
+                  }}
                 >
                   <span>
-                    Punto strada
+                    Punto di passaggio
                   </span>
 
-                  {waypoint.type ===
-                    'road-point' && (
+                  {(waypoint.type ===
+                    'zone-pass' ||
+                    waypoint.type ===
+                      'road-point') && (
                     <strong>
                       ✓
                     </strong>
