@@ -915,9 +915,9 @@ export function DaysHotelPanel({
 
       const query =
         day.overnight
-          .name ||
+          .label ||
         day.overnight
-          .label
+          .name
 
       const url =
         hotelSearchUrl(
