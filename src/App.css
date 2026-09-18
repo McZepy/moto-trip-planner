@@ -1075,3 +1075,80 @@ input {
   .day-route-editor-apply:hover {
   background: #1d4ed8;
 }
+
+
+/* =========================================
+   ITINERARY · OVERNIGHT BOUNDARIES
+   ========================================= */
+.itinerary-overnight-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #303030;
+}
+
+.itinerary-overnight-heading {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 2px;
+}
+
+.itinerary-overnight-heading strong {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.itinerary-overnight-heading span {
+  color: #8f8f8f;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.itinerary-overnight-row {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 9px;
+  border: 1px solid #3b3154;
+  border-radius: 8px;
+  background: #1e1829;
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.itinerary-overnight-row:hover {
+  border-color: #7c3aed;
+  background: #271d38;
+}
+
+.itinerary-overnight-badge {
+  width: 29px;
+  height: 29px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: #7c3aed;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.itinerary-overnight-row > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.itinerary-overnight-row strong {
+  font-size: 11px;
+}
+
+.itinerary-overnight-row small {
+  color: #b7a9d6;
+  font-size: 9px;
+}
