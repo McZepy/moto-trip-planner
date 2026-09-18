@@ -311,3 +311,17 @@ input[type='checkbox'] {
       1fr;
   }
 }
+
+
+.trip-settings-auto-days {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid #343434;
+  border-radius: 8px;
+  background: #1c1c1c;
+  color: #bfdbfe;
+  font-size: 13px;
+  font-weight: 700;
+}
