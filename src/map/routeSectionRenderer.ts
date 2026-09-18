@@ -3,9 +3,21 @@ import type {
 } from 'maplibre-gl'
 
 import type {
+  RouteGeometry,
+} from '../providers/routingProvider'
+
+import type {
   TripRoutePlan,
-  TripRouteSection,
 } from '../providers/tripRoutePlanner'
+
+type VisualRouteSection = {
+  type:
+    | 'road'
+    | 'ferry'
+
+  geometry:
+    RouteGeometry
+}
 
 const SOURCE_PREFIX =
   'planned-route-section-source-'
@@ -87,7 +99,7 @@ export function clearPlannedRoute(
 function addSection(
   map: Map,
   section:
-    TripRouteSection,
+    VisualRouteSection,
   index: number,
 ) {
   const currentSourceId =
@@ -173,7 +185,44 @@ export function drawPlannedRoute(
     map,
   )
 
+  const visuals:
+    VisualRouteSection[] = []
+
   plan.sections.forEach(
+    (
+      section,
+    ) => {
+      visuals.push({
+        type:
+          section.type,
+
+        geometry:
+          section.geometry,
+      })
+
+      if (
+        section.type ===
+          'road'
+      ) {
+        for (
+          const ferry
+          of section
+            .embeddedFerries ??
+          []
+        ) {
+          visuals.push({
+            type:
+              'ferry',
+
+            geometry:
+              ferry.geometry,
+          })
+        }
+      }
+    },
+  )
+
+  visuals.forEach(
     (
       section,
       index,
