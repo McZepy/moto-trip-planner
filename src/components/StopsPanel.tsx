@@ -202,87 +202,17 @@ export function StopsPanel({
 
   return (
     <section className="stops-panel">
-      <button
-        type="button"
-        className="stops-summary-line"
-        onClick={() =>
-          setPlannerOpen(
-            (
-              current,
-            ) =>
-              !current,
-          )
-        }
-      >
-        <span>
+      <div className="stops-recap-heading">
+        <div>
           <strong>
-            {orderedStops.length} {orderedStops.length === 1 ? 'sosta pianificata' : 'soste pianificate'}
+            Riepilogo soste
           </strong>
 
-          <small>
-            riepilogo carburante · pause · pranzo
-          </small>
-        </span>
-
-        <span>
-          {plannerOpen
-            ? '⌃'
-            : '⋮'}
-        </span>
-      </button>
-
-      {plannerOpen && (
-        <div className="stops-planner-panel">
-          <div className="stops-planner-note">
-            Pianificazione automatica
-          </div>
-
-          <FuelPanel
-            routePlan={
-              routePlan
-            }
-            selectedDayId={
-              selectedDayId
-            }
-            days={
-              days
-            }
-            stops={
-              stops
-            }
-            settings={
-              settings
-            }
-            onChange={
-              onChange
-            }
-            onStatus={
-              onStatus
-            }
-          />
-
-          <BreaksPanel
-            routePlan={
-              routePlan
-            }
-            selectedDayId={
-              selectedDayId
-            }
-            days={
-              days
-            }
-            stops={
-              stops
-            }
-            onChange={
-              onChange
-            }
-            onStatus={
-              onStatus
-            }
-          />
+          <span>
+            {orderedStops.length} {orderedStops.length === 1 ? 'sosta' : 'soste'} nel viaggio
+          </span>
         </div>
-      )}
+      </div>
 
       {orderedStops.length ===
         0 ? (
@@ -300,13 +230,28 @@ export function StopsPanel({
                 openStopId ===
                 stop.id
 
+              const sameKindBefore =
+                orderedStops
+                  .slice(
+                    0,
+                    index,
+                  )
+                  .filter(
+                    (
+                      item,
+                    ) =>
+                      item.kind ===
+                      stop.kind,
+                  )
+                  .length
+
               const badge =
                 stop.kind ===
                   'fuel'
                   ? stop.relaxMinutes
                     ? 'F+P'
-                    : `F${index + 1}`
-                  : `P${index + 1}`
+                    : `F${sameKindBefore + 1}`
+                  : `P${sameKindBefore + 1}`
 
               const dayLabel =
                 stop.dayNumber
@@ -445,6 +390,84 @@ export function StopsPanel({
               )
             },
           )}
+        </div>
+      )}
+
+      <button
+        type="button"
+        className="stops-planner-toggle"
+        onClick={() =>
+          setPlannerOpen(
+            (
+              current,
+            ) =>
+              !current,
+          )
+        }
+      >
+        <span>
+          <strong>
+            Pianifica / modifica soste
+          </strong>
+
+          <small>
+            carburante · pause · pranzo
+          </small>
+        </span>
+
+        <span>
+          {plannerOpen
+            ? '⌃'
+            : '⋮'}
+        </span>
+      </button>
+
+      {plannerOpen && (
+        <div className="stops-planner-panel">
+          <FuelPanel
+            routePlan={
+              routePlan
+            }
+            selectedDayId={
+              selectedDayId
+            }
+            days={
+              days
+            }
+            stops={
+              stops
+            }
+            settings={
+              settings
+            }
+            onChange={
+              onChange
+            }
+            onStatus={
+              onStatus
+            }
+          />
+
+          <BreaksPanel
+            routePlan={
+              routePlan
+            }
+            selectedDayId={
+              selectedDayId
+            }
+            days={
+              days
+            }
+            stops={
+              stops
+            }
+            onChange={
+              onChange
+            }
+            onStatus={
+              onStatus
+            }
+          />
         </div>
       )}
     </section>
