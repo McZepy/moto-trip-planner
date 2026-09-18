@@ -5675,6 +5675,16 @@ function App() {
                   place,
                 )
 
+                overnightMarkersRef
+                  .current
+                  .get(
+                    dayId,
+                  )
+                  ?.setLngLat([
+                    place.lng,
+                    place.lat,
+                  ])
+
                 setStatus(
                   'Punto pernottamento aggiornato. Premi Salva per conservarlo.',
                 )
