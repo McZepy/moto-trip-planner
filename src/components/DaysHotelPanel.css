@@ -1022,3 +1022,96 @@
   color: #86efac;
   font-size: 10px;
 }
+
+
+/* =========================================
+   V0.9J · LIGHT HOTEL STRIPS
+   ========================================= */
+.days-summary-line strong {
+  color: #111827;
+}
+
+.days-summary-line span {
+  color: #6b7280;
+}
+
+.days-strip-wrap {
+  border-color: #e2e5e9;
+  background: #ffffff;
+}
+
+.days-strip-wrap.selected {
+  border-color: #cbd5e1;
+}
+
+.days-strip {
+  background: #ffffff;
+  color: #111827;
+}
+
+.days-strip:hover {
+  background: #f9fafb;
+}
+
+.days-strip-badge {
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+}
+
+.days-strip-main strong {
+  color: #111827;
+}
+
+.days-strip-main small {
+  color: #6b7280;
+}
+
+.days-strip-menu {
+  color: #374151;
+}
+
+.days-strip-panel {
+  border-top-color: #e5e7eb;
+  background: #ffffff;
+}
+
+.days-strip-detail > span,
+.days-strip-price > span {
+  color: #6b7280;
+}
+
+.days-strip-detail strong {
+  color: #111827;
+}
+
+.days-strip-detail small {
+  color: #6b7280;
+}
+
+.days-strip-hotel-search select,
+.days-strip-price input {
+  border-color: #d1d5db;
+  background: #ffffff;
+  color: #111827;
+}
+
+.days-strip-hotel-search button {
+  border-color: #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+.days-strip-hotel-search button:hover {
+  background: #000000;
+}
+
+.days-strip-price b {
+  color: #047857;
+}
+
+.days-routing-progress {
+  border-color: #d1d5db;
+  background: #f3f4f6;
+  color: #374151;
+}
