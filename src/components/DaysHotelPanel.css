@@ -569,3 +569,100 @@
   font-size: 11px;
   line-height: 1.4;
 }
+
+
+.day-hotel-point-editor {
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid #343434;
+  border-radius: 8px;
+  background: #181818;
+}
+
+.day-hotel-point-editor label {
+  display: grid;
+  gap: 5px;
+}
+
+.day-hotel-point-editor label > span {
+  color: #bdbdbd;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.day-hotel-point-search {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto;
+  gap: 7px;
+}
+
+.day-hotel-point-search input {
+  width: 100%;
+  height: 34px;
+  box-sizing: border-box;
+  border: 1px solid #3b3b3b;
+  border-radius: 7px;
+  background: #202020;
+  color: #ffffff;
+  padding: 0 9px;
+  font-size: 11px;
+}
+
+.day-hotel-point-search button {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #4b5563;
+  border-radius: 7px;
+  background: #292929;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.day-hotel-point-search button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.day-hotel-point-results {
+  display: grid;
+  gap: 5px;
+}
+
+.day-hotel-point-results button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 9px;
+  border: 1px solid #343434;
+  border-radius: 7px;
+  background: #202020;
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.day-hotel-point-results button:hover {
+  border-color: #3b82f6;
+  background: #17263a;
+}
+
+.day-hotel-point-results strong {
+  font-size: 11px;
+}
+
+.day-hotel-point-results small {
+  color: #9ca3af;
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.day-hotel-point-hint {
+  color: #8b8b8b;
+  font-size: 9px;
+  line-height: 1.35;
+}
