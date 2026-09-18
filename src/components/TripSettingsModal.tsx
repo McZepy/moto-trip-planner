@@ -21,6 +21,78 @@ type TripSettingsModalProps = {
   ) => void
 }
 
+function inclusiveDaysBetween(
+  start: string,
+  end: string,
+) {
+  if (
+    !start ||
+    !end
+  ) {
+    return null
+  }
+
+  const startDate =
+    new Date(
+      start +
+        'T12:00:00',
+    )
+
+  const endDate =
+    new Date(
+      end +
+        'T12:00:00',
+    )
+
+  const difference =
+    Math.round(
+      (
+        endDate.getTime() -
+        startDate.getTime()
+      ) /
+      86_400_000,
+    )
+
+  if (
+    !Number.isFinite(
+      difference,
+    ) ||
+    difference <
+      0
+  ) {
+    return null
+  }
+
+  return difference + 1
+}
+
+function withDerivedDuration(
+  settings:
+    TripSettings,
+) {
+  const days =
+    inclusiveDaysBetween(
+      settings.departureDate,
+      settings.returnDate,
+    )
+
+  if (!days) {
+    return settings
+  }
+
+  return {
+    ...settings,
+
+    durationMode:
+      days === 1
+        ? 'single-day' as const
+        : 'multi-day' as const,
+
+    plannedDays:
+      days,
+  }
+}
+
 function cloneSettings(
   settings: TripSettings,
 ): TripSettings {
@@ -126,94 +198,27 @@ export function TripSettingsModal({
 
             <div className="trip-settings-field">
               <label>
-                Durata
+                Durata disponibile
               </label>
 
-              <div className="trip-settings-choice-grid">
-                {(
-                  [
-                    'single-day',
-                    'multi-day',
-                  ] as const
-                ).map(
-                  (value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={
-                        draft.durationMode ===
-                        value
-                          ? 'trip-choice active'
-                          : 'trip-choice'
-                      }
-                      onClick={() =>
-                        setDraft(
-                          (
-                            current,
-                          ) => ({
-                            ...current,
-                            durationMode:
-                              value,
-                            plannedDays:
-                              value ===
-                              'single-day'
-                                ? 1
-                                : current.plannedDays ??
-                                  2,
-                          }),
-                        )
-                      }
-                    >
-                      {
-                        tripDurationLabels[
-                          value
-                        ]
-                      }
-                    </button>
-                  ),
-                )}
-              </div>
-            </div>
-
-            {draft.durationMode ===
-              'multi-day' && (
-              <div className="trip-settings-field">
-                <label>
-                  Numero giorni previsto
-                </label>
-
-                <input
-                  type="number"
-                  min="2"
-                  max="90"
-                  value={
-                    draft.plannedDays ??
-                    2
-                  }
-                  onChange={(
-                    event,
-                  ) =>
-                    setDraft(
-                      (
-                        current,
-                      ) => ({
-                        ...current,
-                        plannedDays:
-                          Math.max(
-                            2,
-                            Number(
-                              event
-                                .target
-                                .value,
-                            ) ||
-                              2,
-                          ),
-                      }),
+              <div className="trip-settings-auto-days">
+                {(() => {
+                  const days =
+                    inclusiveDaysBetween(
+                      draft.departureDate,
+                      draft.returnDate,
                     )
-                  }
-                />
+
+                  return days
+                    ? `${days} ${days === 1 ? 'giorno' : 'giorni'}`
+                    : 'Imposta data di partenza e rientro'
+                })()}
               </div>
-            )}
+
+              <small>
+                Il numero di giornate viene calcolato automaticamente dalle date del viaggio.
+              </small>
+            </div>
 
             <div className="trip-settings-field">
               <label>
@@ -272,13 +277,13 @@ export function TripSettingsModal({
 
           <section className="trip-settings-section">
             <h3>
-              Partenza
+              Date viaggio
             </h3>
 
             <div className="trip-settings-two-columns">
               <div className="trip-settings-field">
                 <label>
-                  Data
+                  Partenza
                 </label>
 
                 <input
@@ -292,13 +297,14 @@ export function TripSettingsModal({
                     setDraft(
                       (
                         current,
-                      ) => ({
-                        ...current,
-                        departureDate:
-                          event
-                            .target
-                            .value,
-                      }),
+                      ) =>
+                        withDerivedDuration({
+                          ...current,
+                          departureDate:
+                            event
+                              .target
+                              .value,
+                        }),
                     )
                   }
                 />
@@ -306,13 +312,17 @@ export function TripSettingsModal({
 
               <div className="trip-settings-field">
                 <label>
-                  Ora
+                  Rientro / fine viaggio
                 </label>
 
                 <input
-                  type="time"
+                  type="date"
+                  min={
+                    draft.departureDate ||
+                    undefined
+                  }
                   value={
-                    draft.departureTime
+                    draft.returnDate
                   }
                   onChange={(
                     event,
@@ -320,23 +330,50 @@ export function TripSettingsModal({
                     setDraft(
                       (
                         current,
-                      ) => ({
-                        ...current,
-                        departureTime:
-                          event
-                            .target
-                            .value,
-                      }),
+                      ) =>
+                        withDerivedDuration({
+                          ...current,
+                          returnDate:
+                            event
+                              .target
+                              .value,
+                        }),
                     )
                   }
                 />
               </div>
             </div>
 
+            <div className="trip-settings-field">
+              <label>
+                Ora di partenza
+              </label>
+
+              <input
+                type="time"
+                value={
+                  draft.departureTime
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setDraft(
+                    (
+                      current,
+                    ) => ({
+                      ...current,
+                      departureTime:
+                        event
+                          .target
+                          .value,
+                    }),
+                  )
+                }
+              />
+            </div>
+
             <small className="trip-settings-note">
-              Serviranno per timeline,
-              pause, traghetti, meteo e
-              controlli delle criticità.
+              Le date vengono assegnate automaticamente alle giornate e ai pernottamenti.
             </small>
           </section>
 
@@ -627,7 +664,9 @@ export function TripSettingsModal({
             onClick={() => {
               onApply(
                 cloneSettings(
-                  draft,
+                  withDerivedDuration(
+                    draft,
+                  ),
                 ),
               )
 
