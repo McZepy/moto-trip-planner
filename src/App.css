@@ -606,6 +606,17 @@ input {
 .route-map-marker--destination {
   background: #e11d48;
 }
+.route-map-marker--overnight {
+  width: 31px;
+  height: 31px;
+  background: #7c3aed;
+  border-color: #ffffff;
+  font-size: 10px;
+  cursor: grab;
+}
+.route-map-marker--overnight:active {
+  cursor: grabbing;
+}
 /* =========================================
    AREA / CENTER CHOICE DIALOG
    ========================================= */
