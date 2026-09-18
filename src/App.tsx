@@ -176,53 +176,6 @@ function cloneTripSettings(
   }
 }
 
-function tripDaysBetween(
-  departureDate:
-    string,
-  returnDate:
-    string,
-) {
-  if (
-    !departureDate ||
-    !returnDate
-  ) {
-    return null
-  }
-
-  const start =
-    new Date(
-      departureDate +
-        'T12:00:00',
-    )
-
-  const end =
-    new Date(
-      returnDate +
-        'T12:00:00',
-    )
-
-  const difference =
-    Math.round(
-      (
-        end.getTime() -
-        start.getTime()
-      ) /
-      86_400_000,
-    )
-
-  if (
-    !Number.isFinite(
-      difference,
-    ) ||
-    difference <
-      0
-  ) {
-    return null
-  }
-
-  return difference + 1
-}
-
 function createRoadRoutingProvider(
   settings: TripSettings,
 ) {
