@@ -299,7 +299,8 @@ function createMapMarkerElement(
   type:
     | 'start'
     | 'waypoint'
-    | 'destination',
+    | 'destination'
+    | 'overnight',
 ) {
   const element =
     document.createElement('div')
@@ -633,6 +634,16 @@ function App() {
     )
 
   const waypointMarkersRef =
+    useRef<
+      globalThis.Map<
+        string,
+        Marker
+      >
+    >(
+      new globalThis.Map(),
+    )
+
+  const overnightMarkersRef =
     useRef<
       globalThis.Map<
         string,
@@ -1123,6 +1134,378 @@ function App() {
       )
     }
 
+  const removeOvernightMarkers =
+    () => {
+      overnightMarkersRef
+        .current
+        .forEach(
+          (
+            marker,
+          ) =>
+            marker.remove(),
+        )
+
+      overnightMarkersRef
+        .current
+        .clear()
+    }
+
+  const replaceBoundaryPlaceName =
+    (
+      steps:
+        TripDay['steps'],
+      edge:
+        'first'
+        | 'last',
+      name:
+        string,
+    ) => {
+      const indexes =
+        steps
+          .map(
+            (
+              step,
+              index,
+            ) =>
+              step.kind ===
+                'place'
+                ? index
+                : -1,
+          )
+          .filter(
+            (
+              index,
+            ) =>
+              index >=
+              0,
+          )
+
+      const targetIndex =
+        edge ===
+          'first'
+          ? indexes[0]
+          : indexes.at(-1)
+
+      if (
+        targetIndex ===
+        undefined
+      ) {
+        return steps
+      }
+
+      return steps.map(
+        (
+          step,
+          index,
+        ) =>
+          index ===
+            targetIndex &&
+          step.kind ===
+            'place'
+            ? {
+                ...step,
+                name,
+              }
+            : step,
+      )
+    }
+
+  const applyOvernightPlace =
+    (
+      dayId:
+        string,
+      place:
+        GeocodingResult,
+    ) => {
+      setDays(
+        (
+          current,
+        ) => {
+          const index =
+            current.findIndex(
+              (
+                day,
+              ) =>
+                day.id ===
+                dayId,
+            )
+
+          if (
+            index <
+            0
+          ) {
+            return current
+          }
+
+          const next =
+            current.map(
+              (
+                day,
+              ) => ({
+                ...day,
+
+                steps:
+                  day.steps.map(
+                    (
+                      step,
+                    ) => ({
+                      ...step,
+                    }),
+                  ),
+
+                routingOverride:
+                  day.routingOverride
+                    ? {
+                        ...day.routingOverride,
+
+                        startPlace: {
+                          ...day
+                            .routingOverride
+                            .startPlace,
+                        },
+
+                        destinationPlace: {
+                          ...day
+                            .routingOverride
+                            .destinationPlace,
+                        },
+
+                        waypoints:
+                          day
+                            .routingOverride
+                            .waypoints
+                            .map(
+                              (
+                                waypoint,
+                              ) => ({
+                                ...waypoint,
+                              }),
+                            ),
+                      }
+                    : undefined,
+
+                overnight:
+                  day.overnight
+                    ? {
+                        ...day.overnight,
+                      }
+                    : undefined,
+              }),
+            )
+
+          const currentDay =
+            next[
+              index
+            ]
+
+          if (
+            currentDay
+              .overnight
+          ) {
+            currentDay.overnight = {
+              ...currentDay.overnight,
+
+              name:
+                place.name,
+
+              label:
+                place.label,
+
+              lat:
+                place.lat,
+
+              lng:
+                place.lng,
+            }
+          }
+
+          currentDay.steps =
+            replaceBoundaryPlaceName(
+              currentDay.steps,
+              'last',
+              place.name,
+            )
+
+          if (
+            currentDay
+              .routingOverride
+          ) {
+            currentDay.routingOverride.destinationPlace = {
+              ...place,
+            }
+          }
+
+          const nextDay =
+            next[
+              index +
+                1
+            ]
+
+          if (
+            nextDay
+          ) {
+            nextDay.steps =
+              replaceBoundaryPlaceName(
+                nextDay.steps,
+                'first',
+                place.name,
+              )
+
+            if (
+              nextDay
+                .routingOverride
+            ) {
+              nextDay.routingOverride.startPlace = {
+                ...place,
+              }
+            }
+          }
+
+          return next
+        },
+      )
+    }
+
+  const syncOvernightMarkers =
+    (
+      items:
+        TripDay[],
+    ) => {
+      const map =
+        mapRef.current
+
+      if (!map) {
+        return
+      }
+
+      removeOvernightMarkers()
+
+      items.forEach(
+        (
+          day,
+        ) => {
+          const overnight =
+            day.overnight
+
+          if (!overnight) {
+            return
+          }
+
+          const element =
+            createMapMarkerElement(
+              `N${day.dayNumber}`,
+              'overnight',
+            )
+
+          const marker =
+            new Marker({
+              element,
+              draggable:
+                true,
+            })
+              .setLngLat([
+                overnight.lng,
+                overnight.lat,
+              ])
+              .setPopup(
+                new Popup().setText(
+                  `Fine Giorno ${day.dayNumber}: ${overnight.name}`,
+                ),
+              )
+              .addTo(
+                map,
+              )
+
+          marker.on(
+            'dragend',
+            async () => {
+              const point =
+                marker.getLngLat()
+
+              setStatus(
+                `Fine Giorno ${day.dayNumber}: aggiorno il punto pernottamento...`,
+              )
+
+              try {
+                const place =
+                  await reverseLookupPoint({
+                    lat:
+                      point.lat,
+
+                    lng:
+                      point.lng,
+                  })
+
+                applyOvernightPlace(
+                  day.id,
+                  place,
+                )
+
+                setStatus(
+                  `Fine Giorno ${day.dayNumber} spostata su ${place.name}. Premi Salva per conservarla.`,
+                )
+              } catch (
+                error
+              ) {
+                console.error(
+                  error,
+                )
+
+                const fallback:
+                  GeocodingResult = {
+                  id:
+                    `overnight:${day.id}:${point.lat}:${point.lng}`,
+
+                  name:
+                    `Pernottamento Giorno ${day.dayNumber}`,
+
+                  label:
+                    `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`,
+
+                  lat:
+                    point.lat,
+
+                  lng:
+                    point.lng,
+                }
+
+                applyOvernightPlace(
+                  day.id,
+                  fallback,
+                )
+
+                setStatus(
+                  `Fine Giorno ${day.dayNumber} spostata sulla mappa.`,
+                )
+              }
+            },
+          )
+
+          overnightMarkersRef
+            .current
+            .set(
+              day.id,
+              marker,
+            )
+        },
+      )
+    }
+
+  useEffect(
+    () => {
+      syncOvernightMarkers(
+        days,
+      )
+
+      return () => {
+        removeOvernightMarkers()
+      }
+    },
+    [
+      days,
+    ],
+  )
+
   const clearRouteData =
     () => {
       removeRoute()
@@ -1131,9 +1514,6 @@ function App() {
         null,
       )
 
-      setCurrentRoutePlan(
-        null,
-      )
       setDistance(null)
       setDuration(null)
     }
@@ -1181,6 +1561,7 @@ function App() {
         null
 
       removeWaypointMarkers()
+      removeOvernightMarkers()
       removeRoute()
 
       setTripName(
@@ -5191,6 +5572,19 @@ function App() {
                       current
                         .plannedDays,
                   }),
+                )
+              }}
+              onOvernightPlaceChange={(
+                dayId,
+                place,
+              ) => {
+                applyOvernightPlace(
+                  dayId,
+                  place,
+                )
+
+                setStatus(
+                  'Punto pernottamento aggiornato. Premi Salva per conservarlo.',
                 )
               }}
               onSelectDay={handleSelectDayRoute}
