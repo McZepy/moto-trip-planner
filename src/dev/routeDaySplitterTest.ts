@@ -168,6 +168,96 @@ check(
   `${roadDistanceMeters(plan) / 1000} km`,
 )
 
+const embeddedPlan =
+  {
+    sections: [
+      {
+        id:
+          'tomtom-road-with-ferry',
+        type:
+          'road',
+        from: {
+          lat:
+            45,
+          lng:
+            9,
+        },
+        to: {
+          lat:
+            47,
+          lng:
+            9,
+        },
+        distanceMeters:
+          1_000_000,
+        durationSeconds:
+          36_000,
+        geometry: {
+          type:
+            'LineString',
+          coordinates: [
+            [
+              9,
+              45,
+            ],
+            [
+              9,
+              46,
+            ],
+            [
+              9,
+              47,
+            ],
+          ],
+        },
+        embeddedFerries: [
+          {
+            startPointIndex:
+              1,
+            endPointIndex:
+              2,
+            distanceMeters:
+              200_000,
+            durationSeconds:
+              7_200,
+            geometry: {
+              type:
+                'LineString',
+              coordinates: [
+                [
+                  9,
+                  46,
+                ],
+                [
+                  9,
+                  47,
+                ],
+              ],
+            },
+          },
+        ],
+      },
+    ],
+
+    distanceMeters:
+      1_000_000,
+
+    durationSeconds:
+      36_000,
+
+    usesFerry:
+      true,
+  } as TripRoutePlan
+
+check(
+  'Ferry TomTom incorporato escluso dai km strada',
+  roadDistanceMeters(
+    embeddedPlan,
+  ) ===
+    800_000,
+  `${roadDistanceMeters(embeddedPlan) / 1000} km`,
+)
+
 const targets =
   cumulativeTargetsKm([
     700,
