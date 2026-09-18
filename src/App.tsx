@@ -5869,6 +5869,70 @@ function App() {
           {renderDestination()}
         </div>
 
+        {!editingDay &&
+        days.some(
+          (
+            day,
+          ) =>
+            Boolean(
+              day.overnight,
+            ),
+        ) && (
+          <div className="itinerary-overnight-list">
+            <div className="itinerary-overnight-heading">
+              <strong>
+                Fine giornata / pernottamenti
+              </strong>
+
+              <span>
+                Questi punti dividono il percorso in giornate.
+              </span>
+            </div>
+
+            {days
+              .filter(
+                (
+                  day,
+                ) =>
+                  Boolean(
+                    day.overnight,
+                  ),
+              )
+              .map(
+                (
+                  day,
+                ) => (
+                  <button
+                    key={
+                      day.id
+                    }
+                    type="button"
+                    className="itinerary-overnight-row"
+                    onClick={() =>
+                      setActiveSection(
+                        'days',
+                      )
+                    }
+                  >
+                    <span className="itinerary-overnight-badge">
+                      N{day.dayNumber}
+                    </span>
+
+                    <span>
+                      <strong>
+                        {day.overnight?.name}
+                      </strong>
+
+                      <small>
+                        Fine Giorno {day.dayNumber} · partenza Giorno {day.dayNumber + 1}
+                      </small>
+                    </span>
+                  </button>
+                ),
+              )}
+          </div>
+        )}
+
         <p className="route-status">
           {status}
         </p>
