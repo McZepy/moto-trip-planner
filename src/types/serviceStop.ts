@@ -20,6 +20,7 @@ export type TripServiceStop = {
 
   durationMinutes?: number
   relaxMinutes?: number
+  estimatedCostEur?: number
 
   source:
     | 'automatic'
