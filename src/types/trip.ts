@@ -23,6 +23,11 @@ export type TripRoadPreferences = {
   allowFerries: boolean
 }
 
+export type VehicleType =
+  | 'motorcycle'
+  | 'car'
+  | 'other'
+
 export type TripSettings = {
   durationMode: TripDurationMode
   shape: TripShape
@@ -30,6 +35,13 @@ export type TripSettings = {
   returnDate: string
   departureTime: string
   plannedDays: number | null
+
+  vehicleType: VehicleType
+  vehicleRangeKm: number
+  fuelSafetyMarginKm: number
+  kmPerLiter: number | null
+  fuelPricePerLiter: number | null
+
   routeStyle: RouteStyle
   roadPreferences: TripRoadPreferences
 }
@@ -41,6 +53,13 @@ export const defaultTripSettings: TripSettings = {
   returnDate: '',
   departureTime: '',
   plannedDays: null,
+
+  vehicleType: 'motorcycle',
+  vehicleRangeKm: 250,
+  fuelSafetyMarginKm: 50,
+  kmPerLiter: null,
+  fuelPricePerLiter: null,
+
   routeStyle: 'fast',
   roadPreferences: {
     avoidUnpaved: true,
