@@ -28,6 +28,8 @@ import type {
   TripServiceStop,
 } from '../types/serviceStop'
 
+import { EditableNumberInput } from './EditableNumberInput'
+
 import './BreaksPanel.css'
 
 type BreaksPanelProps = {
@@ -688,30 +690,20 @@ export function BreaksPanel({
             </span>
 
             <div className="service-number-row">
-              <input
-                type="number"
-                min="60"
-                max="300"
-                step="10"
+              <EditableNumberInput
+                min={60}
+                max={300}
+                step={10}
+                fallback={150}
                 value={
                   intervalKm
                 }
-                onChange={(
-                  event,
+                onCommit={(
+                  value,
                 ) =>
                   setIntervalKm(
-                    Math.max(
-                      60,
-                      Math.min(
-                        300,
-                        Number(
-                          event
-                            .target
-                            .value,
-                        ) ||
-                          150,
-                      ),
-                    ),
+                    value ??
+                    150,
                   )
                 }
               />
@@ -728,30 +720,20 @@ export function BreaksPanel({
             </span>
 
             <div className="service-number-row">
-              <input
-                type="number"
-                min="5"
-                max="90"
-                step="5"
+              <EditableNumberInput
+                min={5}
+                max={90}
+                step={5}
+                fallback={15}
                 value={
                   durationMinutes
                 }
-                onChange={(
-                  event,
+                onCommit={(
+                  value,
                 ) =>
                   setDurationMinutes(
-                    Math.max(
-                      5,
-                      Math.min(
-                        90,
-                        Number(
-                          event
-                            .target
-                            .value,
-                        ) ||
-                          15,
-                      ),
-                    ),
+                    value ??
+                    15,
                   )
                 }
               />
@@ -768,30 +750,20 @@ export function BreaksPanel({
             </span>
 
             <div className="service-number-row">
-              <input
-                type="number"
-                min="5"
-                max="40"
-                step="5"
+              <EditableNumberInput
+                min={5}
+                max={40}
+                step={5}
+                fallback={20}
                 value={
                   flexibilityKm
                 }
-                onChange={(
-                  event,
+                onCommit={(
+                  value,
                 ) =>
                   setFlexibilityKm(
-                    Math.max(
-                      5,
-                      Math.min(
-                        40,
-                        Number(
-                          event
-                            .target
-                            .value,
-                        ) ||
-                          20,
-                      ),
-                    ),
+                    value ??
+                    20,
                   )
                 }
               />
@@ -808,30 +780,20 @@ export function BreaksPanel({
             </span>
 
             <div className="service-number-row">
-              <input
-                type="number"
-                min="1"
-                max="5"
-                step="0.5"
+              <EditableNumberInput
+                min={1}
+                max={5}
+                step={0.5}
+                fallback={2}
                 value={
                   maxDeviationKm
                 }
-                onChange={(
-                  event,
+                onCommit={(
+                  value,
                 ) =>
                   setMaxDeviationKm(
-                    Math.max(
-                      1,
-                      Math.min(
-                        5,
-                        Number(
-                          event
-                            .target
-                            .value,
-                        ) ||
-                          2,
-                      ),
-                    ),
+                    value ??
+                    2,
                   )
                 }
               />
