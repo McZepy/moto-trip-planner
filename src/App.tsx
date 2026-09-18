@@ -2430,14 +2430,25 @@ function App() {
         return
       }
 
-      const currentDay =
-        days.find(
-          (day) =>
+      const editedDayId =
+        editingDayId
+
+      const sourceDays =
+        daysRef.current
+
+      const editedIndex =
+        sourceDays.findIndex(
+          (
+            day,
+          ) =>
             day.id ===
-            editingDayId,
+            editedDayId,
         )
 
-      if (!currentDay) {
+      if (
+        editedIndex <
+        0
+      ) {
         setStatus(
           'Giornata da modificare non trovata.',
         )
@@ -2445,35 +2456,186 @@ function App() {
         return
       }
 
-      const editedDayId =
-        editingDayId
+      const updatedDays =
+        sourceDays.map(
+          (
+            day,
+          ) => ({
+            ...day,
+
+            steps:
+              day.steps.map(
+                (
+                  step,
+                ) => ({
+                  ...step,
+                }),
+              ),
+
+            overnight:
+              day.overnight
+                ? {
+                    ...day.overnight,
+                  }
+                : undefined,
+
+            routingOverride:
+              day.routingOverride
+                ? {
+                    ...day.routingOverride,
+
+                    startPlace: {
+                      ...day
+                        .routingOverride
+                        .startPlace,
+                    },
+
+                    destinationPlace: {
+                      ...day
+                        .routingOverride
+                        .destinationPlace,
+                    },
+
+                    waypoints:
+                      cloneEditorWaypoints(
+                        day
+                          .routingOverride
+                          .waypoints,
+                      ),
+                  }
+                : undefined,
+          }),
+        )
+
+      const editedDay =
+        updatedDays[
+          editedIndex
+        ]
+
+      editedDay.routingOverride = {
+        startPlace: {
+          ...startPlace,
+        },
+
+        destinationPlace: {
+          ...destinationPlace,
+        },
+
+        waypoints:
+          cloneEditorWaypoints(
+            waypoints,
+          ),
+      }
+
+      editedDay.steps =
+        replaceBoundaryPlaceName(
+          replaceBoundaryPlaceName(
+            editedDay.steps,
+            'first',
+            startPlace.name,
+          ),
+          'last',
+          destinationPlace.name,
+        )
+
+      if (
+        editedDay.overnight
+      ) {
+        editedDay.overnight = {
+          ...editedDay.overnight,
+
+          name:
+            destinationPlace.name,
+
+          label:
+            destinationPlace.label,
+
+          lat:
+            destinationPlace.lat,
+
+          lng:
+            destinationPlace.lng,
+        }
+      }
+
+      const previousDay =
+        updatedDays[
+          editedIndex -
+            1
+        ]
+
+      if (
+        previousDay
+      ) {
+        previousDay.steps =
+          replaceBoundaryPlaceName(
+            previousDay.steps,
+            'last',
+            startPlace.name,
+          )
+
+        if (
+          previousDay
+            .routingOverride
+        ) {
+          previousDay.routingOverride.destinationPlace = {
+            ...startPlace,
+          }
+        }
+
+        if (
+          previousDay
+            .overnight
+        ) {
+          previousDay.overnight = {
+            ...previousDay.overnight,
+
+            name:
+              startPlace.name,
+
+            label:
+              startPlace.label,
+
+            lat:
+              startPlace.lat,
+
+            lng:
+              startPlace.lng,
+          }
+        }
+      }
+
+      const nextDay =
+        updatedDays[
+          editedIndex +
+            1
+        ]
+
+      if (
+        nextDay
+      ) {
+        nextDay.steps =
+          replaceBoundaryPlaceName(
+            nextDay.steps,
+            'first',
+            destinationPlace.name,
+          )
+
+        if (
+          nextDay
+            .routingOverride
+        ) {
+          nextDay.routingOverride.startPlace = {
+            ...destinationPlace,
+          }
+        }
+      }
+
+      daysRef.current =
+        updatedDays
 
       setDays(
-        (current) =>
-          current.map(
-            (day) =>
-              day.id ===
-              editedDayId
-                ? {
-                    ...day,
-
-                    routingOverride: {
-                      startPlace: {
-                        ...startPlace,
-                      },
-
-                      destinationPlace: {
-                        ...destinationPlace,
-                      },
-
-                      waypoints:
-                        cloneEditorWaypoints(
-                          waypoints,
-                        ),
-                    },
-                  }
-                : day,
-          ),
+        updatedDays,
       )
 
       setDayRouteStats(
@@ -2486,13 +2648,31 @@ function App() {
             editedDayId
           ]
 
+          if (
+            previousDay
+          ) {
+            delete updated[
+              previousDay.id
+            ]
+          }
+
+          if (
+            nextDay
+          ) {
+            delete updated[
+              nextDay.id
+            ]
+          }
+
           return updated
         },
       )
 
       clearTripDayPlaceCache()
 
-      setEditingDayId(null)
+      setEditingDayId(
+        null,
+      )
 
       restoreDayEditorWorkspace()
 
@@ -2506,8 +2686,8 @@ function App() {
 
       setStatus(
         'Giorno ' +
-          currentDay.dayNumber +
-          ': percorso personalizzato applicato. Premi Salva per conservarlo nel viaggio.',
+          editedDay.dayNumber +
+          ': percorso applicato. Il confine con le giornate adiacenti è stato sincronizzato.',
       )
     }
 
