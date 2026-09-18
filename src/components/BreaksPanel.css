@@ -1,0 +1,8 @@
+.breaks-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.service-stop-badge.break {
+  background: #b45309;
+}
