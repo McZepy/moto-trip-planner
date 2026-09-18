@@ -63,6 +63,11 @@ type DaysHotelPanelProps = {
     TripSettings
   onChange:
     (days: TripDay[]) => void
+  onDatesChange?:
+    (
+      departureDate: string,
+      returnDate: string,
+    ) => void
   onStatus?:
     (message: string) => void
 }
@@ -253,38 +258,72 @@ function routeFerrySummary(
     }
   }
 
-  return plan.sections
-    .filter(
-      (
-        section,
-      ) =>
+  return plan.sections.reduce(
+    (
+      total,
+      section,
+    ) => {
+      if (
         section.type ===
-        'ferry',
-    )
-    .reduce(
-      (
-        total,
-        section,
-      ) => ({
+        'ferry'
+      ) {
+        return {
+          distanceMeters:
+            total
+              .distanceMeters +
+            section
+              .distanceMeters,
+
+          durationSeconds:
+            total
+              .durationSeconds +
+            section
+              .durationSeconds,
+        }
+      }
+
+      const embedded =
+        section
+          .embeddedFerries ??
+        []
+
+      return {
         distanceMeters:
           total
             .distanceMeters +
-          section
-            .distanceMeters,
+          embedded.reduce(
+            (
+              subtotal,
+              ferry,
+            ) =>
+              subtotal +
+              ferry
+                .distanceMeters,
+            0,
+          ),
 
         durationSeconds:
           total
             .durationSeconds +
-          section
-            .durationSeconds,
-      }),
-      {
-        distanceMeters:
-          0,
-        durationSeconds:
-          0,
-      },
-    )
+          embedded.reduce(
+            (
+              subtotal,
+              ferry,
+            ) =>
+              subtotal +
+              ferry
+                .durationSeconds,
+            0,
+          ),
+      }
+    },
+    {
+      distanceMeters:
+        0,
+      durationSeconds:
+        0,
+    },
+  )
 }
 
 function createDayId(
@@ -342,6 +381,7 @@ export function DaysHotelPanel({
   destinationPlace,
   settings,
   onChange,
+  onDatesChange,
   onStatus,
 }: DaysHotelPanelProps) {
   const roadKm =
@@ -410,6 +450,14 @@ export function DaysHotelPanel({
     setFinding,
   ] =
     useState(false)
+
+  const [
+    actionMessage,
+    setActionMessage,
+  ] =
+    useState<string | null>(
+      null,
+    )
 
   const [
     hotelPlatforms,
@@ -518,8 +566,14 @@ export function DaysHotelPanel({
         !startPlace ||
         !destinationPlace
       ) {
+        const message =
+          'Traccia prima il percorso completo in Itinerario & Tappe.'
+
+        setActionMessage(
+          message,
+        )
         onStatus?.(
-          'Traccia prima il percorso completo in Itinerario & Tappe.',
+          message,
         )
         return
       }
@@ -533,11 +587,21 @@ export function DaysHotelPanel({
             0,
         )
       ) {
+        const message =
+          'Le distanze impostate superano la lunghezza del percorso.'
+
+        setActionMessage(
+          message,
+        )
         onStatus?.(
-          'Le distanze impostate superano la lunghezza del percorso.',
+          message,
         )
         return
       }
+
+      setActionMessage(
+        null,
+      )
 
       setFinding(
         true,
@@ -654,18 +718,30 @@ export function DaysHotelPanel({
           defaults,
         )
 
+        const message =
+          `${groups.length} punti di fine giornata individuati lungo il percorso.`
+
+        setActionMessage(
+          message,
+        )
         onStatus?.(
-          `${groups.length} punti di fine giornata individuati lungo il percorso.`,
+          message,
         )
       } catch (error) {
         console.error(
           error,
         )
 
-        onStatus?.(
+        const message =
           error instanceof Error
             ? error.message
-            : 'Errore durante la ricerca dei punti di fine giornata.',
+            : 'Errore durante la ricerca dei punti di fine giornata.'
+
+        setActionMessage(
+          message,
+        )
+        onStatus?.(
+          message,
         )
       } finally {
         setFinding(
@@ -686,8 +762,14 @@ export function DaysHotelPanel({
               1,
           )
       ) {
+        const message =
+          'Trova e seleziona prima i punti di fine giornata.'
+
+        setActionMessage(
+          message,
+        )
         onStatus?.(
-          'Trova e seleziona prima i punti di fine giornata.',
+          message,
         )
         return
       }
@@ -695,8 +777,14 @@ export function DaysHotelPanel({
       if (
         !settings.departureDate
       ) {
+        const message =
+          'Imposta prima la data di partenza qui sopra.'
+
+        setActionMessage(
+          message,
+        )
         onStatus?.(
-          'Imposta prima la data di partenza nelle Impostazioni viaggio.',
+          message,
         )
         return
       }
@@ -723,8 +811,14 @@ export function DaysHotelPanel({
             !boundary,
         )
       ) {
+        const message =
+          'Seleziona un punto valido per ogni pernottamento.'
+
+        setActionMessage(
+          message,
+        )
         onStatus?.(
-          'Seleziona un punto valido per ogni pernottamento.',
+          message,
         )
         return
       }
@@ -893,8 +987,14 @@ export function DaysHotelPanel({
         nextDays,
       )
 
+      const message =
+        `Percorso diviso in ${nextDays.length} giornate con date automatiche.`
+
+      setActionMessage(
+        message,
+      )
       onStatus?.(
-        `Percorso diviso in ${nextDays.length} giornate con date automatiche.`,
+        message,
       )
     }
 
@@ -1014,6 +1114,58 @@ export function DaysHotelPanel({
               )}
             </span>
           )}
+        </div>
+
+        <div className="days-date-grid">
+          <label>
+            <span>
+              Data partenza
+            </span>
+
+            <input
+              type="date"
+              value={
+                settings.departureDate
+              }
+              onChange={(
+                event,
+              ) =>
+                onDatesChange?.(
+                  event
+                    .target
+                    .value,
+                  settings.returnDate,
+                )
+              }
+            />
+          </label>
+
+          <label>
+            <span>
+              Data rientro / fine viaggio
+            </span>
+
+            <input
+              type="date"
+              min={
+                settings.departureDate ||
+                undefined
+              }
+              value={
+                settings.returnDate
+              }
+              onChange={(
+                event,
+              ) =>
+                onDatesChange?.(
+                  settings.departureDate,
+                  event
+                    .target
+                    .value,
+                )
+              }
+            />
+          </label>
         </div>
 
         <div className="days-split-grid">
@@ -1209,6 +1361,12 @@ export function DaysHotelPanel({
             </button>
           )}
         </div>
+
+        {actionMessage && (
+          <div className="days-action-message">
+            {actionMessage}
+          </div>
+        )}
       </div>
 
       {candidateGroups.length >
