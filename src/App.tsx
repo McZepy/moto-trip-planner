@@ -3174,23 +3174,6 @@ function App() {
       }
     }
 
-  const handleShowTripOverview =
-    async () => {
-      if (
-        daysRoutingBusy
-      ) {
-        return
-      }
-
-      await showDaysOverviewFor(
-        daysRef.current,
-        {
-          clearSelection:
-            true,
-        },
-      )
-    }
-
   const autocompleteStart =
     async (
       query:
@@ -6262,10 +6245,7 @@ function App() {
               days={days}
               selectedDayId={selectedDayId}
               routeStats={dayRouteStats}
-              routingBusy={daysRoutingBusy}
               routingProgress={daysRoutingProgress}
-              onSelectDay={handleSelectDayRoute}
-              onShowOverview={handleShowTripOverview}
               onHotelPriceChange={(
                 dayId,
                 priceEur,
