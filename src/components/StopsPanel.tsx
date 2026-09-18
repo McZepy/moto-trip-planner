@@ -27,6 +27,8 @@ import {
   BreaksPanel,
 } from './BreaksPanel'
 
+import { EditableNumberInput } from './EditableNumberInput'
+
 import './StopsPanel.css'
 
 type StopsPanelProps = {
@@ -389,11 +391,11 @@ export function StopsPanel({
                         </span>
 
                         <div>
-                          <input
-                            type="number"
-                            min="5"
-                            max="120"
-                            step="5"
+                          <EditableNumberInput
+                            min={5}
+                            max={120}
+                            step={5}
+                            fallback={10}
                             value={
                               stop.kind ===
                                   'fuel' &&
@@ -402,23 +404,13 @@ export function StopsPanel({
                                 : stop.durationMinutes ??
                                   10
                             }
-                            onChange={(
-                              event,
+                            onCommit={(
+                              value,
                             ) =>
                               updateStopDuration(
                                 stop,
-                                Math.max(
-                                  5,
-                                  Math.min(
-                                    120,
-                                    Number(
-                                      event
-                                        .target
-                                        .value,
-                                    ) ||
-                                      10,
-                                  ),
-                                ),
+                                value ??
+                                  10,
                               )
                             }
                           />
