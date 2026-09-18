@@ -17,6 +17,10 @@ import {
   roadKmAtPoint,
 } from '../itinerary/routeDaySplitter'
 
+import {
+  mergeFuelAndBreakStops,
+} from '../itinerary/serviceStopPlanner'
+
 import type {
   TripDay,
 } from '../types/tripDay'
@@ -539,10 +543,21 @@ export function FuelPanel({
               ),
           )
 
-        onChange([
-          ...preserved,
-          ...generated,
-        ])
+        const reconciled =
+          mergeFuelAndBreakStops(
+            [
+              ...preserved,
+              ...generated,
+            ],
+            selectedDayId ??
+              null,
+            20,
+            12,
+          )
+
+        onChange(
+          reconciled.stops,
+        )
 
         setWarnings(
           nextWarnings,
@@ -551,7 +566,7 @@ export function FuelPanel({
         onStatus?.(
           generated.length >
             0
-            ? `${generated.length} rifornimenti pianificati per ${scopeLabel} con soglia prudenziale ${safeFuelKm} km.`
+            ? `${generated.length} rifornimenti pianificati per ${scopeLabel} con soglia prudenziale ${safeFuelKm} km${reconciled.mergedCount > 0 ? ` · ${reconciled.mergedCount} pause unite ai rifornimenti` : ''}.`
             : `Nessun rifornimento intermedio compatibile trovato per ${scopeLabel}.`,
         )
       } catch (
