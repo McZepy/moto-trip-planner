@@ -913,6 +913,63 @@ async function locationIqAddressSearch(
   )
 }
 
+export async function searchNearbyFuelStations(
+  point: {
+    lat: number
+    lng: number
+  },
+  radiusMeters =
+    12000,
+  signal?:
+    AbortSignal,
+) {
+  const params =
+    new URLSearchParams({
+      key:
+        getApiKey(),
+
+      lat:
+        String(
+          point.lat,
+        ),
+
+      lon:
+        String(
+          point.lng,
+        ),
+
+      radius:
+        String(
+          Math.max(
+            1000,
+            Math.min(
+              30000,
+              radiusMeters,
+            ),
+          ),
+        ),
+
+      tag:
+        'amenity:fuel',
+
+      limit:
+        '20',
+
+      dedupe:
+        '1',
+    })
+
+  const results =
+    await fetchLocationIq(
+      `${LOCATIONIQ_NEARBY_URL}?${params.toString()}`,
+      signal,
+    )
+
+  return resultsToSuggestions(
+    results,
+  )
+}
+
 async function nearbyFerryTerminals(
   lat: number,
   lng: number,
