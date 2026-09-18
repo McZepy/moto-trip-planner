@@ -44,6 +44,12 @@ type TomTomPoint = {
   longitude: number
 }
 
+type TomTomRouteSection = {
+  startPointIndex?: number
+  endPointIndex?: number
+  sectionType?: string
+}
+
 type TomTomRouteResponse = {
   routes?: Array<{
     summary?: {
@@ -54,6 +60,8 @@ type TomTomRouteResponse = {
     legs?: Array<{
       points?: TomTomPoint[]
     }>
+
+    sections?: TomTomRouteSection[]
   }>
 
   detailedError?: {
@@ -231,6 +239,224 @@ function appendAvoids(
   )
 }
 
+function coordinateDistanceMeters(
+  first:
+    number[],
+  second:
+    number[],
+) {
+  const toRad =
+    (value: number) =>
+      (
+        value *
+        Math.PI
+      ) /
+      180
+
+  const earthRadius =
+    6_371_000
+
+  const lat1 =
+    toRad(
+      first[1],
+    )
+
+  const lat2 =
+    toRad(
+      second[1],
+    )
+
+  const deltaLat =
+    toRad(
+      second[1] -
+      first[1],
+    )
+
+  const deltaLng =
+    toRad(
+      second[0] -
+      first[0],
+    )
+
+  const h =
+    Math.sin(
+      deltaLat /
+      2,
+    ) ** 2 +
+    Math.cos(
+      lat1,
+    ) *
+      Math.cos(
+        lat2,
+      ) *
+      Math.sin(
+        deltaLng /
+        2,
+      ) ** 2
+
+  return (
+    2 *
+    earthRadius *
+    Math.atan2(
+      Math.sqrt(
+        h,
+      ),
+      Math.sqrt(
+        1 -
+        h,
+      ),
+    )
+  )
+}
+
+function rawGeometryDistanceMeters(
+  coordinates:
+    number[][],
+) {
+  let total =
+    0
+
+  for (
+    let index =
+      0;
+    index <
+      coordinates.length -
+        1;
+    index +=
+      1
+  ) {
+    total +=
+      coordinateDistanceMeters(
+        coordinates[
+          index
+        ],
+        coordinates[
+          index +
+            1
+        ],
+      )
+  }
+
+  return total
+}
+
+function embeddedFerries(
+  route:
+    NonNullable<
+      TomTomRouteResponse['routes']
+    >[number],
+  coordinates:
+    number[][],
+  distanceMeters:
+    number,
+  durationSeconds:
+    number,
+) {
+  const rawTotal =
+    rawGeometryDistanceMeters(
+      coordinates,
+    )
+
+  if (
+    rawTotal <=
+    0
+  ) {
+    return []
+  }
+
+  return (
+    route.sections ??
+    []
+  )
+    .filter(
+      (
+        section,
+      ) =>
+        section.sectionType ===
+          'FERRY' &&
+        Number.isInteger(
+          section.startPointIndex,
+        ) &&
+        Number.isInteger(
+          section.endPointIndex,
+        ),
+    )
+    .map(
+      (
+        section,
+      ) => {
+        const start =
+          Math.max(
+            0,
+            Math.min(
+              coordinates.length -
+                1,
+              section.startPointIndex ??
+                0,
+            ),
+          )
+
+        const end =
+          Math.max(
+            start +
+              1,
+            Math.min(
+              coordinates.length -
+                1,
+              section.endPointIndex ??
+                start +
+                  1,
+            ),
+          )
+
+        const geometry =
+          coordinates.slice(
+            start,
+            end +
+              1,
+          )
+
+        const rawDistance =
+          rawGeometryDistanceMeters(
+            geometry,
+          )
+
+        const fraction =
+          Math.max(
+            0,
+            Math.min(
+              1,
+              rawDistance /
+                rawTotal,
+            ),
+          )
+
+        return {
+          startPointIndex:
+            start,
+
+          endPointIndex:
+            end,
+
+          distanceMeters:
+            distanceMeters *
+            fraction,
+
+          durationSeconds:
+            durationSeconds *
+            fraction,
+
+          geometry: {
+            type:
+              'LineString' as const,
+            coordinates:
+              geometry,
+          },
+        }
+      },
+    )
+}
+
 function responseGeometry(
   route:
     NonNullable<
@@ -353,6 +579,8 @@ export function createTomTomRoutingProvider(
             'full',
           language:
             'it-IT',
+          sectionType:
+            'ferry',
         })
 
       if (
@@ -457,6 +685,14 @@ export function createTomTomRoutingProvider(
             'LineString',
           coordinates,
         },
+
+        embeddedFerries:
+          embeddedFerries(
+            route,
+            coordinates,
+            distanceMeters as number,
+            durationSeconds as number,
+          ),
       }
     },
   }
