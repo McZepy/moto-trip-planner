@@ -846,6 +846,10 @@ async function locationIqAddressSearch(
   query: string,
   signal?:
     AbortSignal,
+  focus?: {
+    lat: number
+    lng: number
+  },
 ) {
   const params =
     new URLSearchParams({
@@ -870,6 +874,33 @@ async function locationIqAddressSearch(
       'accept-language':
         'it',
     })
+
+  if (focus) {
+    const latitudeSpan =
+      1.5
+
+    const longitudeSpan =
+      2
+
+    params.set(
+      'viewbox',
+      [
+        focus.lng -
+          longitudeSpan,
+        focus.lat -
+          latitudeSpan,
+        focus.lng +
+          longitudeSpan,
+        focus.lat +
+          latitudeSpan,
+      ].join(','),
+    )
+
+    params.set(
+      'bounded',
+      '0',
+    )
+  }
 
   const results =
     await fetchLocationIq(
@@ -1332,6 +1363,32 @@ export async function autocompleteLocalities(
   ).slice(
     0,
     10,
+  )
+}
+
+export async function searchExactPlaces(
+  query: string,
+  signal?:
+    AbortSignal,
+  focus?: {
+    lat: number
+    lng: number
+  },
+) {
+  const trimmedQuery =
+    query.trim()
+
+  if (
+    trimmedQuery.length <
+    3
+  ) {
+    return []
+  }
+
+  return locationIqAddressSearch(
+    trimmedQuery,
+    signal,
+    focus,
   )
 }
 
