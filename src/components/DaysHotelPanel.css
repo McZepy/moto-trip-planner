@@ -737,3 +737,105 @@
   font-size: 10px;
   line-height: 1.35;
 }
+
+
+.days-summary-card {
+  display: grid;
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid #333333;
+  border-radius: 9px;
+  background: #181818;
+}
+
+.days-summary-card > div {
+  display: grid;
+  gap: 4px;
+}
+
+.days-summary-card strong {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.days-summary-card span {
+  color: #9ca3af;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.days-hotel-total {
+  color: #86efac !important;
+}
+
+.trip-day-card.selected {
+  border-color: #3b82f6;
+}
+
+.day-hotel-summary {
+  display: grid;
+  gap: 8px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid #333333;
+}
+
+.day-hotel-summary-main {
+  display: grid;
+  gap: 3px;
+}
+
+.day-hotel-summary-main > span {
+  color: #a78bfa;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.day-hotel-summary-main > strong {
+  color: #ffffff;
+  font-size: 11px;
+}
+
+.day-hotel-summary-main > small,
+.day-hotel-summary-hint {
+  color: #8f8f8f;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.day-hotel-price {
+  display: grid;
+  gap: 4px;
+}
+
+.day-hotel-price label {
+  color: #bdbdbd;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.day-hotel-price > div {
+  display: grid;
+  grid-template-columns:
+    auto
+    minmax(0, 1fr);
+  gap: 5px;
+  align-items: center;
+}
+
+.day-hotel-price span {
+  color: #86efac;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.day-hotel-price input {
+  width: 100%;
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #3b3b3b;
+  border-radius: 7px;
+  background: #202020;
+  color: #ffffff;
+  padding: 0 8px;
+}
