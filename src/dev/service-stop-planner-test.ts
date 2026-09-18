@@ -3,6 +3,7 @@ import type {
 } from '../providers/tripRoutePlanner'
 
 import {
+  mergeFuelAndBreakStops,
   plannedStopPoints,
 } from '../itinerary/serviceStopPlanner'
 
@@ -167,6 +168,210 @@ check(
   ).length ===
     0,
   `${plannedStopPoints(shortPlan, 150, 45).length} soste`,
+)
+
+const mergedByRoute =
+  mergeFuelAndBreakStops(
+    [
+      {
+        id:
+          'fuel-route',
+        kind:
+          'fuel',
+        dayId:
+          'd1',
+        dayNumber:
+          1,
+        routeKm:
+          200,
+        name:
+          'Fuel',
+        label:
+          'Fuel',
+        lat:
+          46,
+        lng:
+          10,
+        durationMinutes:
+          10,
+        source:
+          'locationiq',
+      },
+      {
+        id:
+          'break-route',
+        kind:
+          'break',
+        dayId:
+          'd1',
+        dayNumber:
+          1,
+        routeKm:
+          214,
+        name:
+          'Cafe',
+        label:
+          'Cafe',
+        lat:
+          46.1,
+        lng:
+          10.1,
+        durationMinutes:
+          15,
+        source:
+          'locationiq',
+      },
+    ],
+    'd1',
+    20,
+    12,
+  )
+
+check(
+  'Unisce pausa e carburante vicini sulla rotta',
+  mergedByRoute
+      .stops
+      .length ===
+    1 &&
+    mergedByRoute
+      .stops[0]
+      .kind ===
+      'fuel' &&
+    mergedByRoute
+      .stops[0]
+      .relaxMinutes ===
+      15,
+  `${mergedByRoute.mergedCount} fusione`,
+)
+
+const mergedByMap =
+  mergeFuelAndBreakStops(
+    [
+      {
+        id:
+          'fuel-map',
+        kind:
+          'fuel',
+        dayId:
+          'd1',
+        routeKm:
+          200,
+        name:
+          'Fuel',
+        label:
+          'Fuel',
+        lat:
+          47.5,
+        lng:
+          9.75,
+        durationMinutes:
+          10,
+        source:
+          'locationiq',
+      },
+      {
+        id:
+          'break-map',
+        kind:
+          'break',
+        dayId:
+          'd1',
+        routeKm:
+          230,
+        name:
+          'Cafe',
+        label:
+          'Cafe',
+        lat:
+          47.53,
+        lng:
+          9.8,
+        durationMinutes:
+          20,
+        source:
+          'locationiq',
+      },
+    ],
+    'd1',
+    20,
+    12,
+  )
+
+check(
+  'Unisce soste molto vicine sulla mappa anche con km non identici',
+  mergedByMap
+      .stops
+      .length ===
+    1 &&
+    mergedByMap
+      .mergedCount ===
+      1,
+  `${mergedByMap.mergedCount} fusione`,
+)
+
+const separated =
+  mergeFuelAndBreakStops(
+    [
+      {
+        id:
+          'fuel-far',
+        kind:
+          'fuel',
+        dayId:
+          'd1',
+        routeKm:
+          200,
+        name:
+          'Fuel',
+        label:
+          'Fuel',
+        lat:
+          45,
+        lng:
+          9,
+        durationMinutes:
+          10,
+        source:
+          'locationiq',
+      },
+      {
+        id:
+          'break-far',
+        kind:
+          'break',
+        dayId:
+          'd1',
+        routeKm:
+          270,
+        name:
+          'Cafe',
+        label:
+          'Cafe',
+        lat:
+          46,
+        lng:
+          10,
+        durationMinutes:
+          15,
+        source:
+          'locationiq',
+      },
+    ],
+    'd1',
+    20,
+    12,
+  )
+
+check(
+  'Non unisce soste realmente lontane',
+  separated
+      .stops
+      .length ===
+    2 &&
+    separated
+      .mergedCount ===
+      0,
+  `${separated.mergedCount} fusioni`,
 )
 
 const root =
