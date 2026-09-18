@@ -402,3 +402,103 @@
 .itinerary-day-strip-actions button:hover {
   background: #203756;
 }
+
+
+/* =========================================
+   V0.9J · LIGHT DAY STRIPS
+   ========================================= */
+.itinerary-day-strip-wrap {
+  border-color: #e2e5e9;
+  background: #ffffff;
+}
+
+.itinerary-day-strip-wrap.open {
+  border-color: #cbd5e1;
+}
+
+.itinerary-day-strip {
+  background: #ffffff;
+}
+
+.itinerary-day-strip-badge {
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+}
+
+.itinerary-day-strip-main strong {
+  color: #111827;
+}
+
+.itinerary-day-strip-main > span {
+  color: #6b7280;
+}
+
+.itinerary-day-strip-menu {
+  border-color: #d1d5db;
+  background: #ffffff;
+  color: #111827;
+}
+
+.itinerary-day-strip-menu:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.itinerary-day-strip-menu-panel {
+  border-top-color: #e5e7eb;
+  background: #ffffff;
+}
+
+.itinerary-day-strip-menu-title {
+  color: #6b7280;
+}
+
+.itinerary-day-strip-timeline span {
+  color: #374151;
+}
+
+.itinerary-day-strip-km {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.itinerary-day-strip-km label,
+.itinerary-day-strip-km span,
+.itinerary-day-strip-km small {
+  color: #6b7280;
+}
+
+.itinerary-day-strip-km input {
+  border-color: #d1d5db;
+  background: #ffffff;
+  color: #111827;
+}
+
+.itinerary-day-strip-km input:disabled {
+  background: #f3f4f6;
+  color: #475569;
+}
+
+.itinerary-day-strip-hotel {
+  border-color: #ddd6fe;
+  background: #faf7ff;
+}
+
+.itinerary-day-strip-hotel span {
+  color: #6d28d9;
+}
+
+.itinerary-day-strip-hotel strong {
+  color: #111827;
+}
+
+.itinerary-day-strip-actions button {
+  border-color: #d1d5db;
+  background: #ffffff;
+  color: #111827;
+}
+
+.itinerary-day-strip-actions button:hover {
+  background: #f3f4f6;
+}
