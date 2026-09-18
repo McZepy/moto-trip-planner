@@ -5,7 +5,6 @@ import {
 
 import {
   routeStyleLabels,
-  tripDurationLabels,
   tripShapeLabels,
   type TripSettings,
 } from '../types/trip'
