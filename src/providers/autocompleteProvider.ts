@@ -1552,11 +1552,163 @@ function reverseName(
   )
 }
 
+async function reverseLookupPointWithZoom(
+  point: {
+    lat: number
+    lng: number
+  },
+  zoom: number,
+  signal?:
+    AbortSignal,
+): Promise<
+  GeocodingResult
+> {
+  const params =
+    new URLSearchParams({
+      key:
+        getApiKey(),
+
+      lat:
+        String(
+          point.lat,
+        ),
+
+      lon:
+        String(
+          point.lng,
+        ),
+
+      format:
+        'json',
+
+      addressdetails:
+        '1',
+
+      normalizeaddress:
+        '1',
+
+      normalizecity:
+        '1',
+
+      zoom:
+        String(
+          zoom,
+        ),
+
+      'accept-language':
+        'it',
+    })
+
+  const result =
+    await fetchLocationIqSingle(
+      `${LOCATIONIQ_REVERSE_URL}?${params.toString()}`,
+      signal,
+    )
+
+  const fallback =
+    `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`
+
+  if (!result) {
+    return {
+      id:
+        `reverse:${point.lat}:${point.lng}`,
+
+      name:
+        fallback,
+
+      label:
+        fallback,
+
+      lat:
+        point.lat,
+
+      lng:
+        point.lng,
+    }
+  }
+
+  const name =
+    reverseName(
+      result,
+      point.lat,
+      point.lng,
+    )
+
+  return {
+    id:
+      `reverse:${result.osm_type ?? 'x'}:${result.osm_id ?? result.place_id ?? `${point.lat}:${point.lng}`}`,
+
+    name,
+
+    label:
+      result.display_name
+        ?.trim() ||
+      fallback,
+
+    lat:
+      point.lat,
+
+    lng:
+      point.lng,
+
+    osmType:
+      result.osm_type,
+
+    osmId:
+      result.osm_id !==
+      undefined &&
+      Number.isFinite(
+        Number(
+          result.osm_id,
+        ),
+      )
+        ? Number(
+            result.osm_id,
+          )
+        : undefined,
+
+    category:
+      result.class,
+
+    type:
+      result.type,
+
+    boundingBox:
+      parseBoundingBox(
+        result.boundingbox,
+      ),
+  }
+}
+
 export async function reverseLookupPoint(
   point: {
     lat: number
     lng: number
   },
+  signal?:
+    AbortSignal,
+) {
+  return reverseLookupPointWithZoom(
+    point,
+    18,
+    signal,
+  )
+}
+
+export async function reverseLookupLocalityPoint(
+  point: {
+    lat: number
+    lng: number
+  },
+  signal?:
+    AbortSignal,
+) {
+  return reverseLookupPointWithZoom(
+    point,
+    10,
+    signal,
+  )
+},
   signal?:
     AbortSignal,
 ): Promise<
