@@ -99,15 +99,14 @@ import { showTripRoutePlan } from './map/showTripRoutePlan'
 import { TripsModal } from './components/TripsModal'
 import { TripSettingsModal } from './components/TripSettingsModal'
 import { DaysHotelPanel } from './components/DaysHotelPanel'
-import { FuelPanel } from './components/FuelPanel'
-import { BreaksPanel } from './components/BreaksPanel'
+import { StopsPanel } from './components/StopsPanel'
+import { ItineraryDayPlanner } from './components/ItineraryDayPlanner'
 
 setWorkerUrl(workerUrl)
 
 type ActiveSection =
   | 'itinerary'
-  | 'fuel'
-  | 'breaks'
+  | 'stops'
   | 'days'
 
 type EditingWaypoint = {
@@ -2820,6 +2819,26 @@ function App() {
       if (
         editedDay.overnight
       ) {
+        const previousOvernight =
+          sourceDays[
+            editedIndex
+          ]?.overnight
+
+        const destinationChanged =
+          !previousOvernight ||
+          Math.abs(
+            previousOvernight.lat -
+              destinationPlace.lat,
+          ) >
+            0.00001 ||
+          Math.abs(
+            previousOvernight.lng -
+              destinationPlace.lng,
+          ) >
+            0.00001 ||
+          previousOvernight.name !==
+            destinationPlace.name
+
         editedDay.overnight = {
           ...editedDay.overnight,
 
@@ -2834,6 +2853,16 @@ function App() {
 
           lng:
             destinationPlace.lng,
+
+          hotelDisplay:
+            destinationChanged
+              ? (
+                  destinationPlace.label ||
+                  destinationPlace.name
+                )
+              : editedDay
+                  .overnight
+                  .hotelDisplay,
         }
       }
 
@@ -2866,6 +2895,27 @@ function App() {
           previousDay
             .overnight
         ) {
+          const sourcePrevious =
+            sourceDays[
+              editedIndex -
+                1
+            ]?.overnight
+
+          const startChanged =
+            !sourcePrevious ||
+            Math.abs(
+              sourcePrevious.lat -
+                startPlace.lat,
+            ) >
+              0.00001 ||
+            Math.abs(
+              sourcePrevious.lng -
+                startPlace.lng,
+            ) >
+              0.00001 ||
+            sourcePrevious.name !==
+              startPlace.name
+
           previousDay.overnight = {
             ...previousDay.overnight,
 
@@ -2880,6 +2930,16 @@ function App() {
 
             lng:
               startPlace.lng,
+
+            hotelDisplay:
+              startChanged
+                ? (
+                    startPlace.label ||
+                    startPlace.name
+                  )
+                : previousDay
+                    .overnight
+                    .hotelDisplay,
           }
         }
       }
@@ -2956,7 +3016,7 @@ function App() {
       restoreDayEditorWorkspace()
 
       setActiveSection(
-        'days',
+        'itinerary',
       )
 
       setSelectedDayId(
@@ -2986,7 +3046,7 @@ function App() {
       restoreDayEditorWorkspace()
 
       setActiveSection(
-        'days',
+        'itinerary',
       )
 
       setStatus(
@@ -6162,6 +6222,41 @@ function App() {
           {renderDestination()}
         </div>
 
+        {!editingDay && (
+          <ItineraryDayPlanner
+            routePlan={
+              routeScopeDayId ===
+                null
+                ? currentRoutePlan
+                : null
+            }
+            startPlace={
+              startPlace
+            }
+            destinationPlace={
+              destinationPlace
+            }
+            masterWaypoints={
+              waypoints
+            }
+            settings={
+              tripSettings
+            }
+            days={
+              days
+            }
+            onChange={
+              handleDaysChange
+            }
+            onOpenDay={
+              handleSelectDayRoute
+            }
+            onStatus={
+              setStatus
+            }
+          />
+        )}
+
         {!editingDay &&
         days.some(
           (
@@ -6202,8 +6297,8 @@ function App() {
                     type="button"
                     className="itinerary-overnight-row"
                     onClick={() =>
-                      setActiveSection(
-                        'days',
+                      void handleSelectDayRoute(
+                        day,
                       )
                     }
                   >
@@ -6236,45 +6331,20 @@ function App() {
     () => {
       if (
         activeSection ===
-        'fuel'
+        'stops'
       ) {
         return (
           <section className="sidebar-section">
             <h2>
-              Rifornimenti
+              Soste
             </h2>
 
-            <FuelPanel
+            <StopsPanel
               routePlan={currentRoutePlan}
               selectedDayId={routeScopeDayId}
               days={days}
               stops={serviceStops}
-              onChange={setServiceStops}
-              onStatus={setStatus}
-            />
-
-            <p className="route-status">
-              {status}
-            </p>
-          </section>
-        )
-      }
-
-      if (
-        activeSection ===
-        'breaks'
-      ) {
-        return (
-          <section className="sidebar-section">
-            <h2>
-              Pause & Pranzo
-            </h2>
-
-            <BreaksPanel
-              routePlan={currentRoutePlan}
-              selectedDayId={routeScopeDayId}
-              days={days}
-              stops={serviceStops}
+              settings={tripSettings}
               onChange={setServiceStops}
               onStatus={setStatus}
             />
@@ -6302,77 +6372,37 @@ function App() {
               routeStats={dayRouteStats}
               routingBusy={daysRoutingBusy}
               routingProgress={daysRoutingProgress}
-              routePlan={currentRoutePlan}
-              startPlace={startPlace}
-              destinationPlace={destinationPlace}
-              masterWaypoints={waypoints}
-              settings={tripSettings}
-              onChange={handleDaysChange}
-              onDatesChange={(
-                departureDate,
-                returnDate,
-              ) => {
-                const plannedDays =
-                  tripDaysBetween(
-                    departureDate,
-                    returnDate,
-                  )
-
-                setTripSettings(
-                  (
-                    current,
-                  ) => ({
-                    ...current,
-
-                    departureDate,
-                    returnDate,
-
-                    durationMode:
-                      plannedDays ===
-                        1
-                        ? 'single-day'
-                        : plannedDays
-                          ? 'multi-day'
-                          : current
-                              .durationMode,
-
-                    plannedDays:
-                      plannedDays ??
-                      current
-                        .plannedDays,
-                  }),
-                )
-              }}
-              onOvernightPlaceChange={(
-                dayId,
-                place,
-              ) => {
-                const nextDays =
-                  applyOvernightPlace(
-                    dayId,
-                    place,
-                  )
-
-                overnightMarkersRef
-                  .current
-                  .get(
-                    dayId,
-                  )
-                  ?.setLngLat([
-                    place.lng,
-                    place.lat,
-                  ])
-
-                void showDaysOverviewFor(
-                  nextDays,
-                  {
-                    statusPrefix:
-                      'Pernottamento aggiornato',
-                  },
-                )
-              }}
               onSelectDay={handleSelectDayRoute}
               onShowOverview={handleShowTripOverview}
+              onHotelPriceChange={(
+                dayId,
+                priceEur,
+              ) => {
+                const updated =
+                  daysRef.current.map(
+                    (
+                      day,
+                    ) =>
+                      day.id ===
+                        dayId &&
+                      day.overnight
+                        ? {
+                            ...day,
+                            overnight: {
+                              ...day.overnight,
+                              priceEur,
+                            },
+                          }
+                        : day,
+                  )
+
+                daysRef.current =
+                  updated
+
+                setDays(
+                  updated,
+                )
+              }}
               onStatus={setStatus}
             />
 
@@ -6510,34 +6540,17 @@ function App() {
           type="button"
           className={
             activeSection ===
-            'fuel'
+            'stops'
               ? 'section-tab active'
               : 'section-tab'
           }
           onClick={() =>
             setActiveSection(
-              'fuel',
+              'stops',
             )
           }
         >
-          Rifornimenti
-        </button>
-
-        <button
-          type="button"
-          className={
-            activeSection ===
-            'breaks'
-              ? 'section-tab active'
-              : 'section-tab'
-          }
-          onClick={() =>
-            setActiveSection(
-              'breaks',
-            )
-          }
-        >
-          Pause & Pranzo
+          Soste
         </button>
 
         <button
