@@ -1,4 +1,5 @@
 import type {
+  RouteEmbeddedFerry,
   RouteGeometry,
   RoutePoint,
   RouteResult,
@@ -31,6 +32,7 @@ export type EvaluatedRoadSection = {
   distanceMeters: number
   durationSeconds: number
   geometry: RouteGeometry
+  embeddedFerries?: RouteEmbeddedFerry[]
 }
 
 export type EvaluatedFerrySection = {
@@ -275,6 +277,9 @@ function roadSectionFromResult(
 
     geometry:
       result.geometry,
+
+    embeddedFerries:
+      result.embeddedFerries,
   }
 }
 
