@@ -15,6 +15,11 @@ import {
   plannedStopPoints,
 } from '../itinerary/serviceStopPlanner'
 
+import {
+  pointAtRoadDistance,
+  roadKmAtPoint,
+} from '../itinerary/routeDaySplitter'
+
 import type {
   TripDay,
 } from '../types/tripDay'
@@ -154,11 +159,19 @@ export function FuelPanel({
     )
 
   const [
-    radiusKm,
-    setRadiusKm,
+    flexibilityKm,
+    setFlexibilityKm,
   ] =
     useState(
-      12,
+      20,
+    )
+
+  const [
+    maxDeviationKm,
+    setMaxDeviationKm,
+  ] =
+    useState(
+      2,
     )
 
   const [
@@ -168,6 +181,14 @@ export function FuelPanel({
     useState(
       false,
     )
+
+  const [
+    warnings,
+    setWarnings,
+  ] =
+    useState<
+      string[]
+    >([])
 
   const scopeDay =
     selectedDayId
@@ -200,7 +221,7 @@ export function FuelPanel({
             ) ===
               (
                 selectedDayId ??
-                null
+                  null
               ),
         ),
       [
@@ -222,6 +243,10 @@ export function FuelPanel({
         true,
       )
 
+      setWarnings(
+        [],
+      )
+
       try {
         const targets =
           plannedStopPoints(
@@ -232,6 +257,9 @@ export function FuelPanel({
 
         const generated:
           TripServiceStop[] = []
+
+        const nextWarnings:
+          string[] = []
 
         for (
           let index =
@@ -246,67 +274,122 @@ export function FuelPanel({
               index
             ]
 
+          /*
+           * Un'unica ricerca ampia serve solo a raccogliere i POI.
+           * Poi il filtro geometrico accetta esclusivamente stazioni
+           * vicine alla traccia e dentro la finestra chilometrica.
+           */
+          const searchRadiusMeters =
+            (
+              flexibilityKm +
+              maxDeviationKm +
+              2
+            ) *
+            1000
+
           const candidates =
             await searchNearbyFuelStations(
               target.point,
-              radiusKm *
-                1000,
+              searchRadiusMeters,
             )
 
-          const nearest =
-            [...candidates]
+          const ranked =
+            candidates
+              .map(
+                (
+                  candidate,
+                ) => {
+                  const routeKm =
+                    roadKmAtPoint(
+                      routePlan,
+                      candidate,
+                    )
+
+                  if (
+                    routeKm ===
+                    null
+                  ) {
+                    return null
+                  }
+
+                  const projected =
+                    pointAtRoadDistance(
+                      routePlan,
+                      routeKm *
+                        1000,
+                    )
+
+                  if (!projected) {
+                    return null
+                  }
+
+                  const deviationKm =
+                    distanceMeters(
+                      candidate,
+                      projected.point,
+                    ) /
+                    1000
+
+                  const alongDifference =
+                    Math.abs(
+                      routeKm -
+                      target.routeKm,
+                    )
+
+                  if (
+                    alongDifference >
+                      flexibilityKm ||
+                    deviationKm >
+                      maxDeviationKm
+                  ) {
+                    return null
+                  }
+
+                  const score =
+                    deviationKm *
+                      12 +
+                    alongDifference
+
+                  return {
+                    candidate,
+                    routeKm,
+                    deviationKm,
+                    score,
+                  }
+                },
+              )
+              .filter(
+                (
+                  value,
+                ): value is {
+                  candidate:
+                    typeof candidates[number]
+                  routeKm:
+                    number
+                  deviationKm:
+                    number
+                  score:
+                    number
+                } =>
+                  value !==
+                  null,
+              )
               .sort(
                 (
                   first,
                   second,
                 ) =>
-                  distanceMeters(
-                    target.point,
-                    first,
-                  ) -
-                  distanceMeters(
-                    target.point,
-                    second,
-                  ),
-              )[0]
+                  first.score -
+                  second.score,
+              )
 
-          if (nearest) {
-            generated.push({
-              id:
-                createId(),
+          const best =
+            ranked[0]
 
-              kind:
-                'fuel',
-
-              dayId:
-                selectedDayId ??
-                undefined,
-
-              dayNumber:
-                scopeDay
-                  ?.dayNumber,
-
-              routeKm:
-                target.routeKm,
-
-              name:
-                nearest.name,
-
-              label:
-                nearest.label,
-
-              lat:
-                nearest.lat,
-
-              lng:
-                nearest.lng,
-
-              durationMinutes:
-                10,
-
-              source:
-                'locationiq',
-            })
+          if (!best) {
+            nextWarnings.push(
+              `Km ${target.routeKm.toFixed(0)}: nessun distributore trovato entro ±${flexibilityKm} km lungo la rotta e ${maxDeviationKm} km di deviazione.`,
+            )
 
             continue
           }
@@ -320,32 +403,43 @@ export function FuelPanel({
 
             dayId:
               selectedDayId ??
-              undefined,
+                undefined,
 
             dayNumber:
               scopeDay
                 ?.dayNumber,
 
             routeKm:
-              target.routeKm,
+              best.routeKm,
+
+            deviationKm:
+              best.deviationKm,
 
             name:
-              'Zona rifornimento da verificare',
+              best
+                .candidate
+                .name,
 
             label:
-              `Nessun distributore trovato entro ${radiusKm} km dal punto previsto.`,
+              best
+                .candidate
+                .label,
 
             lat:
-              target.point.lat,
+              best
+                .candidate
+                .lat,
 
             lng:
-              target.point.lng,
+              best
+                .candidate
+                .lng,
 
             durationMinutes:
               10,
 
             source:
-              'automatic',
+              'locationiq',
           })
         }
 
@@ -373,11 +467,15 @@ export function FuelPanel({
           ...generated,
         ])
 
+        setWarnings(
+          nextWarnings,
+        )
+
         onStatus?.(
           generated.length >
             0
-            ? `${generated.length} soste carburante pianificate per ${scopeLabel}.`
-            : `Nessun rifornimento intermedio necessario per ${scopeLabel}.`,
+            ? `${generated.length} rifornimenti vicini alla traccia pianificati per ${scopeLabel}.`
+            : `Nessun distributore compatibile trovato per ${scopeLabel}.`,
         )
       } catch (
         error
@@ -414,10 +512,14 @@ export function FuelPanel({
               ) ===
                 (
                   selectedDayId ??
-                  null
+                    null
                 )
             ),
         ),
+      )
+
+      setWarnings(
+        [],
       )
     }
 
@@ -429,10 +531,10 @@ export function FuelPanel({
         </strong>
 
         <p>
-          Imposta la distanza massima desiderata tra i rifornimenti. MotoRoute cerca distributori vicini alla traccia senza cambiare il percorso.
+          MotoRoute cerca veri distributori vicino alla traccia. Può anticipare o posticipare il rifornimento entro la flessibilità indicata, ma limita la deviazione laterale.
         </p>
 
-        <div className="service-panel-grid">
+        <div className="service-panel-grid three">
           <label>
             <span>
               Rifornimento ogni
@@ -475,32 +577,72 @@ export function FuelPanel({
 
           <label>
             <span>
-              Ricerca entro
+              Flessibilità
             </span>
 
             <div className="service-number-row">
               <input
                 type="number"
-                min="2"
-                max="30"
-                step="1"
+                min="5"
+                max="40"
+                step="5"
                 value={
-                  radiusKm
+                  flexibilityKm
                 }
                 onChange={(
                   event,
                 ) =>
-                  setRadiusKm(
+                  setFlexibilityKm(
                     Math.max(
-                      2,
+                      5,
                       Math.min(
-                        30,
+                        40,
                         Number(
                           event
                             .target
                             .value,
                         ) ||
-                          12,
+                          20,
+                      ),
+                    ),
+                  )
+                }
+              />
+
+              <small>
+                ± km
+              </small>
+            </div>
+          </label>
+
+          <label>
+            <span>
+              Deviazione max
+            </span>
+
+            <div className="service-number-row">
+              <input
+                type="number"
+                min="1"
+                max="5"
+                step="0.5"
+                value={
+                  maxDeviationKm
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setMaxDeviationKm(
+                    Math.max(
+                      1,
+                      Math.min(
+                        5,
+                        Number(
+                          event
+                            .target
+                            .value,
+                        ) ||
+                          2,
                       ),
                     ),
                   )
@@ -542,6 +684,25 @@ export function FuelPanel({
             </button>
           )}
         </div>
+
+        {warnings.length >
+          0 && (
+          <div className="service-warning-list">
+            {warnings.map(
+              (
+                warning,
+              ) => (
+                <span
+                  key={
+                    warning
+                  }
+                >
+                  {warning}
+                </span>
+              ),
+            )}
+          </div>
+        )}
       </div>
 
       {scopeStops.length >
@@ -580,7 +741,11 @@ export function FuelPanel({
                     <span>
                       circa km {stop.routeKm.toFixed(0)}
                       {' · '}
-                      pausa {stop.durationMinutes ?? 10} min
+                      deviazione ~{(stop.deviationKm ?? 0).toFixed(1)} km
+                      {' · '}
+                      {stop.relaxMinutes
+                        ? `carburante + relax ${stop.relaxMinutes} min`
+                        : `pausa ${stop.durationMinutes ?? 10} min`}
                     </span>
 
                     <small>
