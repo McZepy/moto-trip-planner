@@ -1682,12 +1682,11 @@ function App() {
       setDayRouteStats({})
       setDaysRoutingProgress(null)
       clearTripDayPlaceCache()
-      removeRoute()
-      setCurrentRoutePlan(
-        null,
-      )
-      setDistance(null)
-      setDuration(null)
+
+      /*
+       * Le giornate sono una suddivisione del percorso master:
+       * la traccia principale resta invariata.
+       */
     }
 
   const handleSelectDayRoute =
