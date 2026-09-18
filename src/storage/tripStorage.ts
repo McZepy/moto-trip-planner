@@ -3,6 +3,10 @@ import type { TripSettings } from '../types/trip'
 import { defaultTripSettings } from '../types/trip'
 import type { TripDay } from '../types/tripDay'
 import type { Waypoint } from '../types/waypoint'
+import {
+  cloneServiceStop,
+  type TripServiceStop,
+} from '../types/serviceStop'
 
 export type TripRecord = {
   id: string
@@ -13,6 +17,7 @@ export type TripRecord = {
 
   waypoints: Waypoint[]
   days: TripDay[]
+  serviceStops: TripServiceStop[]
 
   settings: TripSettings
 
@@ -119,6 +124,19 @@ function cloneDays(
   )
 }
 
+function cloneServiceStops(
+  stops:
+    TripServiceStop[] |
+    undefined,
+) {
+  return (
+    stops ??
+    []
+  ).map(
+    cloneServiceStop,
+  )
+}
+
 export function getSavedTrips(): TripRecord[] {
   try {
     const raw =
@@ -134,10 +152,11 @@ export function getSavedTrips(): TripRecord[] {
       JSON.parse(raw) as Array<
         Omit<
           TripRecord,
-          'settings' | 'days'
+          'settings' | 'days' | 'serviceStops'
         > & {
           settings?: Partial<TripSettings>
           days?: TripDay[]
+          serviceStops?: TripServiceStop[]
         }
       >
 
@@ -151,6 +170,11 @@ export function getSavedTrips(): TripRecord[] {
         days:
           cloneDays(
             trip.days,
+          ),
+
+        serviceStops:
+          cloneServiceStops(
+            trip.serviceStops,
           ),
 
         settings:
@@ -185,10 +209,11 @@ function writeTrips(
 export function saveTrip(
   trip: Omit<
     TripRecord,
-    'id' | 'updatedAt' | 'settings' | 'days'
+    'id' | 'updatedAt' | 'settings' | 'days' | 'serviceStops'
   > & {
     settings?: TripSettings
     days?: TripDay[]
+    serviceStops?: TripServiceStop[]
   },
   existingId?: string | null,
 ): TripRecord {
@@ -216,6 +241,12 @@ export function saveTrip(
       normalizeSettings(
         trip.settings ??
           existingTrip?.settings,
+      ),
+
+    serviceStops:
+      cloneServiceStops(
+        trip.serviceStops ??
+          existingTrip?.serviceStops,
       ),
 
     id:
@@ -329,6 +360,11 @@ export function duplicateTrip(
     days:
       cloneDays(
         source.days,
+      ),
+
+    serviceStops:
+      cloneServiceStops(
+        source.serviceStops,
       ),
 
     settings: {
