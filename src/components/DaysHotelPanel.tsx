@@ -34,20 +34,8 @@ type DaysHotelPanelProps = {
     }
   >
 
-  routingBusy?:
-    boolean
-
   routingProgress?:
     string | null
-
-  onSelectDay?:
-    (
-      day:
-        TripDay,
-    ) => void
-
-  onShowOverview?:
-    () => void
 
   onHotelPriceChange?:
     (
@@ -108,7 +96,7 @@ function hotelDisplay(
     day.overnight
 
   if (!overnight) {
-    return null
+    return ''
   }
 
   return (
@@ -122,10 +110,7 @@ export function DaysHotelPanel({
   days,
   selectedDayId,
   routeStats,
-  routingBusy,
   routingProgress,
-  onSelectDay,
-  onShowOverview,
   onHotelPriceChange,
   onStatus,
 }: DaysHotelPanelProps) {
@@ -140,10 +125,34 @@ export function DaysHotelPanel({
       >
     >({})
 
+  const [
+    openDayId,
+    setOpenDayId,
+  ] =
+    useState<
+      string | null
+    >(null)
+
+  const nights =
+    useMemo(
+      () =>
+        days.filter(
+          (
+            day,
+          ) =>
+            Boolean(
+              day.overnight,
+            ),
+        ),
+      [
+        days,
+      ],
+    )
+
   const hotelTotal =
     useMemo(
       () =>
-        days.reduce(
+        nights.reduce(
           (
             total,
             day,
@@ -158,7 +167,7 @@ export function DaysHotelPanel({
           0,
         ),
       [
-        days,
+        nights,
       ],
     )
 
@@ -201,18 +210,18 @@ export function DaysHotelPanel({
     }
 
   if (
-    days.length ===
+    nights.length ===
     0
   ) {
     return (
       <section className="days-panel">
         <div className="days-empty-card">
           <strong>
-            Nessuna giornata generata
+            Nessun pernottamento
           </strong>
 
           <p>
-            Traccia il percorso e genera le tappe giornaliere nella scheda Itinerario & Tappe.
+            Le notti compariranno qui dopo la generazione delle giornate in Itinerario & Tappe.
           </p>
         </div>
       </section>
@@ -221,50 +230,39 @@ export function DaysHotelPanel({
 
   return (
     <section className="days-panel">
-      <div className="days-summary-card">
+      <div className="days-summary-line">
         <div>
           <strong>
-            Riepilogo pernottamenti
+            {nights.length} {nights.length === 1 ? 'pernottamento' : 'pernottamenti'}
           </strong>
 
           <span>
-            Gli indirizzi hotel si impostano esclusivamente in Itinerario & Tappe.
+            riepilogo · ricerca hotel · costi
           </span>
         </div>
 
         {hotelTotal >
           0 && (
-          <strong className="days-hotel-total">
-            Hotel inseriti: € {hotelTotal.toFixed(2)}
+          <strong>
+            € {hotelTotal.toFixed(2)}
           </strong>
         )}
       </div>
 
-      <div className="days-view-actions">
-        <button
-          type="button"
-          disabled={
-            routingBusy
-          }
-          onClick={() =>
-            onShowOverview?.()
-          }
-        >
-          Mostra viaggio completo
-        </button>
+      {routingProgress && (
+        <div className="days-routing-progress">
+          {routingProgress}
+        </div>
+      )}
 
-        {routingProgress && (
-          <span>
-            {routingProgress}
-          </span>
-        )}
-      </div>
-
-      <div className="days-list">
-        {days.map(
+      <div className="days-strip-list">
+        {nights.map(
           (
             day,
           ) => {
+            const overnight =
+              day.overnight!
+
             const from =
               day.routingOverride
                 ?.startPlace
@@ -278,9 +276,6 @@ export function DaysHotelPanel({
                 day.id
               ]
 
-            const overnight =
-              day.overnight
-
             const display =
               hotelDisplay(
                 day,
@@ -292,6 +287,10 @@ export function DaysHotelPanel({
               ] ??
               'booking'
 
+            const open =
+              openDayId ===
+              day.id
+
             return (
               <div
                 key={
@@ -300,136 +299,83 @@ export function DaysHotelPanel({
                 className={
                   selectedDayId ===
                     day.id
-                    ? 'trip-day-card selected'
-                    : 'trip-day-card'
+                    ? 'days-strip-wrap selected'
+                    : 'days-strip-wrap'
                 }
               >
-                <div className="trip-day-header">
-                  <strong>
-                    Giorno {day.dayNumber}
-                  </strong>
-
-                  <div className="trip-day-header-right">
-                    {stats ? (
-                      <span className="trip-day-route-stats">
-                        {formatDistance(
-                          stats.distanceMeters,
-                        )}
-                        {' · '}
-                        {formatDuration(
-                          stats.durationSeconds,
-                        )}
-                      </span>
-                    ) : (
-                      <span className="trip-day-route-stats">
-                        {formatDistance(
-                          day.plannedDistanceMeters ??
-                            0,
-                        )}
-                      </span>
-                    )}
-
-                    <span>
-                      {day.dateLabel}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="trip-day-main-route">
-                  <strong>
-                    {from?.name ?? '—'}
-                  </strong>
-
-                  <span>
-                    →
-                  </span>
-
-                  <strong>
-                    {to?.name ?? '—'}
-                  </strong>
-                </div>
-
                 <button
                   type="button"
-                  className="trip-day-open-button"
-                  disabled={
-                    routingBusy
-                  }
+                  className="days-strip"
                   onClick={() =>
-                    onSelectDay?.(
-                      day,
+                    setOpenDayId(
+                      open
+                        ? null
+                        : day.id,
                     )
                   }
                 >
-                  Mostra / modifica Giorno {day.dayNumber}
+                  <span className="days-strip-badge">
+                    N{day.dayNumber}
+                  </span>
+
+                  <span className="days-strip-main">
+                    <strong>
+                      Notte {day.dayNumber}: {display || overnight.name || 'Hotel non definito'}
+                    </strong>
+
+                    <small>
+                      {overnight.checkIn}
+                      {' · '}
+                      {from?.name ?? '—'} → {to?.name ?? overnight.name}
+                      {' · '}
+                      {stats
+                        ? `${formatDistance(stats.distanceMeters)} · ~${formatDuration(stats.durationSeconds)}`
+                        : formatDistance(
+                            day.plannedDistanceMeters ??
+                              0,
+                          )}
+                    </small>
+                  </span>
+
+                  <span className="days-strip-menu">
+                    {open
+                      ? '⌃'
+                      : '⋮'}
+                  </span>
                 </button>
 
-                {overnight && (
-                  <div className="day-hotel-summary">
-                    <div className="day-hotel-summary-main">
+                {open && (
+                  <div className="days-strip-panel">
+                    <div className="days-strip-detail">
                       <span>
-                        Notte {day.dayNumber}
+                        Zona pernottamento
+                      </span>
+
+                      <strong>
+                        {overnight.name}
+                      </strong>
+
+                      <small>
+                        {overnight.label}
+                      </small>
+                    </div>
+
+                    <div className="days-strip-detail">
+                      <span>
+                        Hotel
                       </span>
 
                       <strong>
                         {display ||
-                          'Hotel non definito'}
+                          'Non ancora definito'}
                       </strong>
 
                       <small>
-                        zona: {overnight.name}
-                        {' · '}
-                        check-in {overnight.checkIn}
-                        {' · '}
-                        check-out {overnight.checkOut}
+                        L’indirizzo si modifica esclusivamente in Itinerario & Tappe.
                       </small>
                     </div>
 
-                    <div className="day-hotel-price">
-                      <label>
-                        Prezzo hotel
-                      </label>
-
-                      <div>
-                        <span>
-                          €
-                        </span>
-
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          placeholder="0"
-                          value={
-                            overnight.priceEur ??
-                            ''
-                          }
-                          onChange={(
-                            event,
-                          ) =>
-                            onHotelPriceChange?.(
-                              day.id,
-                              event
-                                .target
-                                .value ===
-                                ''
-                                ? undefined
-                                : Math.max(
-                                    0,
-                                    Number(
-                                      event
-                                        .target
-                                        .value,
-                                    ) ||
-                                      0,
-                                  ),
-                            )
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    <div className="day-hotel-actions">
+                    <div className="days-strip-hotel-search">
                       <select
                         value={
                           platform
@@ -484,13 +430,53 @@ export function DaysHotelPanel({
                           )
                         }
                       >
-                        Cerca alloggio
+                        Cerca hotel
                       </button>
                     </div>
 
-                    <small className="day-hotel-summary-hint">
-                      Dopo la prenotazione torna in Itinerario & Tappe, apri il giorno e inserisci il nome hotel o l'indirizzo come Arrivo.
-                    </small>
+                    <label className="days-strip-price">
+                      <span>
+                        Prezzo pernottamento
+                      </span>
+
+                      <div>
+                        <b>
+                          €
+                        </b>
+
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          placeholder="0"
+                          value={
+                            overnight.priceEur ??
+                            ''
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            onHotelPriceChange?.(
+                              day.id,
+                              event
+                                .target
+                                .value ===
+                                ''
+                                ? undefined
+                                : Math.max(
+                                    0,
+                                    Number(
+                                      event
+                                        .target
+                                        .value,
+                                    ) ||
+                                      0,
+                                  ),
+                            )
+                          }
+                        />
+                      </div>
+                    </label>
                   </div>
                 )}
               </div>
