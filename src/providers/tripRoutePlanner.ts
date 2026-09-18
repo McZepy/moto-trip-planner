@@ -1,4 +1,5 @@
 import type {
+  RouteEmbeddedFerry,
   RouteGeometry,
   RoutePoint,
 } from './routingProvider'
@@ -28,6 +29,7 @@ export type RoadRouteSection = {
   distanceMeters: number
   durationSeconds: number
   geometry: RouteGeometry
+  embeddedFerries?: RouteEmbeddedFerry[]
 }
 
 export type FerryRouteSection = {
