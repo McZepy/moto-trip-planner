@@ -2520,30 +2520,59 @@ function App() {
       )
     }
 
-  const handleShowTripOverview =
-    async () => {
-      const map = mapRef.current
+  const showDaysOverviewFor =
+    async (
+      targetDays:
+        TripDay[],
+      options?: {
+        clearSelection?:
+          boolean
+        statusPrefix?:
+          string
+      },
+    ) => {
+      const map =
+        mapRef.current
 
       if (
         !map ||
-        daysRoutingBusy ||
-        days.length === 0
+        targetDays.length ===
+          0
       ) {
         return
       }
 
-      setDaysRoutingBusy(true)
-      setSelectedDayId(null)
+      setDaysRoutingBusy(
+        true,
+      )
+
+      if (
+        options
+          ?.clearSelection
+      ) {
+        setSelectedDayId(
+          null,
+        )
+      }
+
       setDaysRoutingProgress(
-        'Calcolo viaggio completo: 0/' + days.length + ' giornate...',
+        'Calcolo viaggio completo: 0/' +
+          targetDays.length +
+          ' giornate...',
       )
 
       try {
         const result =
           await planTripDaysRoute(
-            days,
-            tripSettings.roadPreferences.allowFerries,
-            (completed, total, day) => {
+            targetDays,
+            tripSettings
+              .roadPreferences
+              .allowFerries,
+            (
+              completed,
+              total,
+              day,
+            ) => {
               setDaysRoutingProgress(
                 'Calcolo viaggio completo: ' +
                   completed +
@@ -2559,6 +2588,8 @@ function App() {
             ),
           )
 
+        removeRoute()
+
         showTripRoutePlan(
           map,
           result.plan,
@@ -2567,39 +2598,100 @@ function App() {
         const stats =
           Object.fromEntries(
             result.dayResults.map(
-              (dayResult) => [
-                dayResult.day.id,
-                dayResult.stats,
+              (
+                dayResult,
+              ) => [
+                dayResult
+                  .day
+                  .id,
+                dayResult
+                  .stats,
               ],
             ),
-          ) as Record<string, TripDayRouteStats>
+          ) as Record<
+            string,
+            TripDayRouteStats
+          >
 
-        setDayRouteStats(stats)
+        setDayRouteStats(
+          stats,
+        )
+
         setDistance(
-          result.plan.distanceMeters,
+          result.plan
+            .distanceMeters,
         )
+
         setDuration(
-          result.plan.durationSeconds,
+          result.plan
+            .durationSeconds,
         )
+
+        const prefix =
+          options
+            ?.statusPrefix
 
         setStatus(
-          'Viaggio completo: ' +
-            formatDistance(result.plan.distanceMeters) +
+          (
+            prefix
+              ? prefix +
+                ' · '
+              : ''
+          ) +
+            'Viaggio completo: ' +
+            formatDistance(
+              result.plan
+                .distanceMeters,
+            ) +
             ' · ' +
-            formatDuration(result.plan.durationSeconds) +
+            formatDuration(
+              result.plan
+                .durationSeconds,
+            ) +
             '.',
         )
-      } catch (error) {
-        console.error(error)
+
+        return result
+      } catch (
+        error
+      ) {
+        console.error(
+          error,
+        )
+
         setStatus(
           error instanceof Error
             ? error.message
             : 'Errore durante il calcolo del viaggio completo.',
         )
+
+        return undefined
       } finally {
-        setDaysRoutingBusy(false)
-        setDaysRoutingProgress(null)
+        setDaysRoutingBusy(
+          false,
+        )
+
+        setDaysRoutingProgress(
+          null,
+        )
       }
+    }
+
+  const handleShowTripOverview =
+    async () => {
+      if (
+        daysRoutingBusy
+      ) {
+        return
+      }
+
+      await showDaysOverviewFor(
+        daysRef.current,
+        {
+          clearSelection:
+            true,
+        },
+      )
     }
 
   const autocompleteStart =
