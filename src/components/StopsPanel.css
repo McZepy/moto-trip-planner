@@ -1,0 +1,24 @@
+.stops-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.stops-panel-intro {
+  display: grid;
+  gap: 4px;
+  padding: 10px 11px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #17202d;
+}
+
+.stops-panel-intro strong {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.stops-panel-intro span {
+  color: #aebdd0;
+  font-size: 9px;
+  line-height: 1.4;
+}
