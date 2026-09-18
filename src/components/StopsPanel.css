@@ -22,3 +22,219 @@
   font-size: 9px;
   line-height: 1.4;
 }
+
+
+/* =========================================
+   V0.9H · STOPS SUMMARY STRIPS
+   ========================================= */
+.stops-summary-line {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid #2f3642;
+  border-radius: 10px;
+  background: #111317;
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stops-summary-line > span:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.stops-summary-line strong {
+  font-size: 10px;
+}
+
+.stops-summary-line small {
+  color: #8f98a7;
+  font-size: 8px;
+}
+
+.stops-planner-panel {
+  display: grid;
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.stops-planner-note {
+  color: #9ca3af;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stops-empty-line {
+  padding: 10px;
+  border: 1px solid #2f3642;
+  border-radius: 9px;
+  background: #111317;
+  color: #8f98a7;
+  font-size: 9px;
+}
+
+.stops-strip-list {
+  display: grid;
+  gap: 7px;
+}
+
+.stops-strip-wrap {
+  border: 1px solid #2f3642;
+  border-radius: 11px;
+  background: #111317;
+  overflow: hidden;
+}
+
+.stops-strip {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 30px;
+  gap: 9px;
+  align-items: center;
+  min-height: 54px;
+  padding: 7px 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stops-strip:hover {
+  background: #171a1f;
+}
+
+.stops-strip-badge {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.stops-strip-badge.fuel {
+  background: #15803d;
+}
+
+.stops-strip-badge.break {
+  background: #b45309;
+}
+
+.stops-strip-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.stops-strip-main strong {
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 10px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stops-strip-main small {
+  color: #b2bac6;
+  font-size: 8px;
+  line-height: 1.3;
+}
+
+.stops-strip-menu {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.stops-strip-panel {
+  display: grid;
+  gap: 9px;
+  padding: 10px;
+  border-top: 1px solid #2f3642;
+  background: #0d0f12;
+}
+
+.stops-strip-detail {
+  display: grid;
+  gap: 3px;
+}
+
+.stops-strip-detail > span,
+.stops-strip-duration > span {
+  color: #9ca3af;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stops-strip-detail strong {
+  color: #ffffff;
+  font-size: 10px;
+}
+
+.stops-strip-detail small {
+  color: #8f98a7;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.stops-strip-duration {
+  display: grid;
+  gap: 5px;
+}
+
+.stops-strip-duration > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.stops-strip-duration input {
+  width: 100%;
+  height: 31px;
+  box-sizing: border-box;
+  border: 1px solid #3b414d;
+  border-radius: 6px;
+  background: #20242b;
+  color: #ffffff;
+  padding: 0 8px;
+  font-size: 9px;
+}
+
+.stops-strip-duration b {
+  color: #8f98a7;
+  font-size: 8px;
+}
+
+.stops-strip-cost {
+  color: #bfdbfe;
+  font-size: 9px;
+}
+
+.stops-strip-cost strong {
+  color: #86efac;
+}
+
+.stops-strip-remove {
+  min-height: 31px;
+  border: 1px solid #7f1d1d;
+  border-radius: 7px;
+  background: #2b1515;
+  color: #fecaca;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
