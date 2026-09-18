@@ -983,7 +983,7 @@ export async function searchNearbyFuelStations(
 ) {
   return searchNearbyTags(
     point,
-    'amenity:fuel,highway:services',
+    'amenity:fuel',
     radiusMeters,
     signal,
   )
