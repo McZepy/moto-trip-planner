@@ -1543,13 +1543,18 @@ function App() {
                       point.lng,
                   })
 
-                applyOvernightPlace(
-                  day.id,
-                  place,
-                )
+                const nextDays =
+                  applyOvernightPlace(
+                    day.id,
+                    place,
+                  )
 
-                setStatus(
-                  `Fine Giorno ${day.dayNumber} spostata su ${place.name}. Premi Salva per conservarla.`,
+                await showDaysOverviewFor(
+                  nextDays,
+                  {
+                    statusPrefix:
+                      `Fine Giorno ${day.dayNumber} spostata su ${place.name}`,
+                  },
                 )
               } catch (
                 error
@@ -1576,13 +1581,18 @@ function App() {
                     point.lng,
                 }
 
-                applyOvernightPlace(
-                  day.id,
-                  fallback,
-                )
+                const nextDays =
+                  applyOvernightPlace(
+                    day.id,
+                    fallback,
+                  )
 
-                setStatus(
-                  `Fine Giorno ${day.dayNumber} spostata sulla mappa.`,
+                await showDaysOverviewFor(
+                  nextDays,
+                  {
+                    statusPrefix:
+                      `Fine Giorno ${day.dayNumber} spostata sulla mappa`,
+                  },
                 )
               }
             },
@@ -1600,6 +1610,14 @@ function App() {
 
   useEffect(
     () => {
+      if (
+        editingDayId
+      ) {
+        removeOvernightMarkers()
+
+        return
+      }
+
       syncOvernightMarkers(
         days,
       )
@@ -1610,6 +1628,7 @@ function App() {
     },
     [
       days,
+      editingDayId,
     ],
   )
 
@@ -5796,10 +5815,11 @@ function App() {
                 dayId,
                 place,
               ) => {
-                applyOvernightPlace(
-                  dayId,
-                  place,
-                )
+                const nextDays =
+                  applyOvernightPlace(
+                    dayId,
+                    place,
+                  )
 
                 overnightMarkersRef
                   .current
@@ -5811,8 +5831,12 @@ function App() {
                     place.lat,
                   ])
 
-                setStatus(
-                  'Punto pernottamento aggiornato. Premi Salva per conservarlo.',
+                void showDaysOverviewFor(
+                  nextDays,
+                  {
+                    statusPrefix:
+                      'Pernottamento aggiornato',
+                  },
                 )
               }}
               onSelectDay={handleSelectDayRoute}
