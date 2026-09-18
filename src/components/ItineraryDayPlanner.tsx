@@ -1219,7 +1219,7 @@ export function ItineraryDayPlanner({
       }
 
       const minimumKm =
-        20
+        1
 
       const current =
         normalizedDayTargets(
@@ -1526,9 +1526,9 @@ export function ItineraryDayPlanner({
 
                           <div>
                             <EditableNumberInput
-                              min={20}
-                              step={10}
-                              fallback={20}
+                              min={1}
+                              step={1}
+                              fallback={1}
                               value={
                                 Math.round(
                                   dayTarget,
@@ -1546,7 +1546,7 @@ export function ItineraryDayPlanner({
                                 updateDistance(
                                   index,
                                   value ??
-                                    20,
+                                    1,
                                 )
 
                                 void generateDays(
