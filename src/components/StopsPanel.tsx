@@ -202,6 +202,7 @@ export function StopsPanel({
 
   return (
     <section className="stops-panel">
+
       <div className="stops-recap-heading">
         <div>
           <strong>
