@@ -25,6 +25,7 @@ import type {
 import {
   cumulativeTargetsKm,
   roadDistanceMeters,
+  roadKmAtPoint,
   routeBreakCandidates,
   type RouteBreakCandidate,
 } from '../itinerary/routeDaySplitter'
@@ -43,6 +44,10 @@ import type {
   TripDay,
 } from '../types/tripDay'
 
+import type {
+  Waypoint,
+} from '../types/waypoint'
+
 import './DaysHotelPanel.css'
 
 type DaysHotelPanelProps = {
@@ -53,7 +58,17 @@ type DaysHotelPanelProps = {
    * automaticamente il percorso da testo.
    */
   selectedDayId?: string | null
-  routeStats?: Record<string, unknown>
+  routeStats?: Record<
+    string,
+    {
+      distanceMeters:
+        number
+      durationSeconds:
+        number
+      usesFerry:
+        boolean
+    }
+  >
   routingBusy?: boolean
   routingProgress?: string | null
   onSelectDay?: (day: TripDay) => void
@@ -65,6 +80,8 @@ type DaysHotelPanelProps = {
     GeocodingResult | null
   destinationPlace:
     GeocodingResult | null
+  masterWaypoints:
+    Waypoint[]
   settings:
     TripSettings
   onChange:
@@ -352,6 +369,22 @@ function createDayId(
   )
 }
 
+function cloneWaypoint(
+  waypoint:
+    Waypoint,
+): Waypoint {
+  return {
+    ...waypoint,
+
+    boundingBox:
+      waypoint.boundingBox
+        ? {
+            ...waypoint.boundingBox,
+          }
+        : undefined,
+  }
+}
+
 function selectedPlace(
   candidate:
     RouteBreakCandidate,
@@ -390,6 +423,7 @@ export function DaysHotelPanel({
   routePlan,
   startPlace,
   destinationPlace,
+  masterWaypoints,
   settings,
   onChange,
   onDatesChange,
@@ -896,6 +930,42 @@ export function DaysHotelPanel({
         roadKm,
       ]
 
+      const waypointPositions =
+        masterWaypoints
+          .map(
+            (
+              waypoint,
+            ) => ({
+              waypoint,
+
+              routeKm:
+                routePlan
+                  ? roadKmAtPoint(
+                      routePlan,
+                      {
+                        lat:
+                          waypoint.lat,
+
+                        lng:
+                          waypoint.lng,
+                      },
+                    )
+                  : null,
+            }),
+          )
+          .filter(
+            (
+              item,
+            ): item is {
+              waypoint:
+                Waypoint
+              routeKm:
+                number
+            } =>
+              item.routeKm !==
+              null,
+          )
+
       const nextDays:
         TripDay[] = []
 
@@ -1020,7 +1090,31 @@ export function DaysHotelPanel({
             },
 
             waypoints:
-              [],
+              waypointPositions
+                .filter(
+                  (
+                    item,
+                  ) =>
+                    item.routeKm >
+                      cumulativeKm[
+                        index
+                      ] +
+                        0.05 &&
+                    item.routeKm <
+                      cumulativeKm[
+                        index +
+                          1
+                      ] -
+                        0.05,
+                )
+                .map(
+                  (
+                    item,
+                  ) =>
+                    cloneWaypoint(
+                      item.waypoint,
+                    ),
+                ),
           },
         })
       }
