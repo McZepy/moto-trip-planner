@@ -4,7 +4,7 @@ import {
 } from 'react'
 
 import {
-  reverseLookupLocalityPoint,
+  searchNearbyRestFacilities,
 } from '../providers/autocompleteProvider'
 
 import type {
@@ -14,6 +14,11 @@ import type {
 import {
   plannedStopPoints,
 } from '../itinerary/serviceStopPlanner'
+
+import {
+  pointAtRoadDistance,
+  roadKmAtPoint,
+} from '../itinerary/routeDaySplitter'
 
 import type {
   TripDay,
@@ -65,6 +70,94 @@ function createId() {
   )
 }
 
+function distanceMeters(
+  a: {
+    lat: number
+    lng: number
+  },
+  b: {
+    lat: number
+    lng: number
+  },
+) {
+  const toRad =
+    (value: number) =>
+      value *
+      Math.PI /
+      180
+
+  const earthRadius =
+    6_371_000
+
+  const lat1 =
+    toRad(
+      a.lat,
+    )
+
+  const lat2 =
+    toRad(
+      b.lat,
+    )
+
+  const deltaLat =
+    toRad(
+      b.lat -
+      a.lat,
+    )
+
+  const deltaLng =
+    toRad(
+      b.lng -
+      a.lng,
+    )
+
+  const h =
+    Math.sin(
+      deltaLat /
+      2,
+    ) ** 2 +
+    Math.cos(
+      lat1,
+    ) *
+      Math.cos(
+        lat2,
+      ) *
+      Math.sin(
+        deltaLng /
+        2,
+      ) ** 2
+
+  return (
+    2 *
+    earthRadius *
+    Math.atan2(
+      Math.sqrt(
+        h,
+      ),
+      Math.sqrt(
+        1 -
+        h,
+      ),
+    )
+  )
+}
+
+function scopeMatches(
+  stop:
+    TripServiceStop,
+  selectedDayId?:
+    string | null,
+) {
+  return (
+    stop.dayId ??
+    null
+  ) ===
+    (
+      selectedDayId ??
+      null
+    )
+}
+
 export function BreaksPanel({
   routePlan,
   selectedDayId,
@@ -90,12 +183,36 @@ export function BreaksPanel({
     )
 
   const [
+    flexibilityKm,
+    setFlexibilityKm,
+  ] =
+    useState(
+      20,
+    )
+
+  const [
+    maxDeviationKm,
+    setMaxDeviationKm,
+  ] =
+    useState(
+      2,
+    )
+
+  const [
     busy,
     setBusy,
   ] =
     useState(
       false,
     )
+
+  const [
+    warnings,
+    setWarnings,
+  ] =
+    useState<
+      string[]
+    >([])
 
   const scopeDay =
     selectedDayId
@@ -120,16 +237,21 @@ export function BreaksPanel({
           (
             stop,
           ) =>
-            stop.kind ===
-              'break' &&
+            scopeMatches(
+              stop,
+              selectedDayId,
+            ) &&
             (
-              stop.dayId ??
-              null
-            ) ===
+              stop.kind ===
+                'break' ||
               (
-                selectedDayId ??
-                null
-              ),
+                stop.kind ===
+                  'fuel' &&
+                Boolean(
+                  stop.relaxMinutes,
+                )
+              )
+            ),
         ),
       [
         stops,
@@ -150,6 +272,10 @@ export function BreaksPanel({
         true,
       )
 
+      setWarnings(
+        [],
+      )
+
       try {
         const targets =
           plannedStopPoints(
@@ -158,8 +284,66 @@ export function BreaksPanel({
             45,
           )
 
+        /*
+         * Rigeneriamo solo le pause dello scope corrente.
+         * I rifornimenti restano e possono diventare soste combinate.
+         */
+        const baseStops =
+          stops
+            .filter(
+              (
+                stop,
+              ) =>
+                !(
+                  stop.kind ===
+                    'break' &&
+                  scopeMatches(
+                    stop,
+                    selectedDayId,
+                  )
+                ),
+            )
+            .map(
+              (
+                stop,
+              ) =>
+                stop.kind ===
+                  'fuel' &&
+                scopeMatches(
+                  stop,
+                  selectedDayId,
+                )
+                  ? {
+                      ...stop,
+                      relaxMinutes:
+                        undefined,
+                    }
+                  : {
+                      ...stop,
+                    },
+            )
+
+        const fuelStops =
+          baseStops.filter(
+            (
+              stop,
+            ) =>
+              stop.kind ===
+                'fuel' &&
+              scopeMatches(
+                stop,
+                selectedDayId,
+              ),
+          )
+
         const generated:
           TripServiceStop[] = []
+
+        const nextWarnings:
+          string[] = []
+
+        let mergedCount =
+          0
 
         for (
           let index =
@@ -174,25 +358,172 @@ export function BreaksPanel({
               index
             ]
 
-          let name =
-            `Pausa km ${target.routeKm.toFixed(0)}`
+          const nearbyFuel =
+            fuelStops
+              .filter(
+                (
+                  stop,
+                ) =>
+                  Math.abs(
+                    stop.routeKm -
+                    target.routeKm,
+                  ) <=
+                  flexibilityKm,
+              )
+              .sort(
+                (
+                  first,
+                  second,
+                ) =>
+                  Math.abs(
+                    first.routeKm -
+                    target.routeKm,
+                  ) -
+                  Math.abs(
+                    second.routeKm -
+                    target.routeKm,
+                  ),
+              )[0]
 
-          let label =
-            'Punto lungo il percorso'
+          if (nearbyFuel) {
+            nearbyFuel.relaxMinutes =
+              durationMinutes
 
-          try {
-            const place =
-              await reverseLookupLocalityPoint(
-                target.point,
+            mergedCount +=
+              1
+
+            continue
+          }
+
+          const searchRadiusMeters =
+            (
+              flexibilityKm +
+              maxDeviationKm +
+              2
+            ) *
+            1000
+
+          const candidates =
+            await searchNearbyRestFacilities(
+              target.point,
+              searchRadiusMeters,
+            )
+
+          const ranked =
+            candidates
+              .map(
+                (
+                  candidate,
+                ) => {
+                  const routeKm =
+                    roadKmAtPoint(
+                      routePlan,
+                      candidate,
+                    )
+
+                  if (
+                    routeKm ===
+                    null
+                  ) {
+                    return null
+                  }
+
+                  const projected =
+                    pointAtRoadDistance(
+                      routePlan,
+                      routeKm *
+                        1000,
+                    )
+
+                  if (!projected) {
+                    return null
+                  }
+
+                  const deviationKm =
+                    distanceMeters(
+                      candidate,
+                      projected.point,
+                    ) /
+                    1000
+
+                  const alongDifference =
+                    Math.abs(
+                      routeKm -
+                      target.routeKm,
+                    )
+
+                  if (
+                    alongDifference >
+                      flexibilityKm ||
+                    deviationKm >
+                      maxDeviationKm
+                  ) {
+                    return null
+                  }
+
+                  const preferredType =
+                    [
+                      'services',
+                      'cafe',
+                      'restaurant',
+                      'fast_food',
+                    ].includes(
+                      candidate.type ??
+                        '',
+                    )
+
+                  const score =
+                    deviationKm *
+                      12 +
+                    alongDifference +
+                    (
+                      preferredType
+                        ? 0
+                        : 4
+                    )
+
+                  return {
+                    candidate,
+                    routeKm,
+                    deviationKm,
+                    score,
+                  }
+                },
+              )
+              .filter(
+                (
+                  value,
+                ): value is {
+                  candidate:
+                    typeof candidates[number]
+                  routeKm:
+                    number
+                  deviationKm:
+                    number
+                  score:
+                    number
+                } =>
+                  value !==
+                  null,
+              )
+              .sort(
+                (
+                  first,
+                  second,
+                ) =>
+                  first.score -
+                  second.score,
               )
 
-            name =
-              place.name
+          const best =
+            ranked[0]
 
-            label =
-              place.label
-          } catch {
-            // Mantiene il punto grezzo.
+          if (!best) {
+            nextWarnings.push(
+              `Km ${target.routeKm.toFixed(0)}: nessuna area servizi/caffè trovata entro ±${flexibilityKm} km e ${maxDeviationKm} km dalla traccia.`,
+            )
+
+            continue
           }
 
           generated.push({
@@ -204,61 +535,80 @@ export function BreaksPanel({
 
             dayId:
               selectedDayId ??
-              undefined,
+                undefined,
 
             dayNumber:
               scopeDay
                 ?.dayNumber,
 
             routeKm:
-              target.routeKm,
+              best.routeKm,
 
-            name,
+            deviationKm:
+              best.deviationKm,
 
-            label,
+            name:
+              best
+                .candidate
+                .name,
+
+            label:
+              best
+                .candidate
+                .label,
 
             lat:
-              target.point.lat,
+              best
+                .candidate
+                .lat,
 
             lng:
-              target.point.lng,
+              best
+                .candidate
+                .lng,
 
             durationMinutes,
 
             source:
-              'automatic',
+              'locationiq',
           })
         }
 
-        const preserved =
-          stops.filter(
-            (
-              stop,
-            ) =>
-              !(
-                stop.kind ===
-                  'break' &&
-                (
-                  stop.dayId ??
-                    null
-                ) ===
-                  (
-                    selectedDayId ??
-                    null
-                  )
-              ),
-          )
-
         onChange([
-          ...preserved,
+          ...baseStops,
           ...generated,
         ])
 
-        onStatus?.(
+        setWarnings(
+          nextWarnings,
+        )
+
+        const parts:
+          string[] = []
+
+        if (
+          mergedCount >
+          0
+        ) {
+          parts.push(
+            `${mergedCount} ${mergedCount === 1 ? 'pausa unita' : 'pause unite'} ai rifornimenti`,
+          )
+        }
+
+        if (
           generated.length >
+          0
+        ) {
+          parts.push(
+            `${generated.length} ${generated.length === 1 ? 'area pausa trovata' : 'aree pausa trovate'}`,
+          )
+        }
+
+        onStatus?.(
+          parts.length >
             0
-            ? `${generated.length} pause relax pianificate per ${scopeLabel}.`
-            : `Nessuna pausa intermedia necessaria per ${scopeLabel}.`,
+            ? `${scopeLabel}: ${parts.join(' · ')}.`
+            : `Nessuna area pausa compatibile trovata per ${scopeLabel}.`,
         )
       } catch (
         error
@@ -282,23 +632,41 @@ export function BreaksPanel({
   const clearScope =
     () => {
       onChange(
-        stops.filter(
-          (
-            stop,
-          ) =>
-            !(
-              stop.kind ===
-                'break' &&
-              (
-                stop.dayId ??
-                  null
-              ) ===
-                (
-                  selectedDayId ??
-                  null
+        stops
+          .filter(
+            (
+              stop,
+            ) =>
+              !(
+                stop.kind ===
+                  'break' &&
+                scopeMatches(
+                  stop,
+                  selectedDayId,
                 )
-            ),
-        ),
+              ),
+          )
+          .map(
+            (
+              stop,
+            ) =>
+              stop.kind ===
+                'fuel' &&
+              scopeMatches(
+                stop,
+                selectedDayId,
+              )
+                ? {
+                    ...stop,
+                    relaxMinutes:
+                      undefined,
+                  }
+                : stop,
+          ),
+      )
+
+      setWarnings(
+        [],
       )
     }
 
@@ -310,10 +678,10 @@ export function BreaksPanel({
         </strong>
 
         <p>
-          Inserisci una pausa regolare lungo la traccia. Sono punti di comfort: non modificano il percorso finché non li rendiamo soste obbligatorie.
+          MotoRoute cerca aree servizi, caffè o ristoro vicino alla traccia. Se una pausa cade entro la flessibilità di un rifornimento già pianificato, usa quel rifornimento come unica sosta.
         </p>
 
-        <div className="service-panel-grid">
+        <div className="service-panel-grid four">
           <label>
             <span>
               Pausa ogni
@@ -356,7 +724,7 @@ export function BreaksPanel({
 
           <label>
             <span>
-              Durata pausa
+              Durata
             </span>
 
             <div className="service-number-row">
@@ -393,6 +761,86 @@ export function BreaksPanel({
               </small>
             </div>
           </label>
+
+          <label>
+            <span>
+              Flessibilità
+            </span>
+
+            <div className="service-number-row">
+              <input
+                type="number"
+                min="5"
+                max="40"
+                step="5"
+                value={
+                  flexibilityKm
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setFlexibilityKm(
+                    Math.max(
+                      5,
+                      Math.min(
+                        40,
+                        Number(
+                          event
+                            .target
+                            .value,
+                        ) ||
+                          20,
+                      ),
+                    ),
+                  )
+                }
+              />
+
+              <small>
+                ± km
+              </small>
+            </div>
+          </label>
+
+          <label>
+            <span>
+              Deviazione max
+            </span>
+
+            <div className="service-number-row">
+              <input
+                type="number"
+                min="1"
+                max="5"
+                step="0.5"
+                value={
+                  maxDeviationKm
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setMaxDeviationKm(
+                    Math.max(
+                      1,
+                      Math.min(
+                        5,
+                        Number(
+                          event
+                            .target
+                            .value,
+                        ) ||
+                          2,
+                      ),
+                    ),
+                  )
+                }
+              />
+
+              <small>
+                km
+              </small>
+            </div>
+          </label>
         </div>
 
         <div className="service-panel-actions">
@@ -407,7 +855,7 @@ export function BreaksPanel({
             }
           >
             {busy
-              ? 'Creo pause...'
+              ? 'Cerco aree pausa...'
               : 'Pianifica pause'}
           </button>
 
@@ -419,10 +867,29 @@ export function BreaksPanel({
                 clearScope
               }
             >
-              Rimuovi soste
+              Rimuovi pause
             </button>
           )}
         </div>
+
+        {warnings.length >
+          0 && (
+          <div className="service-warning-list">
+            {warnings.map(
+              (
+                warning,
+              ) => (
+                <span
+                  key={
+                    warning
+                  }
+                >
+                  {warning}
+                </span>
+              ),
+            )}
+          </div>
+        )}
       </div>
 
       {scopeStops.length >
@@ -442,34 +909,54 @@ export function BreaksPanel({
               (
                 stop,
                 index,
-              ) => (
-                <div
-                  key={
-                    stop.id
-                  }
-                  className="service-stop-card"
-                >
-                  <span className="service-stop-badge break">
-                    P{index + 1}
-                  </span>
+              ) => {
+                const combined =
+                  stop.kind ===
+                    'fuel'
 
-                  <div>
-                    <strong>
-                      {stop.name}
-                    </strong>
-
-                    <span>
-                      circa km {stop.routeKm.toFixed(0)}
-                      {' · '}
-                      {stop.durationMinutes ?? 15} min
+                return (
+                  <div
+                    key={
+                      stop.id
+                    }
+                    className="service-stop-card"
+                  >
+                    <span
+                      className={
+                        combined
+                          ? 'service-stop-badge combined'
+                          : 'service-stop-badge break'
+                      }
+                    >
+                      {combined
+                        ? 'F+P'
+                        : `P${index + 1}`}
                     </span>
 
-                    <small>
-                      {stop.label}
-                    </small>
+                    <div>
+                      <strong>
+                        {stop.name}
+                      </strong>
+
+                      <span>
+                        circa km {stop.routeKm.toFixed(0)}
+                        {' · '}
+                        {combined
+                          ? `carburante + relax ${stop.relaxMinutes ?? durationMinutes} min`
+                          : `relax ${stop.durationMinutes ?? durationMinutes} min`}
+                        {stop.deviationKm !==
+                          undefined
+                          ? ` · deviazione ~${stop.deviationKm.toFixed(1)} km`
+                          : ''}
+                      </span>
+
+                      <small>
+                        {stop.label}
+                      </small>
+                    </div>
                   </div>
-                </div>
-              ),
+                )
+              },
             )}
         </div>
       )}
