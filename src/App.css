@@ -1176,3 +1176,94 @@ input {
 .route-map-marker--break:active {
   cursor: grabbing;
 }
+
+
+/* =========================================
+   V0.9J · LIGHT TOP BAR + LIGHT TABS
+   ========================================= */
+.topbar {
+  background: #ffffff;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 0 rgba(17, 24, 39, 0.03);
+}
+
+.topbar-brand strong {
+  color: #111827;
+}
+
+.topbar-brand span {
+  color: #6b7280;
+}
+
+.trip-summary {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  box-shadow: none;
+}
+
+.trip-name-input {
+  border: 0;
+  background: #ffffff;
+  color: #111827;
+}
+
+.trip-name-input:focus {
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px #111827;
+}
+
+.trip-summary span {
+  color: #111827;
+  font-weight: 700;
+}
+
+.trip-summary span + span {
+  border-left-color: #e5e7eb;
+}
+
+.secondary-action,
+.save-action {
+  border-radius: 8px;
+}
+
+.secondary-action {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+}
+
+.secondary-action:hover {
+  background: #f3f4f6;
+}
+
+.save-action {
+  border: 1px solid #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+.save-action:hover {
+  background: #000000;
+}
+
+.section-tabs {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.section-tab {
+  color: #4b5563;
+}
+
+.section-tab:hover {
+  color: #111827;
+  background: #f9fafb;
+}
+
+.section-tab.active {
+  color: #111827;
+  border-bottom-color: #111827;
+  background: #ffffff;
+  font-weight: 800;
+}
