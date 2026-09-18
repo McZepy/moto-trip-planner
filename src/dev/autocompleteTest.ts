@@ -1,5 +1,6 @@
 import {
   autocompletePlaces,
+  isLocationIqConfigured,
   type AutocompleteSuggestion,
   type PortResultGroup,
 } from '../providers/autocompleteProvider'
@@ -41,6 +42,11 @@ let timer:
 let controller:
   AbortController | null =
     null
+
+status.textContent =
+  isLocationIqConfigured()
+    ? 'LocationIQ: configurata. In attesa.'
+    : 'LocationIQ: chiave non visibile a Vite.'
 
 function escapeHtml(
   value: string,
@@ -330,7 +336,7 @@ input.addEventListener(
             input.value,
           )
         },
-        900,
+        220,
       )
   },
 )
