@@ -150,3 +150,40 @@
   font-size: 9px;
   line-height: 1.35;
 }
+
+
+.service-panel-grid.three,
+.service-panel-grid.four {
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(
+        0,
+        1fr
+      )
+    );
+}
+
+.service-warning-list {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 8px 9px;
+  border: 1px solid #7c4a14;
+  border-radius: 7px;
+  background: #2b1e11;
+}
+
+.service-warning-list span {
+  color: #f6c177;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.service-stop-badge.combined {
+  width: 34px;
+  height: 34px;
+  background: #166534;
+  border-color: #f59e0b;
+  font-size: 8px;
+}
