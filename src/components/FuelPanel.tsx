@@ -17,12 +17,17 @@ import {
 
 import {
   pointAtRoadDistance,
+  roadDistanceMeters,
   roadKmAtPoint,
 } from '../itinerary/routeDaySplitter'
 
 import type {
   TripDay,
 } from '../types/tripDay'
+
+import type {
+  TripSettings,
+} from '../types/trip'
 
 import type {
   TripServiceStop,
@@ -33,17 +38,25 @@ import './FuelPanel.css'
 type FuelPanelProps = {
   routePlan:
     TripRoutePlan | null
+
   selectedDayId?:
     string | null
+
   days:
     TripDay[]
+
   stops:
     TripServiceStop[]
+
+  settings:
+    TripSettings
+
   onChange:
     (
       stops:
         TripServiceStop[],
     ) => void
+
   onStatus?:
     (
       message:
@@ -81,7 +94,10 @@ function distanceMeters(
   },
 ) {
   const toRad =
-    (value: number) =>
+    (
+      value:
+        number,
+    ) =>
       value *
       Math.PI /
       180
@@ -147,17 +163,10 @@ export function FuelPanel({
   selectedDayId,
   days,
   stops,
+  settings,
   onChange,
   onStatus,
 }: FuelPanelProps) {
-  const [
-    intervalKm,
-    setIntervalKm,
-  ] =
-    useState(
-      250,
-    )
-
   const [
     flexibilityKm,
     setFlexibilityKm,
@@ -206,6 +215,36 @@ export function FuelPanel({
       ? `Giorno ${scopeDay.dayNumber}`
       : 'Percorso visualizzato'
 
+  const safeFuelKm =
+    Math.max(
+      50,
+      settings
+        .vehicleRangeKm -
+        settings
+          .fuelSafetyMarginKm,
+    )
+
+  const totalRoadKm =
+    routePlan
+      ? roadDistanceMeters(
+          routePlan,
+        ) /
+        1000
+      : 0
+
+  const estimatedTotalCost =
+    settings.kmPerLiter &&
+    settings.fuelPricePerLiter &&
+    totalRoadKm >
+      0
+      ? (
+          totalRoadKm /
+          settings.kmPerLiter
+        ) *
+        settings
+          .fuelPricePerLiter
+      : null
+
   const scopeStops =
     useMemo(
       () =>
@@ -236,6 +275,7 @@ export function FuelPanel({
         onStatus?.(
           'Prima visualizza un percorso da pianificare.',
         )
+
         return
       }
 
@@ -251,8 +291,12 @@ export function FuelPanel({
         const targets =
           plannedStopPoints(
             routePlan,
-            intervalKm,
-            60,
+            safeFuelKm,
+            Math.max(
+              30,
+              settings
+                .fuelSafetyMarginKm,
+            ),
           )
 
         const generated:
@@ -261,24 +305,13 @@ export function FuelPanel({
         const nextWarnings:
           string[] = []
 
-        for (
-          let index =
-            0;
-          index <
-            targets.length;
-          index +=
-            1
-        ) {
-          const target =
-            targets[
-              index
-            ]
+        let previousFuelKm =
+          0
 
-          /*
-           * Un'unica ricerca ampia serve solo a raccogliere i POI.
-           * Poi il filtro geometrico accetta esclusivamente stazioni
-           * vicine alla traccia e dentro la finestra chilometrica.
-           */
+        for (
+          const target
+          of targets
+        ) {
           const searchRadiusMeters =
             (
               flexibilityKm +
@@ -345,16 +378,15 @@ export function FuelPanel({
                     return null
                   }
 
-                  const score =
-                    deviationKm *
-                      12 +
-                    alongDifference
-
                   return {
                     candidate,
                     routeKm,
                     deviationKm,
-                    score,
+
+                    score:
+                      deviationKm *
+                        12 +
+                      alongDifference,
                   }
                 },
               )
@@ -393,6 +425,24 @@ export function FuelPanel({
 
             continue
           }
+
+          const segmentKm =
+            Math.max(
+              0,
+              best.routeKm -
+                previousFuelKm,
+            )
+
+          const estimatedCostEur =
+            settings.kmPerLiter &&
+            settings.fuelPricePerLiter
+              ? (
+                  segmentKm /
+                  settings.kmPerLiter
+                ) *
+                settings
+                  .fuelPricePerLiter
+              : undefined
 
           generated.push({
             id:
@@ -438,9 +488,14 @@ export function FuelPanel({
             durationMinutes:
               10,
 
+            estimatedCostEur,
+
             source:
               'locationiq',
           })
+
+          previousFuelKm =
+            best.routeKm
         }
 
         const preserved =
@@ -457,7 +512,7 @@ export function FuelPanel({
                 ) ===
                   (
                     selectedDayId ??
-                    null
+                      null
                   )
               ),
           )
@@ -474,8 +529,8 @@ export function FuelPanel({
         onStatus?.(
           generated.length >
             0
-            ? `${generated.length} rifornimenti vicini alla traccia pianificati per ${scopeLabel}.`
-            : `Nessun distributore compatibile trovato per ${scopeLabel}.`,
+            ? `${generated.length} rifornimenti pianificati per ${scopeLabel} con soglia prudenziale ${safeFuelKm} km.`
+            : `Nessun rifornimento intermedio compatibile trovato per ${scopeLabel}.`,
         )
       } catch (
         error
@@ -531,53 +586,13 @@ export function FuelPanel({
         </strong>
 
         <p>
-          MotoRoute cerca veri distributori vicino alla traccia. Può anticipare o posticipare il rifornimento entro la flessibilità indicata, ma limita la deviazione laterale.
+          Autonomia {settings.vehicleRangeKm} km · margine sicurezza {settings.fuelSafetyMarginKm} km · rifornimento cercato entro circa {safeFuelKm} km dal pieno precedente.
         </p>
 
-        <div className="service-panel-grid three">
+        <div className="service-panel-grid">
           <label>
             <span>
-              Rifornimento ogni
-            </span>
-
-            <div className="service-number-row">
-              <input
-                type="number"
-                min="50"
-                max="500"
-                step="10"
-                value={
-                  intervalKm
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setIntervalKm(
-                    Math.max(
-                      50,
-                      Math.min(
-                        500,
-                        Number(
-                          event
-                            .target
-                            .value,
-                        ) ||
-                          250,
-                      ),
-                    ),
-                  )
-                }
-              />
-
-              <small>
-                km
-              </small>
-            </div>
-          </label>
-
-          <label>
-            <span>
-              Flessibilità
+              Flessibilità lungo rotta
             </span>
 
             <div className="service-number-row">
@@ -623,7 +638,7 @@ export function FuelPanel({
             <div className="service-number-row">
               <input
                 type="number"
-                min="1"
+                min="0.5"
                 max="5"
                 step="0.5"
                 value={
@@ -634,7 +649,7 @@ export function FuelPanel({
                 ) =>
                   setMaxDeviationKm(
                     Math.max(
-                      1,
+                      0.5,
                       Math.min(
                         5,
                         Number(
@@ -655,6 +670,16 @@ export function FuelPanel({
             </div>
           </label>
         </div>
+
+        {estimatedTotalCost !==
+          null && (
+          <div className="service-cost-estimate">
+            Carburante stimato sul percorso visualizzato: <strong>€ {estimatedTotalCost.toFixed(2)}</strong>
+            <small>
+              stima su {settings.kmPerLiter?.toFixed(1)} km/l e € {settings.fuelPricePerLiter?.toFixed(2)}/l
+            </small>
+          </div>
+        )}
 
         <div className="service-panel-actions">
           <button
@@ -680,7 +705,7 @@ export function FuelPanel({
                 clearScope
               }
             >
-              Rimuovi soste
+              Rimuovi rifornimenti
             </button>
           )}
         </div>
@@ -739,14 +764,21 @@ export function FuelPanel({
                     </strong>
 
                     <span>
-                      circa km {stop.routeKm.toFixed(0)}
+                      km {stop.routeKm.toFixed(0)}
                       {' · '}
                       deviazione ~{(stop.deviationKm ?? 0).toFixed(1)} km
                       {' · '}
                       {stop.relaxMinutes
                         ? `carburante + relax ${stop.relaxMinutes} min`
-                        : `pausa ${stop.durationMinutes ?? 10} min`}
+                        : 'rifornimento'}
                     </span>
+
+                    {stop.estimatedCostEur !==
+                      undefined && (
+                      <span>
+                        consumo stimato dal precedente pieno: € {stop.estimatedCostEur.toFixed(2)}
+                      </span>
+                    )}
 
                     <small>
                       {stop.label}
