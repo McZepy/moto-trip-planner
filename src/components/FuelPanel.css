@@ -187,3 +187,27 @@
   border-color: #f59e0b;
   font-size: 8px;
 }
+
+
+.service-cost-estimate {
+  display: grid;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 8px 9px;
+  border: 1px solid #315b91;
+  border-radius: 7px;
+  background: #17263a;
+  color: #bfdbfe;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.service-cost-estimate strong {
+  color: #86efac;
+  font-size: 11px;
+}
+
+.service-cost-estimate small {
+  color: #93a4ba;
+  font-size: 8px;
+}
