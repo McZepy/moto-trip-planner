@@ -13,6 +13,8 @@ import type {
   TripDay,
 } from '../types/tripDay'
 
+import { EditableNumberInput } from './EditableNumberInput'
+
 import './DaysHotelPanel.css'
 
 type DaysHotelPanelProps = {
@@ -444,34 +446,21 @@ export function DaysHotelPanel({
                           €
                         </b>
 
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          placeholder="0"
+                        <EditableNumberInput
+                          min={1}
+                          step={1}
+                          placeholder="Es. 85"
+                          allowEmpty
                           value={
-                            overnight.priceEur ??
-                            ''
+                            overnight.priceEur
                           }
-                          onChange={(
-                            event,
+                          onCommit={(
+                            value,
                           ) =>
                             onHotelPriceChange?.(
                               day.id,
-                              event
-                                .target
-                                .value ===
-                                ''
-                                ? undefined
-                                : Math.max(
-                                    0,
-                                    Number(
-                                      event
-                                        .target
-                                        .value,
-                                    ) ||
-                                      0,
-                                  ),
+                              value ??
+                                undefined,
                             )
                           }
                         />
