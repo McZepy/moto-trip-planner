@@ -115,6 +115,9 @@ function convertRoadSection(
 
     geometry:
       section.geometry,
+
+    embeddedFerries:
+      section.embeddedFerries,
   }
 }
 
