@@ -8,10 +8,25 @@ export type RouteGeometry = {
   coordinates: number[][]
 }
 
+export type RouteEmbeddedFerry = {
+  startPointIndex: number
+  endPointIndex: number
+  distanceMeters: number
+  durationSeconds: number
+  geometry: RouteGeometry
+}
+
 export type RouteResult = {
   distanceMeters: number
   durationSeconds: number
   geometry: RouteGeometry
+
+  /*
+   * Alcuni provider, come TomTom, restituiscono segmenti traghetto
+   * incorporati nella polilinea principale. Li manteniamo separati
+   * come metadati senza alterare l'interfaccia generale del provider.
+   */
+  embeddedFerries?: RouteEmbeddedFerry[]
 }
 
 export interface RoutingProvider {
