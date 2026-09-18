@@ -5,8 +5,14 @@ import {
 } from 'react'
 
 import {
-  reverseLookupPoint,
+  autocompletePlaces,
+  reverseLookupLocalityPoint,
+  type SmartGeocodingResult,
 } from '../providers/autocompleteProvider'
+
+import {
+  rankAutocompleteSuggestions,
+} from '../providers/autocompleteRanking'
 
 import type {
   GeocodingResult,
@@ -67,6 +73,11 @@ type DaysHotelPanelProps = {
     (
       departureDate: string,
       returnDate: string,
+    ) => void
+  onOvernightPlaceChange?:
+    (
+      dayId: string,
+      place: GeocodingResult,
     ) => void
   onStatus?:
     (message: string) => void
@@ -382,6 +393,7 @@ export function DaysHotelPanel({
   settings,
   onChange,
   onDatesChange,
+  onOvernightPlaceChange,
   onStatus,
 }: DaysHotelPanelProps) {
   const roadKm =
@@ -469,6 +481,36 @@ export function DaysHotelPanel({
         HotelPlatform
       >
     >({})
+
+  const [
+    hotelQueries,
+    setHotelQueries,
+  ] =
+    useState<
+      Record<
+        string,
+        string
+      >
+    >({})
+
+  const [
+    hotelResults,
+    setHotelResults,
+  ] =
+    useState<
+      Record<
+        string,
+        SmartGeocodingResult[]
+      >
+    >({})
+
+  const [
+    hotelSearchingDayId,
+    setHotelSearchingDayId,
+  ] =
+    useState<
+      string | null
+    >(null)
 
   useEffect(() => {
     if (
@@ -648,7 +690,7 @@ export function DaysHotelPanel({
           ) {
             try {
               const place =
-                await reverseLookupPoint(
+                await reverseLookupLocalityPoint(
                   candidate.point,
                 )
 
@@ -998,6 +1040,136 @@ export function DaysHotelPanel({
       )
     }
 
+  const searchHotelAddress =
+    async (
+      day:
+        TripDay,
+    ) => {
+      const query =
+        (
+          hotelQueries[
+            day.id
+          ] ??
+          ''
+        ).trim()
+
+      if (
+        query.length <
+        3
+      ) {
+        setActionMessage(
+          'Scrivi almeno 3 caratteri dell’indirizzo o del nome hotel.',
+        )
+        return
+      }
+
+      setHotelSearchingDayId(
+        day.id,
+      )
+
+      try {
+        const focus =
+          day.overnight
+            ? {
+                lat:
+                  day.overnight
+                    .lat,
+
+                lng:
+                  day.overnight
+                    .lng,
+              }
+            : undefined
+
+        const results =
+          await autocompletePlaces(
+            query,
+            undefined,
+            {
+              focus,
+            },
+          )
+
+        setHotelResults(
+          (
+            current,
+          ) => ({
+            ...current,
+            [day.id]:
+              rankAutocompleteSuggestions(
+                query,
+                results,
+                focus,
+              ).slice(
+                0,
+                6,
+              ),
+          }),
+        )
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Ricerca indirizzo hotel non disponibile.'
+
+        setActionMessage(
+          message,
+        )
+        onStatus?.(
+          message,
+        )
+      } finally {
+        setHotelSearchingDayId(
+          null,
+        )
+      }
+    }
+
+  const chooseHotelAddress =
+    (
+      day:
+        TripDay,
+      place:
+        GeocodingResult,
+    ) => {
+      setHotelQueries(
+        (
+          current,
+        ) => ({
+          ...current,
+          [day.id]:
+            place.label ||
+            place.name,
+        }),
+      )
+
+      setHotelResults(
+        (
+          current,
+        ) => ({
+          ...current,
+          [day.id]:
+            [],
+        }),
+      )
+
+      onOvernightPlaceChange?.(
+        day.id,
+        place,
+      )
+
+      const message =
+        `Fine giornata ${day.dayNumber} spostata su ${place.name}.`
+
+      setActionMessage(
+        message,
+      )
+
+      onStatus?.(
+        message,
+      )
+    }
+
   const openHotelSearch =
     (
       day:
@@ -1015,9 +1187,9 @@ export function DaysHotelPanel({
 
       const query =
         day.overnight
-          .label ||
+          .name ||
         day.overnight
-          .name
+          .label
 
       const url =
         hotelSearchUrl(
@@ -1568,6 +1740,115 @@ export function DaysHotelPanel({
                           check-in {displayDate(day.overnight.checkIn)}
                           {' · '}
                           check-out {displayDate(day.overnight.checkOut)}
+                        </small>
+                      </div>
+
+                      <div className="day-hotel-point-editor">
+                        <label>
+                          <span>
+                            Hotel scelto / indirizzo esatto
+                          </span>
+
+                          <div className="day-hotel-point-search">
+                            <input
+                              type="text"
+                              value={
+                                hotelQueries[
+                                  day.id
+                                ] ??
+                                ''
+                              }
+                              placeholder="Es. nome hotel o indirizzo"
+                              onChange={(
+                                event,
+                              ) =>
+                                setHotelQueries(
+                                  (
+                                    current,
+                                  ) => ({
+                                    ...current,
+                                    [day.id]:
+                                      event
+                                        .target
+                                        .value,
+                                  }),
+                                )
+                              }
+                              onKeyDown={(
+                                event,
+                              ) => {
+                                if (
+                                  event.key ===
+                                  'Enter'
+                                ) {
+                                  event.preventDefault()
+
+                                  void searchHotelAddress(
+                                    day,
+                                  )
+                                }
+                              }}
+                            />
+
+                            <button
+                              type="button"
+                              disabled={
+                                hotelSearchingDayId ===
+                                day.id
+                              }
+                              onClick={() =>
+                                void searchHotelAddress(
+                                  day,
+                                )
+                              }
+                            >
+                              {hotelSearchingDayId ===
+                              day.id
+                                ? 'Cerco…'
+                                : 'Trova'}
+                            </button>
+                          </div>
+                        </label>
+
+                        {(hotelResults[
+                          day.id
+                        ]?.length ??
+                          0) >
+                          0 && (
+                          <div className="day-hotel-point-results">
+                            {hotelResults[
+                              day.id
+                            ].map(
+                              (
+                                result,
+                              ) => (
+                                <button
+                                  key={
+                                    result.id
+                                  }
+                                  type="button"
+                                  onClick={() =>
+                                    chooseHotelAddress(
+                                      day,
+                                      result,
+                                    )
+                                  }
+                                >
+                                  <strong>
+                                    {result.name}
+                                  </strong>
+
+                                  <small>
+                                    {result.label}
+                                  </small>
+                                </button>
+                              ),
+                            )}
+                          </div>
+                        )}
+
+                        <small className="day-hotel-point-hint">
+                          Puoi anche trascinare il marker della notte direttamente sulla mappa.
                         </small>
                       </div>
 
