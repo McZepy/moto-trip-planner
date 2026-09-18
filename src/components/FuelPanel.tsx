@@ -732,65 +732,6 @@ export function FuelPanel({
         )}
       </div>
 
-      {scopeStops.length >
-        0 && (
-        <div className="service-stop-list">
-          {scopeStops
-            .slice()
-            .sort(
-              (
-                first,
-                second,
-              ) =>
-                first.routeKm -
-                second.routeKm,
-            )
-            .map(
-              (
-                stop,
-                index,
-              ) => (
-                <div
-                  key={
-                    stop.id
-                  }
-                  className="service-stop-card"
-                >
-                  <span className="service-stop-badge fuel">
-                    F{index + 1}
-                  </span>
-
-                  <div>
-                    <strong>
-                      {stop.name}
-                    </strong>
-
-                    <span>
-                      km {stop.routeKm.toFixed(0)}
-                      {' · '}
-                      deviazione ~{(stop.deviationKm ?? 0).toFixed(1)} km
-                      {' · '}
-                      {stop.relaxMinutes
-                        ? `carburante + relax ${stop.relaxMinutes} min`
-                        : 'rifornimento'}
-                    </span>
-
-                    {stop.estimatedCostEur !==
-                      undefined && (
-                      <span>
-                        consumo stimato dal precedente pieno: € {stop.estimatedCostEur.toFixed(2)}
-                      </span>
-                    )}
-
-                    <small>
-                      {stop.label}
-                    </small>
-                  </div>
-                </div>
-              ),
-            )}
-        </div>
-      )}
     </section>
   )
 }
