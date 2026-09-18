@@ -9,6 +9,8 @@ import {
   type TripSettings,
 } from '../types/trip'
 
+import { EditableNumberInput } from './EditableNumberInput'
+
 import './TripSettingsModal.css'
 
 type TripSettingsModalProps = {
@@ -426,16 +428,16 @@ export function TripSettingsModal({
                   Autonomia prudenziale
                 </label>
 
-                <input
-                  type="number"
-                  min="50"
-                  max="1000"
-                  step="10"
+                <EditableNumberInput
+                  min={50}
+                  max={1000}
+                  step={10}
+                  fallback={250}
                   value={
                     draft.vehicleRangeKm
                   }
-                  onChange={(
-                    event,
+                  onCommit={(
+                    value,
                   ) =>
                     setDraft(
                       (
@@ -443,15 +445,8 @@ export function TripSettingsModal({
                       ) => ({
                         ...current,
                         vehicleRangeKm:
-                          Math.max(
-                            50,
-                            Number(
-                              event
-                                .target
-                                .value,
-                            ) ||
-                              250,
-                          ),
+                          value ??
+                          250,
                       }),
                     )
                   }
@@ -467,16 +462,22 @@ export function TripSettingsModal({
                   Margine sicurezza
                 </label>
 
-                <input
-                  type="number"
-                  min="10"
-                  max="200"
-                  step="10"
+                <EditableNumberInput
+                  min={10}
+                  max={
+                    Math.max(
+                      10,
+                      draft.vehicleRangeKm -
+                        10,
+                    )
+                  }
+                  step={10}
+                  fallback={50}
                   value={
                     draft.fuelSafetyMarginKm
                   }
-                  onChange={(
-                    event,
+                  onCommit={(
+                    value,
                   ) =>
                     setDraft(
                       (
@@ -490,11 +491,7 @@ export function TripSettingsModal({
                               current
                                 .vehicleRangeKm -
                                 10,
-                              Number(
-                                event
-                                  .target
-                                  .value,
-                              ) ||
+                              value ??
                                 50,
                             ),
                           ),
@@ -515,18 +512,17 @@ export function TripSettingsModal({
                   Consumo medio
                 </label>
 
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  step="0.1"
+                <EditableNumberInput
+                  min={1}
+                  max={100}
+                  step={0.1}
                   placeholder="Es. 20"
+                  allowEmpty
                   value={
-                    draft.kmPerLiter ??
-                    ''
+                    draft.kmPerLiter
                   }
-                  onChange={(
-                    event,
+                  onCommit={(
+                    value,
                   ) =>
                     setDraft(
                       (
@@ -534,20 +530,7 @@ export function TripSettingsModal({
                       ) => ({
                         ...current,
                         kmPerLiter:
-                          event
-                            .target
-                            .value ===
-                          ''
-                            ? null
-                            : Math.max(
-                                1,
-                                Number(
-                                  event
-                                    .target
-                                    .value,
-                                ) ||
-                                  1,
-                              ),
+                          value,
                       }),
                     )
                   }
@@ -563,18 +546,17 @@ export function TripSettingsModal({
                   Prezzo carburante
                 </label>
 
-                <input
-                  type="number"
-                  min="0.1"
-                  max="10"
-                  step="0.01"
+                <EditableNumberInput
+                  min={0.1}
+                  max={10}
+                  step={0.01}
                   placeholder="Es. 1,85"
+                  allowEmpty
                   value={
-                    draft.fuelPricePerLiter ??
-                    ''
+                    draft.fuelPricePerLiter
                   }
-                  onChange={(
-                    event,
+                  onCommit={(
+                    value,
                   ) =>
                     setDraft(
                       (
@@ -582,20 +564,7 @@ export function TripSettingsModal({
                       ) => ({
                         ...current,
                         fuelPricePerLiter:
-                          event
-                            .target
-                            .value ===
-                          ''
-                            ? null
-                            : Math.max(
-                                0.1,
-                                Number(
-                                  event
-                                    .target
-                                    .value,
-                                ) ||
-                                  0.1,
-                              ),
+                          value,
                       }),
                     )
                   }
