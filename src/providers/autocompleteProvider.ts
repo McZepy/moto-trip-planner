@@ -146,18 +146,49 @@ const reverseResponseCache =
     LocationIqResult | null
   >()
 
+function readLocationIqKey() {
+  const env =
+    import.meta.env as Record<
+      string,
+      unknown
+    >
+
+  const candidates = [
+    env.VITE_LOCATIONIQ_KEY,
+    env.VITE_LOCATIONIQ_API_KEY,
+    env.VITE_LOCATIONIQ_TOKEN,
+  ]
+
+  const key =
+    candidates.find(
+      (
+        value,
+      ) =>
+        typeof value ===
+          'string' &&
+        value.trim().length >
+          0,
+    )
+
+  return typeof key ===
+    'string'
+    ? key.trim()
+    : null
+}
+
+export function isLocationIqConfigured() {
+  return Boolean(
+    readLocationIqKey(),
+  )
+}
+
 function getApiKey() {
   const key =
-    import.meta.env
-      .VITE_LOCATIONIQ_KEY
+    readLocationIqKey()
 
-  if (
-    !key ||
-    typeof key !==
-      'string'
-  ) {
+  if (!key) {
     throw new Error(
-      'Chiave LocationIQ non configurata nel file .env.',
+      'LocationIQ non configurata: verifica VITE_LOCATIONIQ_KEY nel file .env e riavvia Vite.',
     )
   }
 
@@ -1354,6 +1385,68 @@ export async function autocompletePlaces(
       context.boundedToFocus,
     )
 
+  const catalog =
+    ferryCatalogSuggestions(
+      trimmedQuery,
+    )
+
+  const normalizedQuery =
+    trimmedQuery
+      .normalize('NFD')
+      .replace(
+        /[\\u0300-\\u036f]/g,
+        '',
+      )
+      .toLowerCase()
+      .trim()
+
+  const hasStrongCityMatch =
+    cities.some(
+      (
+        item,
+      ) => {
+        const normalizedName =
+          item.name
+            .normalize('NFD')
+            .replace(
+              /[\\u0300-\\u036f]/g,
+              '',
+            )
+            .toLowerCase()
+            .trim()
+
+        return (
+          normalizedName ===
+            normalizedQuery ||
+          normalizedName.startsWith(
+            normalizedQuery,
+          )
+        )
+      },
+    )
+
+  /*
+   * Per le ricerche di località comuni evitiamo una seconda
+   * chiamata LocationIQ: rende l'autocomplete molto più rapido.
+   * POI/nomi non riconosciuti come città continuano con la ricerca
+   * generale.
+   */
+  if (
+    hasStrongCityMatch &&
+    cities.length >
+      0
+  ) {
+    return dedupeSuggestions(
+      [
+        ...cities,
+        ...catalog,
+      ],
+    ).slice(
+      0,
+      10,
+    )
+  }
+
   const general =
     await locationIqAutocomplete(
       trimmedQuery,
@@ -1361,11 +1454,6 @@ export async function autocompletePlaces(
       undefined,
       context.focus,
       context.boundedToFocus,
-    )
-
-  const catalog =
-    ferryCatalogSuggestions(
-      trimmedQuery,
     )
 
   return dedupeSuggestions(
