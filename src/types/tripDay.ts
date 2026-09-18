@@ -38,6 +38,18 @@ export type TripDay = {
   steps: TripDayStep[]
   notes: string[]
 
+  plannedDistanceMeters?:
+    number
+
+  overnight?: {
+    name: string
+    label: string
+    lat: number
+    lng: number
+    checkIn: string
+    checkOut: string
+  }
+
   /*
    * Quando presente, questa è la versione modificata manualmente
    * dalla pagina "Itinerario & Tappe".
