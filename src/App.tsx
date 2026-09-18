@@ -374,7 +374,7 @@ function SearchField({
               query,
             )
         },
-        900,
+        220,
       )
 
     return () => {
