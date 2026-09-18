@@ -41,6 +41,18 @@ import './DaysHotelPanel.css'
 
 type DaysHotelPanelProps = {
   days: TripDay[]
+
+  /* Compatibilità temporanea con il contenitore App durante
+   * la migrazione V0.7: non vengono più usati per generare
+   * automaticamente il percorso da testo.
+   */
+  selectedDayId?: string | null
+  routeStats?: Record<string, unknown>
+  routingBusy?: boolean
+  routingProgress?: string | null
+  onSelectDay?: (day: TripDay) => void
+  onShowOverview?: () => void
+
   routePlan:
     TripRoutePlan | null
   startPlace:
