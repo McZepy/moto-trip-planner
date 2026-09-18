@@ -113,7 +113,10 @@ function roadSections(
   return plan.sections.filter(
     (
       section,
-    ) =>
+    ): section is Extract<
+      TripRouteSection,
+      { type: 'road' }
+    > =>
       section.type ===
       'road',
   )
@@ -128,9 +131,33 @@ export function roadDistanceMeters(
     (
       total,
       section,
-    ) =>
-      total +
-      section.distanceMeters,
+    ) => {
+      const ferryMeters =
+        (
+          section
+            .embeddedFerries ??
+          []
+        ).reduce(
+          (
+            subtotal,
+            ferry,
+          ) =>
+            subtotal +
+            ferry
+              .distanceMeters,
+          0,
+        )
+
+      return (
+        total +
+        Math.max(
+          0,
+          section
+            .distanceMeters -
+            ferryMeters,
+        )
+      )
+    },
     0,
   )
 }
@@ -157,6 +184,14 @@ function weightedSegmentsForSection(
         routeStartMeters,
     }
   }
+
+  const ferryRanges =
+    section.type ===
+      'road'
+      ? section
+          .embeddedFerries ??
+        []
+      : []
 
   const raw =
     coordinates
@@ -189,9 +224,22 @@ function weightedSegmentsForSection(
               next[1],
           }
 
+          const onFerry =
+            ferryRanges.some(
+              (
+                ferry,
+              ) =>
+                index >=
+                  ferry.startPointIndex &&
+                index <
+                  ferry.endPointIndex,
+            )
+
           return {
             from,
             to,
+            index,
+            onFerry,
             rawMeters:
               distanceMeters(
                 from,
@@ -228,50 +276,57 @@ function weightedSegmentsForSection(
   let current =
     routeStartMeters
 
-  const segments =
-    raw.map(
+  const segments:
+    WeightedSegment[] = []
+
+  for (
+    const segment
+    of raw
+  ) {
+    const weighted =
+      section
+        .distanceMeters *
       (
-        segment,
-      ) => {
-        const weighted =
-          section
-            .distanceMeters *
-          (
-            segment
-              .rawMeters /
-            rawTotal
-          )
+        segment
+          .rawMeters /
+        rawTotal
+      )
 
-        const item:
-          WeightedSegment = {
-          from:
-            segment.from,
+    if (
+      segment.onFerry
+    ) {
+      continue
+    }
 
-          to:
-            segment.to,
+    const item:
+      WeightedSegment = {
+      from:
+        segment.from,
 
-          startMeters:
-            current,
+      to:
+        segment.to,
 
-          endMeters:
-            current +
-            weighted,
-        }
+      startMeters:
+        current,
 
-        current =
-          item.endMeters
+      endMeters:
+        current +
+        weighted,
+    }
 
-        return item
-      },
+    current =
+      item.endMeters
+
+    segments.push(
+      item,
     )
+  }
 
   return {
     segments,
 
     routeEndMeters:
-      routeStartMeters +
-      section
-        .distanceMeters,
+      current,
   }
 }
 
