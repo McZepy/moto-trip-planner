@@ -44,7 +44,7 @@ export function hotelSearchUrl(
     'booking'
   ) {
     return (
-      'https://www.booking.com/searchresults.html' +
+      'https://www.booking.com/searchresults.it.html' +
       '?ss=' +
       location +
       '&checkin=' +
@@ -54,7 +54,10 @@ export function hotelSearchUrl(
       '&checkout=' +
       encode(
         checkOut,
-      )
+      ) +
+      '&group_adults=2' +
+      '&group_children=0' +
+      '&no_rooms=1'
     )
   }
 
