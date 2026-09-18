@@ -418,18 +418,10 @@ export function candidateRoadDistances(
   toleranceKm:
     number,
 ) {
-  const half =
-    toleranceKm /
-    2
-
   return [
     targetKm -
       toleranceKm,
-    targetKm -
-      half,
     targetKm,
-    targetKm +
-      half,
     targetKm +
       toleranceKm,
   ]
