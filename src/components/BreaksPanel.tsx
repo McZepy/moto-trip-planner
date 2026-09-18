@@ -12,6 +12,7 @@ import type {
 } from '../providers/tripRoutePlanner'
 
 import {
+  mergeFuelAndBreakStops,
   plannedStopPoints,
 } from '../itinerary/serviceStopPlanner'
 
@@ -576,24 +577,42 @@ export function BreaksPanel({
           })
         }
 
-        onChange([
-          ...baseStops,
-          ...generated,
-        ])
+        const reconciled =
+          mergeFuelAndBreakStops(
+            [
+              ...baseStops,
+              ...generated,
+            ],
+            selectedDayId ??
+              null,
+            flexibilityKm,
+            Math.min(
+              12,
+              flexibilityKm,
+            ),
+          )
+
+        onChange(
+          reconciled.stops,
+        )
 
         setWarnings(
           nextWarnings,
         )
 
+        const totalMerged =
+          mergedCount +
+          reconciled.mergedCount
+
         const parts:
           string[] = []
 
         if (
-          mergedCount >
+          totalMerged >
           0
         ) {
           parts.push(
-            `${mergedCount} ${mergedCount === 1 ? 'pausa unita' : 'pause unite'} ai rifornimenti`,
+            `${totalMerged} ${totalMerged === 1 ? 'pausa unita' : 'pause unite'} ai rifornimenti`,
           )
         }
 
@@ -601,9 +620,21 @@ export function BreaksPanel({
           generated.length >
           0
         ) {
-          parts.push(
-            `${generated.length} ${generated.length === 1 ? 'area pausa trovata' : 'aree pausa trovate'}`,
-          )
+          const remainingGenerated =
+            Math.max(
+              0,
+              generated.length -
+                reconciled.mergedCount,
+            )
+
+          if (
+            remainingGenerated >
+            0
+          ) {
+            parts.push(
+              `${remainingGenerated} ${remainingGenerated === 1 ? 'area pausa trovata' : 'aree pausa trovate'}`,
+            )
+          }
         }
 
         onStatus?.(
