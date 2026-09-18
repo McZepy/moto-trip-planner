@@ -1031,6 +1031,14 @@ function App() {
     >(null)
 
   const [
+    routeScopeDayId,
+    setRouteScopeDayId,
+  ] =
+    useState<
+      string | null
+    >(null)
+
+  const [
     duration,
     setDuration,
   ] =
@@ -1881,6 +1889,10 @@ function App() {
         null,
       )
 
+      setRouteScopeDayId(
+        null,
+      )
+
       setDistance(null)
       setDuration(null)
     }
@@ -2001,6 +2013,9 @@ function App() {
       )
 
       setCurrentRoutePlan(
+        null,
+      )
+      setRouteScopeDayId(
         null,
       )
       setDistance(null)
@@ -2516,6 +2531,14 @@ function App() {
 
       setDaysRoutingBusy(true)
       setSelectedDayId(
+        day.id,
+      )
+
+      setCurrentRoutePlan(
+        null,
+      )
+
+      setRouteScopeDayId(
         day.id,
       )
 
@@ -3048,6 +3071,14 @@ function App() {
         showTripRoutePlan(
           map,
           result.plan,
+        )
+
+        setCurrentRoutePlan(
+          result.plan,
+        )
+
+        setRouteScopeDayId(
+          null,
         )
 
         const stats =
@@ -5137,6 +5168,11 @@ function App() {
             plan,
           )
 
+          setRouteScopeDayId(
+            editingDayId ??
+              null,
+          )
+
           setDistance(
             plan.distanceMeters,
           )
@@ -5251,6 +5287,7 @@ function App() {
     tripSettings
       .roadPreferences
       .avoidUrbanAreas,
+    editingDayId,
   ])
 
   const renderAddButton =
@@ -6209,7 +6246,7 @@ function App() {
 
             <FuelPanel
               routePlan={currentRoutePlan}
-              selectedDayId={selectedDayId}
+              selectedDayId={routeScopeDayId}
               days={days}
               stops={serviceStops}
               onChange={setServiceStops}
@@ -6235,7 +6272,7 @@ function App() {
 
             <BreaksPanel
               routePlan={currentRoutePlan}
-              selectedDayId={selectedDayId}
+              selectedDayId={routeScopeDayId}
               days={days}
               stops={serviceStops}
               onChange={setServiceStops}
