@@ -326,7 +326,15 @@ type SearchFieldProps = {
     (value: string) => void
 
   onAutocomplete:
-    (query: string) => void
+    (
+      query: string,
+    ) =>
+      | void
+      | SmartGeocodingResult[]
+      | Promise<
+          | void
+          | SmartGeocodingResult[]
+        >
 
   onSelect:
     (
@@ -399,6 +407,11 @@ function SearchField({
       onAutocomplete,
     )
 
+  const debounceTimerRef =
+    useRef<
+      number | null
+    >(null)
+
   useEffect(() => {
     autocompleteRef.current =
       onAutocomplete
@@ -414,10 +427,22 @@ function SearchField({
       return
     }
 
-    const timer =
+    if (
+      debounceTimerRef.current !==
+      null
+    ) {
+      window.clearTimeout(
+        debounceTimerRef.current,
+      )
+    }
+
+    debounceTimerRef.current =
       window.setTimeout(
         () => {
-          autocompleteRef
+          debounceTimerRef.current =
+            null
+
+          void autocompleteRef
             .current(
               query,
             )
@@ -426,9 +451,17 @@ function SearchField({
       )
 
     return () => {
-      window.clearTimeout(
-        timer,
-      )
+      if (
+        debounceTimerRef.current !==
+        null
+      ) {
+        window.clearTimeout(
+          debounceTimerRef.current,
+        )
+
+        debounceTimerRef.current =
+          null
+      }
     }
   }, [value])
 
@@ -512,24 +545,68 @@ function SearchField({
           }
           onKeyDown={(event) => {
             if (
-              event.key ===
+              event.key !==
               'Enter'
             ) {
-              event.preventDefault()
-
-              const query =
-                value.trim()
-
-              if (
-                query.length >=
-                3
-              ) {
-                autocompleteRef
-                  .current(
-                    query,
-                  )
-              }
+              return
             }
+
+            event.preventDefault()
+
+            const query =
+              value.trim()
+
+            if (
+              query.length <
+              3
+            ) {
+              return
+            }
+
+            if (
+              debounceTimerRef.current !==
+              null
+            ) {
+              window.clearTimeout(
+                debounceTimerRef.current,
+              )
+
+              debounceTimerRef.current =
+                null
+            }
+
+            const firstResult =
+              results[0]
+
+            if (
+              firstResult
+            ) {
+              onSelect(
+                firstResult,
+              )
+
+              return
+            }
+
+            void Promise.resolve(
+              autocompleteRef
+                .current(
+                  query,
+                ),
+            ).then(
+              (
+                searchedResults,
+              ) => {
+                const first =
+                  searchedResults?.[0]
+
+                if (first) {
+                  onSelect(
+                    first,
+                  )
+                }
+              },
+            )
           }}
         />
 
@@ -2542,13 +2619,18 @@ function App() {
           return
         }
 
-        setStartResults(
+        const ranked =
           rankAutocompleteSuggestions(
             cleanQuery,
             results,
             startSearchFocus,
-          ),
+          )
+
+        setStartResults(
+          ranked,
         )
+
+        return ranked
       } catch (error) {
         if (
           error instanceof
@@ -2635,13 +2717,18 @@ function App() {
           return
         }
 
-        setDestinationResults(
+        const ranked =
           rankAutocompleteSuggestions(
             cleanQuery,
             results,
             destinationSearchFocus,
-          ),
+          )
+
+        setDestinationResults(
+          ranked,
         )
+
+        return ranked
       } catch (error) {
         if (
           error instanceof
@@ -2759,6 +2846,13 @@ function App() {
           return
         }
 
+        const ranked =
+          rankAutocompleteSuggestions(
+            cleanQuery,
+            results,
+            intermediateSearchFocus,
+          )
+
         setEditingWaypoint(
           (
             current,
@@ -2773,14 +2867,12 @@ function App() {
                     false,
 
                   results:
-                    rankAutocompleteSuggestions(
-                      cleanQuery,
-                      results,
-                      intermediateSearchFocus,
-                    ),
+                    ranked,
                 }
               : current,
         )
+
+        return ranked
       } catch (error) {
         if (
           error instanceof
