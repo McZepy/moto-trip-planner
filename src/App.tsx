@@ -4609,7 +4609,7 @@ function App() {
             </div>
 
             <SearchField
-              placeholder="Es. Viganò"
+              placeholder="Es. Milano"
               value={
                 startQuery
               }
@@ -4785,7 +4785,7 @@ function App() {
             </div>
 
             <SearchField
-              placeholder="Es. Lecco"
+              placeholder="Es. Firenze"
               value={
                 destinationQuery
               }
