@@ -1090,21 +1090,47 @@ export function DaysHotelPanel({
             },
           )
 
+        const ranked =
+          rankAutocompleteSuggestions(
+            query,
+            results,
+            focus,
+          ).slice(
+            0,
+            6,
+          )
+
         setHotelResults(
           (
             current,
           ) => ({
             ...current,
             [day.id]:
-              rankAutocompleteSuggestions(
-                query,
-                results,
-                focus,
-              ).slice(
-                0,
-                6,
-              ),
+              ranked,
           }),
+        )
+
+        const first =
+          ranked[0]
+
+        if (first) {
+          chooseHotelAddress(
+            day,
+            first,
+          )
+
+          return
+        }
+
+        const message =
+          'Nessun indirizzo trovato.'
+
+        setActionMessage(
+          message,
+        )
+
+        onStatus?.(
+          message,
         )
       } catch (error) {
         const message =
@@ -1848,7 +1874,7 @@ export function DaysHotelPanel({
                         )}
 
                         <small className="day-hotel-point-hint">
-                          Puoi anche trascinare il marker della notte direttamente sulla mappa.
+                          Premi Invio o Trova: il primo risultato viene applicato subito. Puoi anche trascinare il marker della notte direttamente sulla mappa.
                         </small>
                       </div>
 
