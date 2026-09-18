@@ -86,6 +86,9 @@ import {
 } from './types/waypoint'
 
 import type { TripDay } from './types/tripDay'
+import type {
+  TripServiceStop,
+} from './types/serviceStop'
 import {
   clearTripDayPlaceCache,
   planTripDaysRoute,
@@ -96,6 +99,8 @@ import { showTripRoutePlan } from './map/showTripRoutePlan'
 import { TripsModal } from './components/TripsModal'
 import { TripSettingsModal } from './components/TripSettingsModal'
 import { DaysHotelPanel } from './components/DaysHotelPanel'
+import { FuelPanel } from './components/FuelPanel'
+import { BreaksPanel } from './components/BreaksPanel'
 
 setWorkerUrl(workerUrl)
 
@@ -300,7 +305,9 @@ function createMapMarkerElement(
     | 'start'
     | 'waypoint'
     | 'destination'
-    | 'overnight',
+    | 'overnight'
+    | 'fuel'
+    | 'break',
 ) {
   const element =
     document.createElement('div')
@@ -730,6 +737,16 @@ function App() {
       new globalThis.Map(),
     )
 
+  const serviceStopMarkersRef =
+    useRef<
+      globalThis.Map<
+        string,
+        Marker
+      >
+    >(
+      new globalThis.Map(),
+    )
+
   const dayEditorSnapshotRef =
     useRef<
       DayEditorSnapshot | null
@@ -871,6 +888,14 @@ function App() {
     setDays,
   ] =
     useState<TripDay[]>([])
+
+  const [
+    serviceStops,
+    setServiceStops,
+  ] =
+    useState<
+      TripServiceStop[]
+    >([])
 
   const daysRef =
     useRef<TripDay[]>(
@@ -1632,6 +1657,222 @@ function App() {
     ],
   )
 
+  const removeServiceStopMarkers =
+    () => {
+      serviceStopMarkersRef
+        .current
+        .forEach(
+          (
+            marker,
+          ) =>
+            marker.remove(),
+        )
+
+      serviceStopMarkersRef
+        .current
+        .clear()
+    }
+
+  const updateServiceStopPosition =
+    async (
+      stop:
+        TripServiceStop,
+      point: {
+        lat: number
+        lng: number
+      },
+    ) => {
+      let name =
+        stop.name
+
+      let label =
+        stop.label
+
+      try {
+        const place =
+          await reverseLookupPoint(
+            point,
+          )
+
+        name =
+          stop.kind ===
+            'fuel'
+            ? stop.name
+            : place.name
+
+        label =
+          place.label
+      } catch {
+        // Mantiene etichetta precedente.
+      }
+
+      setServiceStops(
+        (
+          current,
+        ) =>
+          current.map(
+            (
+              item,
+            ) =>
+              item.id ===
+                stop.id
+                ? {
+                    ...item,
+
+                    name,
+                    label,
+
+                    lat:
+                      point.lat,
+
+                    lng:
+                      point.lng,
+
+                    source:
+                      'manual',
+                  }
+                : item,
+          ),
+      )
+
+      setStatus(
+        stop.kind ===
+          'fuel'
+          ? 'Sosta carburante spostata. Premi Salva per conservarla.'
+          : 'Pausa relax spostata. Premi Salva per conservarla.',
+      )
+    }
+
+  const syncServiceStopMarkers =
+    (
+      items:
+        TripServiceStop[],
+    ) => {
+      const map =
+        mapRef.current
+
+      if (!map) {
+        return
+      }
+
+      removeServiceStopMarkers()
+
+      const counters = {
+        fuel:
+          0,
+        break:
+          0,
+      }
+
+      items.forEach(
+        (
+          stop,
+        ) => {
+          counters[
+            stop.kind
+          ] +=
+            1
+
+          const prefix =
+            stop.kind ===
+              'fuel'
+              ? 'F'
+              : 'P'
+
+          const element =
+            createMapMarkerElement(
+              prefix +
+                counters[
+                  stop.kind
+                ],
+              stop.kind,
+            )
+
+          const marker =
+            new Marker({
+              element,
+              draggable:
+                true,
+            })
+              .setLngLat([
+                stop.lng,
+                stop.lat,
+              ])
+              .setPopup(
+                new Popup().setText(
+                  stop.name,
+                ),
+              )
+              .addTo(
+                map,
+              )
+
+          marker.on(
+            'dragend',
+            () => {
+              const point =
+                marker.getLngLat()
+
+              void updateServiceStopPosition(
+                stop,
+                {
+                  lat:
+                    point.lat,
+
+                  lng:
+                    point.lng,
+                },
+              )
+            },
+          )
+
+          serviceStopMarkersRef
+            .current
+            .set(
+              stop.id,
+              marker,
+            )
+        },
+      )
+    }
+
+  useEffect(
+    () => {
+      if (
+        editingDayId
+      ) {
+        const visibleStops =
+          serviceStops.filter(
+            (
+              stop,
+            ) =>
+              stop.dayId ===
+              editingDayId,
+          )
+
+        syncServiceStopMarkers(
+          visibleStops,
+        )
+
+        return () => {
+          removeServiceStopMarkers()
+        }
+      }
+
+      syncServiceStopMarkers(
+        serviceStops,
+      )
+
+      return () => {
+        removeServiceStopMarkers()
+      }
+    },
+    [
+      serviceStops,
+      editingDayId,
+    ],
+  )
+
   const clearRouteData =
     () => {
       removeRoute()
@@ -1688,6 +1929,7 @@ function App() {
 
       removeWaypointMarkers()
       removeOvernightMarkers()
+      removeServiceStopMarkers()
       removeRoute()
 
       setTripName(
@@ -1722,6 +1964,7 @@ function App() {
 
       setWaypoints([])
       setDays([])
+      setServiceStops([])
       setSelectedDayId(null)
       setEditingDayId(null)
       dayEditorSnapshotRef.current =
@@ -1829,6 +2072,8 @@ function App() {
 
             days,
 
+            serviceStops,
+
             settings:
               cloneTripSettings(
                 tripSettings,
@@ -1858,6 +2103,11 @@ function App() {
 
       setDays(
         saved.days ?? [],
+      )
+
+      setServiceStops(
+        saved.serviceStops ??
+          [],
       )
 
       refreshSavedTrips()
@@ -1890,6 +2140,7 @@ function App() {
         null
 
       removeWaypointMarkers()
+      removeServiceStopMarkers()
       removeRoute()
 
       setCurrentTripId(
@@ -1941,6 +2192,11 @@ function App() {
 
       setDays(
         trip.days ?? [],
+      )
+
+      setServiceStops(
+        trip.serviceStops ??
+          [],
       )
 
       setSelectedDayId(null)
@@ -5951,21 +6207,18 @@ function App() {
               Rifornimenti
             </h2>
 
-            <div className="placeholder-card">
-              <strong>
-                Pianificazione carburante
-              </strong>
+            <FuelPanel
+              routePlan={currentRoutePlan}
+              selectedDayId={selectedDayId}
+              days={days}
+              stops={serviceStops}
+              onChange={setServiceStops}
+              onStatus={setStatus}
+            />
 
-              <p>
-                Qui inseriremo autonomia moto,
-                distributori sul percorso e
-                deviazione massima consentita.
-              </p>
-
-              <span>
-                Funzione in preparazione
-              </span>
-            </div>
+            <p className="route-status">
+              {status}
+            </p>
           </section>
         )
       }
@@ -5980,20 +6233,18 @@ function App() {
               Pause & Pranzo
             </h2>
 
-            <div className="placeholder-card">
-              <strong>
-                Pause di viaggio
-              </strong>
+            <BreaksPanel
+              routePlan={currentRoutePlan}
+              selectedDayId={selectedDayId}
+              days={days}
+              stops={serviceStops}
+              onChange={setServiceStops}
+              onStatus={setStatus}
+            />
 
-              <p>
-                Qui gestiremo frequenza delle
-                pause, pranzo e soste di comfort.
-              </p>
-
-              <span>
-                Funzione in preparazione
-              </span>
-            </div>
+            <p className="route-status">
+              {status}
+            </p>
           </section>
         )
       }
