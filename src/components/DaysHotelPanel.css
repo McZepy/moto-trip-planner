@@ -666,3 +666,74 @@
   font-size: 9px;
   line-height: 1.35;
 }
+
+
+.trip-day-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trip-day-selected-badge {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #1d4ed8;
+  color: #dbeafe;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.trip-day-open-button {
+  width: 100%;
+  height: 32px;
+  margin-top: 8px;
+  border: 1px solid #3b82f6;
+  border-radius: 7px;
+  background: #17263a;
+  color: #bfdbfe;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.trip-day-open-button:hover {
+  background: #203756;
+}
+
+.trip-day-open-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.days-view-actions {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.days-view-actions button {
+  height: 34px;
+  border: 1px solid #4b5563;
+  border-radius: 7px;
+  background: #292929;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.days-view-actions button:hover {
+  background: #343434;
+}
+
+.days-view-actions button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.days-view-actions span {
+  color: #9ca3af;
+  font-size: 10px;
+  line-height: 1.35;
+}
