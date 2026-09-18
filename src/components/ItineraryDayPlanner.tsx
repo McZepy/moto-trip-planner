@@ -42,6 +42,8 @@ import type {
   Waypoint,
 } from '../types/waypoint'
 
+import { EditableNumberInput } from './EditableNumberInput'
+
 import './ItineraryDayPlanner.css'
 
 type ItineraryDayPlannerProps = {
@@ -1523,10 +1525,10 @@ export function ItineraryDayPlanner({
                           </label>
 
                           <div>
-                            <input
-                              type="number"
-                              min="20"
-                              step="10"
+                            <EditableNumberInput
+                              min={20}
+                              step={10}
+                              fallback={20}
                               value={
                                 Math.round(
                                   dayTarget,
@@ -1538,35 +1540,18 @@ export function ItineraryDayPlanner({
                                     1 ||
                                 busy
                               }
-                              onChange={(
-                                event,
-                              ) =>
+                              onCommit={(
+                                value,
+                              ) => {
                                 updateDistance(
                                   index,
-                                  Number(
-                                    event
-                                      .target
-                                      .value,
-                                  ) ||
+                                  value ??
                                     20,
                                 )
-                              }
-                              onBlur={() =>
+
                                 void generateDays(
                                   dayTargets,
                                 )
-                              }
-                              onKeyDown={(
-                                event,
-                              ) => {
-                                if (
-                                  event.key ===
-                                  'Enter'
-                                ) {
-                                  event
-                                    .currentTarget
-                                    .blur()
-                                }
                               }}
                             />
 
