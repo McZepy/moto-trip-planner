@@ -325,3 +325,15 @@ input[type='checkbox'] {
   font-size: 13px;
   font-weight: 700;
 }
+
+
+.trip-settings-field select {
+  width: 100%;
+  min-height: 38px;
+  box-sizing: border-box;
+  border: 1px solid #343434;
+  border-radius: 8px;
+  background: #1c1c1c;
+  color: #ffffff;
+  padding: 0 10px;
+}
