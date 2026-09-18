@@ -420,6 +420,12 @@ function selectedPlace(
 
 export function DaysHotelPanel({
   days,
+  selectedDayId,
+  routeStats,
+  routingBusy,
+  routingProgress,
+  onSelectDay,
+  onShowOverview,
   routePlan,
   startPlace,
   destinationPlace,
@@ -1761,6 +1767,29 @@ export function DaysHotelPanel({
 
       {days.length >
         0 && (
+        <div className="days-view-actions">
+          <button
+            type="button"
+            disabled={
+              routingBusy
+            }
+            onClick={() =>
+              onShowOverview?.()
+            }
+          >
+            Mostra viaggio completo
+          </button>
+
+          {routingProgress && (
+            <span>
+              {routingProgress}
+            </span>
+          )}
+        </div>
+      )}
+
+      {days.length >
+        0 && (
         <div className="days-list">
           {days.map(
             (
@@ -1801,21 +1830,46 @@ export function DaysHotelPanel({
                   }
                 >
                   <div className="trip-day-header">
-                    <strong>
-                      Giorno {index + 1}
-                    </strong>
+                    <div className="trip-day-title-wrap">
+                      <strong>
+                        Giorno {index + 1}
+                      </strong>
+
+                      {selectedDayId ===
+                        day.id && (
+                        <span className="trip-day-selected-badge">
+                          aperto
+                        </span>
+                      )}
+                    </div>
 
                     <div className="trip-day-header-right">
-                      {day
-                        .plannedDistanceMeters !==
-                        undefined && (
+                      {routeStats?.[
+                        day.id
+                      ] ? (
+                        <span className="trip-day-route-stats">
+                          {formatDistance(
+                            routeStats[
+                              day.id
+                            ].distanceMeters,
+                          )}
+                          {' · '}
+                          {formatDuration(
+                            routeStats[
+                              day.id
+                            ].durationSeconds,
+                          )}
+                        </span>
+                      ) : day
+                          .plannedDistanceMeters !==
+                        undefined ? (
                         <span className="trip-day-route-stats">
                           {formatDistance(
                             day
                               .plannedDistanceMeters,
                           )}
                         </span>
-                      )}
+                      ) : null}
 
                       <span>
                         {day.dateLabel}
@@ -1842,6 +1896,22 @@ export function DaysHotelPanel({
                         : '—'}
                     </strong>
                   </div>
+
+                  <button
+                    type="button"
+                    className="trip-day-open-button"
+                    disabled={
+                      routingBusy
+                    }
+                    onClick={() =>
+                      onSelectDay?.(
+                        day,
+                      )
+                    }
+                  >
+                    Mostra / modifica Giorno {index + 1}
+                  </button>
+
 
                   {day.overnight && (
                     <div className="day-hotel-search">
