@@ -80,6 +80,13 @@ function cloneDays(
       notes:
         [...day.notes],
 
+      overnight:
+        day.overnight
+          ? {
+              ...day.overnight,
+            }
+          : undefined,
+
       routingOverride:
         day.routingOverride
           ? {
