@@ -5,8 +5,8 @@ import {
 } from 'react'
 
 import {
-  autocompletePlaces,
   reverseLookupLocalityPoint,
+  searchExactPlaces,
   type SmartGeocodingResult,
 } from '../providers/autocompleteProvider'
 
@@ -1082,12 +1082,10 @@ export function DaysHotelPanel({
             : undefined
 
         const results =
-          await autocompletePlaces(
+          await searchExactPlaces(
             query,
             undefined,
-            {
-              focus,
-            },
+            focus,
           )
 
         const ranked =
