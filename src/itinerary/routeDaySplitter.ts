@@ -468,6 +468,206 @@ export function pointAtRoadDistance(
   }
 }
 
+function projectedPointRatio(
+  point: {
+    lat: number
+    lng: number
+  },
+  from: {
+    lat: number
+    lng: number
+  },
+  to: {
+    lat: number
+    lng: number
+  },
+) {
+  const referenceLat =
+    (
+      from.lat +
+      to.lat +
+      point.lat
+    ) /
+    3
+
+  const lngScale =
+    Math.cos(
+      referenceLat *
+      Math.PI /
+      180,
+    )
+
+  const ax =
+    from.lng *
+    lngScale
+
+  const ay =
+    from.lat
+
+  const bx =
+    to.lng *
+    lngScale
+
+  const by =
+    to.lat
+
+  const px =
+    point.lng *
+    lngScale
+
+  const py =
+    point.lat
+
+  const dx =
+    bx -
+    ax
+
+  const dy =
+    by -
+    ay
+
+  const lengthSquared =
+    dx *
+    dx +
+    dy *
+    dy
+
+  if (
+    lengthSquared <=
+    0
+  ) {
+    return {
+      ratio:
+        0,
+      distanceSquared:
+        (
+          px -
+          ax
+        ) ** 2 +
+        (
+          py -
+          ay
+        ) ** 2,
+    }
+  }
+
+  const ratio =
+    Math.max(
+      0,
+      Math.min(
+        1,
+        (
+          (
+            px -
+            ax
+          ) *
+            dx +
+          (
+            py -
+            ay
+          ) *
+            dy
+        ) /
+          lengthSquared,
+      ),
+    )
+
+  const projectedX =
+    ax +
+    dx *
+      ratio
+
+  const projectedY =
+    ay +
+    dy *
+      ratio
+
+  return {
+    ratio,
+
+    distanceSquared:
+      (
+        px -
+        projectedX
+      ) ** 2 +
+      (
+        py -
+        projectedY
+      ) ** 2,
+  }
+}
+
+export function roadKmAtPoint(
+  plan:
+    TripRoutePlan,
+  point: {
+    lat: number
+    lng: number
+  },
+) {
+  const {
+    segments,
+  } =
+    buildWeightedRoadSegments(
+      plan,
+    )
+
+  if (
+    segments.length ===
+    0
+  ) {
+    return null
+  }
+
+  let best:
+    {
+      distanceSquared:
+        number
+
+      routeMeters:
+        number
+    } | null =
+    null
+
+  for (
+    const segment
+    of segments
+  ) {
+    const projection =
+      projectedPointRatio(
+        point,
+        segment.from,
+        segment.to,
+      )
+
+    const routeMeters =
+      segment.startMeters +
+      (
+        segment.endMeters -
+        segment.startMeters
+      ) *
+        projection.ratio
+
+    if (
+      !best ||
+      projection.distanceSquared <
+        best.distanceSquared
+    ) {
+      best = {
+        distanceSquared:
+          projection.distanceSquared,
+
+        routeMeters,
+      }
+    }
+  }
+
+  return best
+    ? best.routeMeters /
+        1000
+    : null
+}
+
 export function candidateRoadDistances(
   targetKm: number,
   toleranceKm:
