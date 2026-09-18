@@ -73,7 +73,18 @@ function summarizeSections(
       sections.some(
         (section) =>
           section.type ===
-          'ferry',
+            'ferry' ||
+          (
+            section.type ===
+              'road' &&
+            (
+              section
+                .embeddedFerries
+                ?.length ??
+              0
+            ) >
+              0
+          ),
       ),
   }
 }
