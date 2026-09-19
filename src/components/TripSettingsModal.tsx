@@ -1,6 +1,5 @@
 import {
   useEffect,
-  useRef,
   useState,
 } from 'react'
 
@@ -122,46 +121,6 @@ export function TripSettingsModal({
           settings,
         ),
     )
-
-  const departureDateRef =
-    useRef<HTMLInputElement | null>(
-      null,
-    )
-
-  const returnDateRef =
-    useRef<HTMLInputElement | null>(
-      null,
-    )
-
-  const openDatePicker =
-    (
-      input:
-        HTMLInputElement | null,
-    ) => {
-      if (!input) {
-        return
-      }
-
-      const pickerInput =
-        input as HTMLInputElement & {
-          showPicker?: () => void
-        }
-
-      try {
-        if (
-          pickerInput.showPicker
-        ) {
-          pickerInput.showPicker()
-
-          return
-        }
-      } catch {
-        // Fallback sotto.
-      }
-
-      input.focus()
-      input.click()
-    }
 
   useEffect(() => {
     if (open) {
@@ -328,44 +287,28 @@ export function TripSettingsModal({
                   Partenza
                 </label>
 
-                <div className="trip-date-control">
-                  <input
-                    ref={
-                      departureDateRef
-                    }
-                    type="date"
-                    value={
-                      draft.departureDate
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      setDraft(
-                        (
-                          current,
-                        ) =>
-                          withDerivedDuration({
-                            ...current,
-                            departureDate:
-                              event
-                                .target
-                                .value,
-                          }),
-                      )
-                    }
-                  />
-
-                  <button
-                    type="button"
-                    className="trip-date-picker-button"
-                    aria-label="Apri calendario data di partenza"
-                    onClick={() =>
-                      openDatePicker(
-                        departureDateRef.current,
-                      )
-                    }
-                  />
-                </div>
+                <input
+                  type="date"
+                  value={
+                    draft.departureDate
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setDraft(
+                      (
+                        current,
+                      ) =>
+                        withDerivedDuration({
+                          ...current,
+                          departureDate:
+                            event
+                              .target
+                              .value,
+                        }),
+                    )
+                  }
+                />
               </div>
 
               <div className="trip-settings-field">
@@ -373,48 +316,32 @@ export function TripSettingsModal({
                   Rientro / fine viaggio
                 </label>
 
-                <div className="trip-date-control">
-                  <input
-                    ref={
-                      returnDateRef
-                    }
-                    type="date"
-                    min={
-                      draft.departureDate ||
-                      undefined
-                    }
-                    value={
-                      draft.returnDate
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      setDraft(
-                        (
-                          current,
-                        ) =>
-                          withDerivedDuration({
-                            ...current,
-                            returnDate:
-                              event
-                                .target
-                                .value,
-                          }),
-                      )
-                    }
-                  />
-
-                  <button
-                    type="button"
-                    className="trip-date-picker-button"
-                    aria-label="Apri calendario data di rientro"
-                    onClick={() =>
-                      openDatePicker(
-                        returnDateRef.current,
-                      )
-                    }
-                  />
-                </div>
+                <input
+                  type="date"
+                  min={
+                    draft.departureDate ||
+                    undefined
+                  }
+                  value={
+                    draft.returnDate
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setDraft(
+                      (
+                        current,
+                      ) =>
+                        withDerivedDuration({
+                          ...current,
+                          returnDate:
+                            event
+                              .target
+                              .value,
+                        }),
+                    )
+                  }
+                />
               </div>
             </div>
 
