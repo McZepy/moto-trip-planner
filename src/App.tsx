@@ -1483,7 +1483,7 @@ function App() {
 
           const element =
             createMapMarkerElement(
-              `N${day.dayNumber}`,
+              `G${day.dayNumber}`,
               'overnight',
             )
 
@@ -3243,6 +3243,31 @@ function App() {
           place.name,
       }
 
+      /*
+       * Prima ricalcoliamo davvero il percorso con il nuovo hotel.
+       * Solo se il routing riesce aggiorniamo giornate e marker:
+       * così non può più capitare marker spostato con traccia vecchia.
+       */
+      clearTripDayPlaceCache()
+
+      const routeResult =
+        await showDaysOverviewFor(
+          nextDays,
+          {
+            statusPrefix:
+              'Giorno ' +
+              day.dayNumber +
+              ': hotel/arrivo impostato su ' +
+              place.name,
+          },
+        )
+
+      if (!routeResult) {
+        throw new Error(
+          'Il nuovo hotel è stato trovato, ma non sono riuscito a ricalcolare il percorso fino a quel punto.',
+        )
+      }
+
       daysRef.current =
         nextDays
 
@@ -3281,19 +3306,6 @@ function App() {
           }
 
           return updated
-        },
-      )
-
-      clearTripDayPlaceCache()
-
-      await showDaysOverviewFor(
-        nextDays,
-        {
-          statusPrefix:
-            'Giorno ' +
-            day.dayNumber +
-            ': hotel/arrivo impostato su ' +
-            place.name,
         },
       )
     }
