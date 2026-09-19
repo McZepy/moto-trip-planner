@@ -70,100 +70,6 @@ type FuelPanelProps = {
     ) => void
 }
 
-function createId() {
-  if (
-    typeof crypto !==
-      'undefined' &&
-    crypto.randomUUID
-  ) {
-    return crypto.randomUUID()
-  }
-
-  return (
-    'fuel-' +
-    Date.now() +
-    '-' +
-    Math.random()
-      .toString(16)
-      .slice(2)
-  )
-}
-
-function distanceMeters(
-  a: {
-    lat: number
-    lng: number
-  },
-  b: {
-    lat: number
-    lng: number
-  },
-) {
-  const toRad =
-    (
-      value:
-        number,
-    ) =>
-      value *
-      Math.PI /
-      180
-
-  const earthRadius =
-    6_371_000
-
-  const lat1 =
-    toRad(
-      a.lat,
-    )
-
-  const lat2 =
-    toRad(
-      b.lat,
-    )
-
-  const deltaLat =
-    toRad(
-      b.lat -
-      a.lat,
-    )
-
-  const deltaLng =
-    toRad(
-      b.lng -
-      a.lng,
-    )
-
-  const h =
-    Math.sin(
-      deltaLat /
-      2,
-    ) ** 2 +
-    Math.cos(
-      lat1,
-    ) *
-      Math.cos(
-        lat2,
-      ) *
-      Math.sin(
-        deltaLng /
-        2,
-      ) ** 2
-
-  return (
-    2 *
-    earthRadius *
-    Math.atan2(
-      Math.sqrt(
-        h,
-      ),
-      Math.sqrt(
-        1 -
-        h,
-      ),
-    )
-  )
-}
-
 export function FuelPanel({
   routePlan,
   selectedDayId,
@@ -206,15 +112,6 @@ export function FuelPanel({
     scopeDay
       ? `Giorno ${scopeDay.dayNumber}`
       : 'Percorso visualizzato'
-
-  const safeFuelKm =
-    Math.max(
-      50,
-      settings
-        .vehicleRangeKm -
-        settings
-          .fuelSafetyMarginKm,
-    )
 
   const totalRoadKm =
     routePlan
