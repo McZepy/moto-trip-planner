@@ -299,14 +299,21 @@ export function FuelPanel({
         let previousFuelKm =
           0
 
-        let targetKm =
+        let earliestFuelKm =
           safeFuelKm
+
+        let latestFuelKm =
+          Math.max(
+            safeFuelKm,
+            settings
+              .vehicleRangeKm,
+          )
 
         let guard =
           0
 
         while (
-          targetKm <
+          earliestFuelKm <
             totalRoadKm -
               Math.max(
                 20,
@@ -319,16 +326,93 @@ export function FuelPanel({
           guard +=
             1
 
-          const target =
-            pointAtRoadDistance(
-              routePlan,
-              targetKm *
-                1000,
+          const scopeBreaks =
+            stops.filter(
+              (
+                stop,
+              ) =>
+                stop.kind ===
+                  'break' &&
+                (
+                  stop.dayId ??
+                  null
+                ) ===
+                  (
+                    selectedDayId ??
+                    null
+                  ),
             )
 
-          if (!target) {
-            break
-          }
+          const nearbyBreak =
+            scopeBreaks
+              .filter(
+                (
+                  stop,
+                ) =>
+                  stop.routeKm >=
+                    earliestFuelKm -
+                      flexibilityKm &&
+                  stop.routeKm <=
+                    latestFuelKm +
+                      flexibilityKm,
+              )
+              .sort(
+                (
+                  first,
+                  second,
+                ) =>
+                  Math.abs(
+                    first.routeKm -
+                      latestFuelKm,
+                  ) -
+                  Math.abs(
+                    second.routeKm -
+                      latestFuelKm,
+                  ),
+              )[0]
+
+          const preferredKm =
+            Math.max(
+              earliestFuelKm,
+              Math.min(
+                latestFuelKm,
+                nearbyBreak
+                  ?.routeKm ??
+                  (
+                    latestFuelKm -
+                    Math.min(
+                      10,
+                      settings
+                        .fuelSafetyMarginKm /
+                        2,
+                    )
+                  ),
+              ),
+            )
+
+          const searchTargets =
+            [
+              preferredKm,
+              earliestFuelKm,
+            ]
+              .filter(
+                (
+                  value,
+                  index,
+                  values,
+                ) =>
+                  values.findIndex(
+                    (
+                      item,
+                    ) =>
+                      Math.abs(
+                        item -
+                          value,
+                      ) <
+                      0.5,
+                  ) ===
+                  index,
+              )
 
           const searchRadiusMeters =
             (
@@ -338,10 +422,51 @@ export function FuelPanel({
             ) *
             1000
 
+          const candidateMap =
+            new Map<
+              string,
+              Awaited<
+                ReturnType<
+                  typeof searchNearbyFuelStations
+                >
+              >[number]
+            >()
+
+          for (
+            const searchKm
+            of searchTargets
+          ) {
+            const target =
+              pointAtRoadDistance(
+                routePlan,
+                searchKm *
+                  1000,
+              )
+
+            if (!target) {
+              continue
+            }
+
+            const found =
+              await searchNearbyFuelStations(
+                target.point,
+                searchRadiusMeters,
+              )
+
+            found.forEach(
+              (
+                candidate,
+              ) =>
+                candidateMap.set(
+                  candidate.id,
+                  candidate,
+                ),
+            )
+          }
+
           const candidates =
-            await searchNearbyFuelStations(
-              target.point,
-              searchRadiusMeters,
+            Array.from(
+              candidateMap.values(),
             )
 
           const ranked =
@@ -384,17 +509,35 @@ export function FuelPanel({
                   const alongDifference =
                     Math.abs(
                       routeKm -
-                      target.routeKm,
+                      preferredKm,
                     )
 
+                  const tooEarly =
+                    routeKm <
+                    earliestFuelKm -
+                      flexibilityKm
+
+                  const tooLate =
+                    routeKm >
+                    latestFuelKm +
+                      2
+
                   if (
-                    alongDifference >
-                      flexibilityKm ||
+                    tooEarly ||
+                    tooLate ||
                     deviationKm >
                       maxDeviationKm
                   ) {
                     return null
                   }
+
+                  const breakDifference =
+                    nearbyBreak
+                      ? Math.abs(
+                          routeKm -
+                            nearbyBreak.routeKm,
+                        )
+                      : alongDifference
 
                   return {
                     candidate,
@@ -404,7 +547,9 @@ export function FuelPanel({
                     score:
                       deviationKm *
                         12 +
-                      alongDifference,
+                      breakDifference +
+                      alongDifference *
+                        0.35,
                   }
                 },
               )
@@ -438,7 +583,7 @@ export function FuelPanel({
 
           if (!best) {
             nextWarnings.push(
-              `Dopo il km ${previousFuelKm.toFixed(0)}: nessun distributore compatibile trovato prima della soglia prudenziale di circa ${targetKm.toFixed(0)} km.`,
+              `Dopo il km ${previousFuelKm.toFixed(0)}: nessun distributore compatibile trovato nella finestra prudenziale ${earliestFuelKm.toFixed(0)}–${latestFuelKm.toFixed(0)} km.`,
             )
 
             break
@@ -519,9 +664,17 @@ export function FuelPanel({
            * Dopo ogni rifornimento il contatore autonomia riparte
            * dal punto realmente scelto, non dal chilometraggio teorico.
            */
-          targetKm =
+          earliestFuelKm =
             previousFuelKm +
             safeFuelKm
+
+          latestFuelKm =
+            previousFuelKm +
+            Math.max(
+              safeFuelKm,
+              settings
+                .vehicleRangeKm,
+            )
         }
 
         const preserved =
@@ -566,7 +719,7 @@ export function FuelPanel({
         onStatus?.(
           generated.length >
             0
-            ? `${generated.length} rifornimenti pianificati per ${scopeLabel} con soglia prudenziale ${safeFuelKm} km${reconciled.mergedCount > 0 ? ` · ${reconciled.mergedCount} pause unite ai rifornimenti` : ''}.`
+            ? `${generated.length} rifornimenti pianificati per ${scopeLabel} nella finestra prudenziale ${safeFuelKm}–${settings.vehicleRangeKm} km dal pieno precedente${reconciled.mergedCount > 0 ? ` · ${reconciled.mergedCount} pause unite ai rifornimenti` : ''}.`
             : `Nessun rifornimento intermedio compatibile trovato per ${scopeLabel}.`,
         )
       } catch (
@@ -623,7 +776,7 @@ export function FuelPanel({
         </strong>
 
         <p>
-          Autonomia {settings.vehicleRangeKm} km · margine sicurezza {settings.fuelSafetyMarginKm} km · rifornimento cercato entro circa {safeFuelKm} km dal pieno precedente.
+          Autonomia {settings.vehicleRangeKm} km · margine sicurezza {settings.fuelSafetyMarginKm} km · MotoRoute cerca il distributore nella finestra {safeFuelKm}–{settings.vehicleRangeKm} km, privilegiando una pausa già prevista quando è compatibile.
         </p>
 
         <div className="service-panel-grid">
