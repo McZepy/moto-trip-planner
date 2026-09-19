@@ -1125,3 +1125,27 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+
+/* =========================================
+   READABILITY · GIORNATE & HOTEL
+   ========================================= */
+.days-summary-line span,
+.days-strip-main small,
+.days-strip-detail > span,
+.days-strip-price > span,
+.days-strip-detail small,
+.days-strip-address {
+  font-size: 10px;
+}
+
+.days-strip-main strong,
+.days-strip-detail strong {
+  font-size: 11px;
+}
+
+.days-strip-hotel-search select,
+.days-strip-price input,
+.days-strip-hotel-search button {
+  font-size: 10px;
+}
