@@ -3174,6 +3174,130 @@ function App() {
       }
     }
 
+  const handleSetDayOvernightDestination =
+    async (
+      day:
+        TripDay,
+      place:
+        GeocodingResult,
+    ) => {
+      const sourceDays =
+        daysRef.current
+
+      const nextDays =
+        buildDaysWithBoundaryPlace(
+          sourceDays,
+          day.id,
+          place,
+        )
+
+      const editedIndex =
+        nextDays.findIndex(
+          (
+            item,
+          ) =>
+            item.id ===
+            day.id,
+        )
+
+      if (
+        editedIndex <
+        0
+      ) {
+        throw new Error(
+          'Giornata da aggiornare non trovata.',
+        )
+      }
+
+      const editedDay =
+        nextDays[
+          editedIndex
+        ]
+
+      if (
+        !editedDay
+          .overnight
+      ) {
+        throw new Error(
+          'Questa giornata non prevede un pernottamento.',
+        )
+      }
+
+      editedDay.overnight = {
+        ...editedDay.overnight,
+
+        name:
+          place.name,
+
+        label:
+          place.label,
+
+        lat:
+          place.lat,
+
+        lng:
+          place.lng,
+
+        hotelDisplay:
+          place.label ||
+          place.name,
+      }
+
+      daysRef.current =
+        nextDays
+
+      setDays(
+        nextDays,
+      )
+
+      setSelectedDayId(
+        day.id,
+      )
+
+      setDayRouteStats(
+        (
+          current,
+        ) => {
+          const updated = {
+            ...current,
+          }
+
+          delete updated[
+            day.id
+          ]
+
+          const nextDay =
+            nextDays[
+              editedIndex +
+                1
+            ]
+
+          if (
+            nextDay
+          ) {
+            delete updated[
+              nextDay.id
+            ]
+          }
+
+          return updated
+        },
+      )
+
+      clearTripDayPlaceCache()
+
+      await showDaysOverviewFor(
+        nextDays,
+        {
+          statusPrefix:
+            'Giorno ' +
+            day.dayNumber +
+            ': hotel/arrivo impostato su ' +
+            place.name,
+        },
+      )
+    }
+
   const autocompleteStart =
     async (
       query:
@@ -6186,6 +6310,9 @@ function App() {
               }
               onOpenDay={
                 handleSelectDayRoute
+              }
+              onSetOvernightDestination={
+                handleSetDayOvernightDestination
               }
               onStatus={
                 setStatus
