@@ -11,9 +11,11 @@ import type {
   TripDay,
 } from '../types/tripDay'
 
-import type {
-  ServiceStopPlanningSettings,
-  TripServiceStop,
+import {
+  orderedServiceStops,
+  serviceStopBadgeLabel,
+  type ServiceStopPlanningSettings,
+  type TripServiceStop,
 } from '../types/serviceStop'
 
 import type {
@@ -122,37 +124,9 @@ export function StopsPanel({
   const orderedStops =
     useMemo(
       () =>
-        stops
-          .slice()
-          .sort(
-            (
-              first,
-              second,
-            ) => {
-              const firstDay =
-                first.dayNumber ??
-                999
-
-              const secondDay =
-                second.dayNumber ??
-                999
-
-              if (
-                firstDay !==
-                secondDay
-              ) {
-                return (
-                  firstDay -
-                  secondDay
-                )
-              }
-
-              return (
-                first.routeKm -
-                second.routeKm
-              )
-            },
-          ),
+        orderedServiceStops(
+          stops,
+        ),
       [
         stops,
       ],
@@ -332,28 +306,11 @@ export function StopsPanel({
                 openStopId ===
                 stop.id
 
-              const sameKindBefore =
-                orderedStops
-                  .slice(
-                    0,
-                    index,
-                  )
-                  .filter(
-                    (
-                      item,
-                    ) =>
-                      item.kind ===
-                      stop.kind,
-                  )
-                  .length
-
               const badge =
-                stop.kind ===
-                  'fuel'
-                  ? stop.relaxMinutes
-                    ? 'F+P'
-                    : `F${sameKindBefore + 1}`
-                  : `P${sameKindBefore + 1}`
+                serviceStopBadgeLabel(
+                  orderedStops,
+                  index,
+                )
 
               const dayLabel =
                 stop.dayNumber
