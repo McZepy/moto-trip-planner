@@ -35,3 +35,32 @@ export function cloneServiceStop(
     ...stop,
   }
 }
+
+
+export type ServiceStopPlanningSettings = {
+  fuelFlexibilityKm: number
+  fuelMaxDeviationKm: number
+  breakIntervalKm: number
+  breakDurationMinutes: number
+  breakFlexibilityKm: number
+  breakMaxDeviationKm: number
+}
+
+export const defaultServiceStopPlanningSettings:
+  ServiceStopPlanningSettings = {
+    fuelFlexibilityKm: 20,
+    fuelMaxDeviationKm: 2,
+    breakIntervalKm: 150,
+    breakDurationMinutes: 15,
+    breakFlexibilityKm: 20,
+    breakMaxDeviationKm: 2,
+  }
+
+export function cloneServiceStopPlanningSettings(
+  settings:
+    ServiceStopPlanningSettings,
+): ServiceStopPlanningSettings {
+  return {
+    ...settings,
+  }
+}
