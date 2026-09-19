@@ -12,6 +12,7 @@ import type {
 } from '../types/tripDay'
 
 import type {
+  ServiceStopPlanningSettings,
   TripServiceStop,
 } from '../types/serviceStop'
 
@@ -46,6 +47,15 @@ type StopsPanelProps = {
 
   settings:
     TripSettings
+
+  planningSettings:
+    ServiceStopPlanningSettings
+
+  onPlanningSettingsChange:
+    (
+      settings:
+        ServiceStopPlanningSettings,
+    ) => void
 
   onChange:
     (
@@ -88,6 +98,8 @@ export function StopsPanel({
   days,
   stops,
   settings,
+  planningSettings,
+  onPlanningSettingsChange,
   onChange,
   onStatus,
 }: StopsPanelProps) {
@@ -249,6 +261,12 @@ export function StopsPanel({
             settings={
               settings
             }
+            planningSettings={
+              planningSettings
+            }
+            onPlanningSettingsChange={
+              onPlanningSettingsChange
+            }
             onChange={
               onChange
             }
@@ -269,6 +287,12 @@ export function StopsPanel({
             }
             stops={
               stops
+            }
+            planningSettings={
+              planningSettings
+            }
+            onPlanningSettingsChange={
+              onPlanningSettingsChange
             }
             onChange={
               onChange
