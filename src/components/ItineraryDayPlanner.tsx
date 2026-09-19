@@ -1353,6 +1353,8 @@ export function ItineraryDayPlanner({
       setDayTargets(
         next,
       )
+
+      return next
     }
 
   const closeHotelEditor =
@@ -1815,15 +1817,20 @@ export function ItineraryDayPlanner({
                               onCommit={(
                                 value,
                               ) => {
-                                updateDistance(
-                                  index,
-                                  value ??
-                                    1,
-                                )
+                                const nextTargets =
+                                  updateDistance(
+                                    index,
+                                    value ??
+                                      1,
+                                  )
 
-                                void generateDays(
-                                  dayTargets,
-                                )
+                                if (
+                                  nextTargets
+                                ) {
+                                  void generateDays(
+                                    nextTargets,
+                                  )
+                                }
                               }}
                             />
 
