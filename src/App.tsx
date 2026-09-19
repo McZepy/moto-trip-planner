@@ -2083,6 +2083,11 @@ function App() {
 
             serviceStops,
 
+            serviceStopPlanningSettings:
+              cloneServiceStopPlanningSettings(
+                serviceStopPlanningSettings,
+              ),
+
             settings:
               cloneTripSettings(
                 tripSettings,
@@ -2107,6 +2112,13 @@ function App() {
       setTripSettings(
         cloneTripSettings(
           saved.settings,
+        ),
+      )
+
+      setServiceStopPlanningSettings(
+        cloneServiceStopPlanningSettings(
+          saved
+            .serviceStopPlanningSettings,
         ),
       )
 
@@ -2167,6 +2179,13 @@ function App() {
       setTripSettings(
         cloneTripSettings(
           trip.settings,
+        ),
+      )
+
+      setServiceStopPlanningSettings(
+        cloneServiceStopPlanningSettings(
+          trip
+            .serviceStopPlanningSettings,
         ),
       )
 
