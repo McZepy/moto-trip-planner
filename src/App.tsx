@@ -86,8 +86,11 @@ import {
 } from './types/waypoint'
 
 import type { TripDay } from './types/tripDay'
-import type {
-  TripServiceStop,
+import {
+  cloneServiceStopPlanningSettings,
+  defaultServiceStopPlanningSettings,
+  type ServiceStopPlanningSettings,
+  type TripServiceStop,
 } from './types/serviceStop'
 import {
   clearTripDayPlaceCache,
@@ -96,6 +99,9 @@ import {
   type TripDayRouteStats,
 } from './itinerary/tripDayRoutePlanner'
 import { showTripRoutePlan } from './map/showTripRoutePlan'
+import {
+  replanAllTripServiceStops,
+} from './itinerary/tripServiceStopPlanner'
 import { TripsModal } from './components/TripsModal'
 import { TripSettingsModal } from './components/TripSettingsModal'
 import { DaysHotelPanel } from './components/DaysHotelPanel'
@@ -846,6 +852,37 @@ function App() {
     useState<
       TripServiceStop[]
     >([])
+
+  const [
+    serviceStopPlanningSettings,
+    setServiceStopPlanningSettings,
+  ] =
+    useState<
+      ServiceStopPlanningSettings
+    >(
+      () =>
+        cloneServiceStopPlanningSettings(
+          defaultServiceStopPlanningSettings,
+        ),
+    )
+
+  const serviceStopsRef =
+    useRef<
+      TripServiceStop[]
+    >([])
+
+  const serviceStopReplanRequestRef =
+    useRef(0)
+
+  useEffect(
+    () => {
+      serviceStopsRef.current =
+        serviceStops
+    },
+    [
+      serviceStops,
+    ],
+  )
 
   const daysRef =
     useRef<TripDay[]>(
@@ -1926,7 +1963,14 @@ function App() {
 
       setWaypoints([])
       setDays([])
+      serviceStopsRef.current =
+        []
       setServiceStops([])
+      setServiceStopPlanningSettings(
+        cloneServiceStopPlanningSettings(
+          defaultServiceStopPlanningSettings,
+        ),
+      )
       setSelectedDayId(null)
       setEditingDayId(null)
       dayEditorSnapshotRef.current =
@@ -2070,6 +2114,10 @@ function App() {
         saved.days ?? [],
       )
 
+      serviceStopsRef.current =
+        saved.serviceStops ??
+        []
+
       setServiceStops(
         saved.serviceStops ??
           [],
@@ -2158,6 +2206,10 @@ function App() {
       setDays(
         trip.days ?? [],
       )
+
+      serviceStopsRef.current =
+        trip.serviceStops ??
+        []
 
       setServiceStops(
         trip.serviceStops ??
@@ -2447,6 +2499,104 @@ function App() {
         null
     }
 
+  const handleServiceStopsChange =
+    (
+      nextStops:
+        TripServiceStop[],
+    ) => {
+      serviceStopsRef.current =
+        nextStops
+
+      setServiceStops(
+        nextStops,
+      )
+    }
+
+  const replanDependentServiceStops =
+    async (
+      plan:
+        TripRoutePlan,
+      targetDays:
+        TripDay[],
+      settingsOverride?:
+        TripSettings,
+    ) => {
+      if (
+        serviceStopsRef
+          .current
+          .length ===
+        0
+      ) {
+        return
+      }
+
+      const requestId =
+        serviceStopReplanRequestRef
+          .current +
+        1
+
+      serviceStopReplanRequestRef.current =
+        requestId
+
+      setServiceStops(
+        [],
+      )
+
+      setStatus(
+        'Percorso modificato: ricalcolo automaticamente le soste...',
+      )
+
+      try {
+        const result =
+          await replanAllTripServiceStops(
+            plan,
+            targetDays,
+            settingsOverride ??
+              tripSettings,
+            serviceStopPlanningSettings,
+          )
+
+        if (
+          serviceStopReplanRequestRef
+            .current !==
+          requestId
+        ) {
+          return
+        }
+
+        serviceStopsRef.current =
+          result.stops
+
+        setServiceStops(
+          result.stops,
+        )
+
+        setStatus(
+          `Soste aggiornate: ${result.stops.length} punti · ogni giornata riparte con pieno e conteggio pause da zero${result.mergedCount > 0 ? ` · ${result.mergedCount} soste carburante+pausa` : ''}.`,
+        )
+      } catch (
+        error
+      ) {
+        if (
+          serviceStopReplanRequestRef
+            .current !==
+          requestId
+        ) {
+          return
+        }
+
+        console.error(
+          error,
+        )
+
+        setStatus(
+          error instanceof Error
+            ? `Percorso aggiornato, ma ricalcolo soste non riuscito: ${error.message}`
+            : 'Percorso aggiornato, ma ricalcolo soste non riuscito.',
+        )
+      }
+    }
+
   const handleDaysChange =
     (nextDays: TripDay[]) => {
       daysRef.current =
@@ -2463,8 +2613,19 @@ function App() {
 
       /*
        * Le giornate sono una suddivisione del percorso master:
-       * la traccia principale resta invariata.
+       * la traccia principale resta invariata, ma tutte le soste
+       * dipendenti vanno ricalcolate sui nuovi confini giornalieri.
        */
+      if (
+        currentRoutePlan &&
+        routeScopeDayId ===
+          null
+      ) {
+        void replanDependentServiceStops(
+          currentRoutePlan,
+          nextDays,
+        )
+      }
     }
 
   const handleSelectDayRoute =
@@ -2979,6 +3140,16 @@ function App() {
           editedDay.dayNumber +
           ': percorso applicato. Il confine con le giornate adiacenti è stato sincronizzato.',
       )
+
+      void showDaysOverviewFor(
+        updatedDays,
+        {
+          statusPrefix:
+            'Giorno ' +
+            editedDay.dayNumber +
+            ': percorso aggiornato',
+        },
+      )
     }
 
   const handleCancelDayRouteEdit =
@@ -3146,6 +3317,11 @@ function App() {
                 .durationSeconds,
             ) +
             '.',
+        )
+
+        void replanDependentServiceStops(
+          result.plan,
+          targetDays,
         )
 
         return result
@@ -5273,6 +5449,18 @@ function App() {
               null,
           )
 
+          if (
+            !editingDayId &&
+            daysRef.current
+              .length >
+              0
+          ) {
+            void replanDependentServiceStops(
+              plan,
+              daysRef.current,
+            )
+          }
+
           setDistance(
             plan.distanceMeters,
           )
@@ -6329,7 +6517,15 @@ function App() {
               days={days}
               stops={serviceStops}
               settings={tripSettings}
-              onChange={setServiceStops}
+              planningSettings={
+                serviceStopPlanningSettings
+              }
+              onPlanningSettingsChange={
+                setServiceStopPlanningSettings
+              }
+              onChange={
+                handleServiceStopsChange
+              }
               onStatus={setStatus}
             />
 
@@ -6608,15 +6804,49 @@ function App() {
         onApply={(
           settings,
         ) => {
+          const fuelPlanningChanged =
+            settings
+              .vehicleRangeKm !==
+              tripSettings
+                .vehicleRangeKm ||
+            settings
+              .fuelSafetyMarginKm !==
+              tripSettings
+                .fuelSafetyMarginKm ||
+            settings
+              .kmPerLiter !==
+              tripSettings
+                .kmPerLiter ||
+            settings
+              .fuelPricePerLiter !==
+              tripSettings
+                .fuelPricePerLiter
+
           setTripSettings(
             cloneTripSettings(
               settings,
             ),
           )
 
-          setStatus(
-            'Impostazioni viaggio aggiornate. Premi Salva per memorizzarle nel viaggio.',
-          )
+          if (
+            fuelPlanningChanged &&
+            currentRoutePlan &&
+            routeScopeDayId ===
+              null &&
+            daysRef.current
+              .length >
+              0
+          ) {
+            void replanDependentServiceStops(
+              currentRoutePlan,
+              daysRef.current,
+              settings,
+            )
+          } else {
+            setStatus(
+              'Impostazioni viaggio aggiornate. Premi Salva per memorizzarle nel viaggio.',
+            )
+          }
         }}
       />
 
