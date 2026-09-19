@@ -1238,13 +1238,14 @@ input {
 }
 
 .save-action {
-  border: 1px solid #111827;
-  background: #111827;
+  border: 1px solid #f97316;
+  background: #f97316;
   color: #ffffff;
 }
 
 .save-action:hover {
-  background: #000000;
+  border-color: #ea580c;
+  background: #ea580c;
 }
 
 .section-tabs {
