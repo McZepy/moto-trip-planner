@@ -602,3 +602,31 @@
     grid-column: 1 / -1;
   }
 }
+
+
+/* =========================================
+   READABILITY · ITINERARIO & TAPPE
+   ========================================= */
+.itinerary-day-planner-heading span,
+.itinerary-day-strip-main > span,
+.itinerary-day-strip-menu-title,
+.itinerary-day-strip-timeline span,
+.itinerary-day-strip-km label,
+.itinerary-day-strip-km span,
+.itinerary-day-strip-km small,
+.itinerary-day-strip-hotel span,
+.itinerary-day-hotel-editor > label,
+.itinerary-day-hotel-results span {
+  font-size: 10px;
+}
+
+.itinerary-day-strip-hotel strong,
+.itinerary-day-strip-actions button,
+.itinerary-day-hotel-search button {
+  font-size: 10px;
+}
+
+.itinerary-day-strip-main strong,
+.itinerary-day-hotel-results strong {
+  font-size: 11px;
+}
