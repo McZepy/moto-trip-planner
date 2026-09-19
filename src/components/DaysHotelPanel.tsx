@@ -322,8 +322,14 @@ export function DaysHotelPanel({
 
                   <span className="days-strip-main">
                     <strong>
-                      Notte {day.dayNumber}: {display || overnight.name || 'Hotel non definito'}
+                      Notte {day.dayNumber}: {overnight.name || 'Hotel non definito'}
                     </strong>
+
+                    {display && (
+                      <small className="days-strip-address">
+                        {display}
+                      </small>
+                    )}
 
                     <small>
                       {overnight.checkIn}
@@ -368,12 +374,14 @@ export function DaysHotelPanel({
                       </span>
 
                       <strong>
-                        {display ||
-                          'Non ancora definito'}
+                        {display
+                          ? overnight.name
+                          : 'Non ancora definito'}
                       </strong>
 
                       <small>
-                        L’indirizzo si modifica esclusivamente in Itinerario & Tappe.
+                        {display ||
+                          'L’indirizzo si modifica esclusivamente in Itinerario & Tappe.'}
                       </small>
                     </div>
 
