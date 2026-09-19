@@ -3,23 +3,17 @@ import {
   useState,
 } from 'react'
 
-import {
-  searchNearbyFuelStations,
-} from '../providers/autocompleteProvider'
-
 import type {
   TripRoutePlan,
 } from '../providers/tripRoutePlanner'
 
 import {
-  pointAtRoadDistance,
   roadDistanceMeters,
-  roadKmAtPoint,
 } from '../itinerary/routeDaySplitter'
 
 import {
-  mergeFuelAndBreakStops,
-} from '../itinerary/serviceStopPlanner'
+  planFuelStopsForTrip,
+} from '../itinerary/tripServiceStopPlanner'
 
 import type {
   TripDay,
@@ -30,6 +24,7 @@ import type {
 } from '../types/trip'
 
 import type {
+  ServiceStopPlanningSettings,
   TripServiceStop,
 } from '../types/serviceStop'
 
@@ -52,6 +47,15 @@ type FuelPanelProps = {
 
   settings:
     TripSettings
+
+  planningSettings:
+    ServiceStopPlanningSettings
+
+  onPlanningSettingsChange:
+    (
+      settings:
+        ServiceStopPlanningSettings,
+    ) => void
 
   onChange:
     (
@@ -166,25 +170,11 @@ export function FuelPanel({
   days,
   stops,
   settings,
+  planningSettings,
+  onPlanningSettingsChange,
   onChange,
   onStatus,
 }: FuelPanelProps) {
-  const [
-    flexibilityKm,
-    setFlexibilityKm,
-  ] =
-    useState(
-      20,
-    )
-
-  const [
-    maxDeviationKm,
-    setMaxDeviationKm,
-  ] =
-    useState(
-      2,
-    )
-
   const [
     busy,
     setBusy,
@@ -290,437 +280,30 @@ export function FuelPanel({
       )
 
       try {
-        const generated:
-          TripServiceStop[] = []
-
-        const nextWarnings:
-          string[] = []
-
-        let previousFuelKm =
-          0
-
-        let earliestFuelKm =
-          safeFuelKm
-
-        let latestFuelKm =
-          Math.max(
-            safeFuelKm,
-            settings
-              .vehicleRangeKm,
-          )
-
-        let guard =
-          0
-
-        while (
-          earliestFuelKm <
-            totalRoadKm -
-              Math.max(
-                20,
-                settings
-                  .fuelSafetyMarginKm,
-              ) &&
-          guard <
-            30
-        ) {
-          guard +=
-            1
-
-          const scopeBreaks =
-            stops.filter(
-              (
-                stop,
-              ) =>
-                stop.kind ===
-                  'break' &&
-                (
-                  stop.dayId ??
-                  null
-                ) ===
-                  (
-                    selectedDayId ??
-                    null
-                  ),
-            )
-
-          const nearbyBreak =
-            scopeBreaks
-              .filter(
-                (
-                  stop,
-                ) =>
-                  stop.routeKm >=
-                    earliestFuelKm -
-                      flexibilityKm &&
-                  stop.routeKm <=
-                    latestFuelKm +
-                      flexibilityKm,
-              )
-              .sort(
-                (
-                  first,
-                  second,
-                ) =>
-                  Math.abs(
-                    first.routeKm -
-                      latestFuelKm,
-                  ) -
-                  Math.abs(
-                    second.routeKm -
-                      latestFuelKm,
-                  ),
-              )[0]
-
-          const preferredKm =
-            Math.max(
-              earliestFuelKm,
-              Math.min(
-                latestFuelKm,
-                nearbyBreak
-                  ?.routeKm ??
-                  (
-                    latestFuelKm -
-                    Math.min(
-                      10,
-                      settings
-                        .fuelSafetyMarginKm /
-                        2,
-                    )
-                  ),
-              ),
-            )
-
-          const searchTargets =
-            [
-              preferredKm,
-              earliestFuelKm,
-            ]
-              .filter(
-                (
-                  value,
-                  index,
-                  values,
-                ) =>
-                  values.findIndex(
-                    (
-                      item,
-                    ) =>
-                      Math.abs(
-                        item -
-                          value,
-                      ) <
-                      0.5,
-                  ) ===
-                  index,
-              )
-
-          const searchRadiusMeters =
-            (
-              flexibilityKm +
-              maxDeviationKm +
-              2
-            ) *
-            1000
-
-          const candidateMap =
-            new Map<
-              string,
-              Awaited<
-                ReturnType<
-                  typeof searchNearbyFuelStations
-                >
-              >[number]
-            >()
-
-          for (
-            const searchKm
-            of searchTargets
-          ) {
-            const target =
-              pointAtRoadDistance(
-                routePlan,
-                searchKm *
-                  1000,
-              )
-
-            if (!target) {
-              continue
-            }
-
-            const found =
-              await searchNearbyFuelStations(
-                target.point,
-                searchRadiusMeters,
-              )
-
-            found.forEach(
-              (
-                candidate,
-              ) =>
-                candidateMap.set(
-                  candidate.id,
-                  candidate,
-                ),
-            )
-          }
-
-          const candidates =
-            Array.from(
-              candidateMap.values(),
-            )
-
-          const ranked =
-            candidates
-              .map(
-                (
-                  candidate,
-                ) => {
-                  const routeKm =
-                    roadKmAtPoint(
-                      routePlan,
-                      candidate,
-                    )
-
-                  if (
-                    routeKm ===
-                    null
-                  ) {
-                    return null
-                  }
-
-                  const projected =
-                    pointAtRoadDistance(
-                      routePlan,
-                      routeKm *
-                        1000,
-                    )
-
-                  if (!projected) {
-                    return null
-                  }
-
-                  const deviationKm =
-                    distanceMeters(
-                      candidate,
-                      projected.point,
-                    ) /
-                    1000
-
-                  const alongDifference =
-                    Math.abs(
-                      routeKm -
-                      preferredKm,
-                    )
-
-                  const tooEarly =
-                    routeKm <
-                    earliestFuelKm -
-                      flexibilityKm
-
-                  const tooLate =
-                    routeKm >
-                    latestFuelKm +
-                      2
-
-                  if (
-                    tooEarly ||
-                    tooLate ||
-                    deviationKm >
-                      maxDeviationKm
-                  ) {
-                    return null
-                  }
-
-                  const breakDifference =
-                    nearbyBreak
-                      ? Math.abs(
-                          routeKm -
-                            nearbyBreak.routeKm,
-                        )
-                      : alongDifference
-
-                  return {
-                    candidate,
-                    routeKm,
-                    deviationKm,
-
-                    score:
-                      deviationKm *
-                        12 +
-                      breakDifference +
-                      alongDifference *
-                        0.35,
-                  }
-                },
-              )
-              .filter(
-                (
-                  value,
-                ): value is {
-                  candidate:
-                    typeof candidates[number]
-                  routeKm:
-                    number
-                  deviationKm:
-                    number
-                  score:
-                    number
-                } =>
-                  value !==
-                  null,
-              )
-              .sort(
-                (
-                  first,
-                  second,
-                ) =>
-                  first.score -
-                  second.score,
-              )
-
-          const best =
-            ranked[0]
-
-          if (!best) {
-            nextWarnings.push(
-              `Dopo il km ${previousFuelKm.toFixed(0)}: nessun distributore compatibile trovato nella finestra prudenziale ${earliestFuelKm.toFixed(0)}–${latestFuelKm.toFixed(0)} km.`,
-            )
-
-            break
-          }
-
-          const segmentKm =
-            Math.max(
-              0,
-              best.routeKm -
-                previousFuelKm,
-            )
-
-          const estimatedCostEur =
-            settings.kmPerLiter &&
-            settings.fuelPricePerLiter
-              ? (
-                  segmentKm /
-                  settings.kmPerLiter
-                ) *
-                settings
-                  .fuelPricePerLiter
-              : undefined
-
-          generated.push({
-            id:
-              createId(),
-
-            kind:
-              'fuel',
-
-            dayId:
-              selectedDayId ??
-                undefined,
-
-            dayNumber:
-              scopeDay
-                ?.dayNumber,
-
-            routeKm:
-              best.routeKm,
-
-            deviationKm:
-              best.deviationKm,
-
-            name:
-              best
-                .candidate
-                .name,
-
-            label:
-              best
-                .candidate
-                .label,
-
-            lat:
-              best
-                .candidate
-                .lat,
-
-            lng:
-              best
-                .candidate
-                .lng,
-
-            durationMinutes:
-              10,
-
-            estimatedCostEur,
-
-            source:
-              'locationiq',
+        const result =
+          await planFuelStopsForTrip({
+            routePlan,
+            selectedDayId,
+            days,
+            stops,
+            tripSettings:
+              settings,
+            planningSettings,
           })
 
-          previousFuelKm =
-            best.routeKm
-
-          /*
-           * Dopo ogni rifornimento il contatore autonomia riparte
-           * dal punto realmente scelto, non dal chilometraggio teorico.
-           */
-          earliestFuelKm =
-            previousFuelKm +
-            safeFuelKm
-
-          latestFuelKm =
-            previousFuelKm +
-            Math.max(
-              safeFuelKm,
-              settings
-                .vehicleRangeKm,
-            )
-        }
-
-        const preserved =
-          stops.filter(
-            (
-              stop,
-            ) =>
-              !(
-                stop.kind ===
-                  'fuel' &&
-                (
-                  stop.dayId ??
-                    null
-                ) ===
-                  (
-                    selectedDayId ??
-                      null
-                  )
-              ),
-          )
-
-        const reconciled =
-          mergeFuelAndBreakStops(
-            [
-              ...preserved,
-              ...generated,
-            ],
-            selectedDayId ??
-              null,
-            20,
-            12,
-          )
-
         onChange(
-          reconciled.stops,
+          result.stops,
         )
 
         setWarnings(
-          nextWarnings,
+          result.warnings,
         )
 
         onStatus?.(
-          generated.length >
+          result.generatedCount >
             0
-            ? `${generated.length} rifornimenti pianificati per ${scopeLabel} nella finestra prudenziale ${safeFuelKm}–${settings.vehicleRangeKm} km dal pieno precedente${reconciled.mergedCount > 0 ? ` · ${reconciled.mergedCount} pause unite ai rifornimenti` : ''}.`
-            : `Nessun rifornimento intermedio compatibile trovato per ${scopeLabel}.`,
+            ? `${result.generatedCount} rifornimenti pianificati per ${scopeLabel} con ripartenza dell’autonomia a ogni inizio giornata${result.mergedCount > 0 ? ` · ${result.mergedCount} pause unite ai rifornimenti` : ''}.`
+            : `Nessun rifornimento intermedio necessario o compatibile per ${scopeLabel}.`,
         )
       } catch (
         error
@@ -776,7 +359,7 @@ export function FuelPanel({
         </strong>
 
         <p>
-          Autonomia {settings.vehicleRangeKm} km · margine sicurezza {settings.fuelSafetyMarginKm} km · MotoRoute cerca il distributore nella finestra {safeFuelKm}–{settings.vehicleRangeKm} km, privilegiando una pausa già prevista quando è compatibile.
+          Autonomia {settings.vehicleRangeKm} km · margine sicurezza {settings.fuelSafetyMarginKm} km · ogni giornata parte con il pieno e il conteggio dell’autonomia riparte da zero.
         </p>
 
         <div className="service-panel-grid">
@@ -792,15 +375,18 @@ export function FuelPanel({
                 step={5}
                 fallback={20}
                 value={
-                  flexibilityKm
+                  planningSettings
+                    .fuelFlexibilityKm
                 }
                 onCommit={(
                   value,
                 ) =>
-                  setFlexibilityKm(
-                    value ??
-                    20,
-                  )
+                  onPlanningSettingsChange({
+                    ...planningSettings,
+                    fuelFlexibilityKm:
+                      value ??
+                      20,
+                  })
                 }
               />
 
@@ -822,15 +408,18 @@ export function FuelPanel({
                 step={0.5}
                 fallback={2}
                 value={
-                  maxDeviationKm
+                  planningSettings
+                    .fuelMaxDeviationKm
                 }
                 onCommit={(
                   value,
                 ) =>
-                  setMaxDeviationKm(
-                    value ??
-                    2,
-                  )
+                  onPlanningSettingsChange({
+                    ...planningSettings,
+                    fuelMaxDeviationKm:
+                      value ??
+                      2,
+                  })
                 }
               />
 
