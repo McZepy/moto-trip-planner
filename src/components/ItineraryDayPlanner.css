@@ -241,10 +241,6 @@
   line-height: 1.2;
 }
 
-.itinerary-day-strip-main > span::first-letter {
-  color: #f59e0b;
-}
-
 .itinerary-day-strip-menu {
   width: 32px;
   height: 32px;
@@ -421,9 +417,10 @@
 }
 
 .itinerary-day-strip-badge {
-  background: #f3f4f6;
-  color: #111827;
-  border: 1px solid #e5e7eb;
+  background: #7c3aed;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(17, 24, 39, 0.18);
 }
 
 .itinerary-day-strip-main strong {
@@ -431,7 +428,7 @@
 }
 
 .itinerary-day-strip-main > span {
-  color: #6b7280;
+  color: #4b5563;
 }
 
 .itinerary-day-strip-menu {
