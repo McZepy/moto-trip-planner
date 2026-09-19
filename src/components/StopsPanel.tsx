@@ -202,6 +202,83 @@ export function StopsPanel({
 
   return (
     <section className="stops-panel">
+      <button
+        type="button"
+        className="stops-planner-toggle"
+        onClick={() =>
+          setPlannerOpen(
+            (
+              current,
+            ) =>
+              !current,
+          )
+        }
+      >
+        <span>
+          <strong>
+            Pianifica / modifica soste
+          </strong>
+
+          <small>
+            carburante · pause · pranzo
+          </small>
+        </span>
+
+        <span>
+          {plannerOpen
+            ? '⌃'
+            : '⋮'}
+        </span>
+      </button>
+
+      {plannerOpen && (
+        <div className="stops-planner-panel">
+          <FuelPanel
+            routePlan={
+              routePlan
+            }
+            selectedDayId={
+              selectedDayId
+            }
+            days={
+              days
+            }
+            stops={
+              stops
+            }
+            settings={
+              settings
+            }
+            onChange={
+              onChange
+            }
+            onStatus={
+              onStatus
+            }
+          />
+
+          <BreaksPanel
+            routePlan={
+              routePlan
+            }
+            selectedDayId={
+              selectedDayId
+            }
+            days={
+              days
+            }
+            stops={
+              stops
+            }
+            onChange={
+              onChange
+            }
+            onStatus={
+              onStatus
+            }
+          />
+        </div>
+      )}
 
       <div className="stops-recap-heading">
         <div>
@@ -394,83 +471,7 @@ export function StopsPanel({
         </div>
       )}
 
-      <button
-        type="button"
-        className="stops-planner-toggle"
-        onClick={() =>
-          setPlannerOpen(
-            (
-              current,
-            ) =>
-              !current,
-          )
-        }
-      >
-        <span>
-          <strong>
-            Pianifica / modifica soste
-          </strong>
 
-          <small>
-            carburante · pause · pranzo
-          </small>
-        </span>
-
-        <span>
-          {plannerOpen
-            ? '⌃'
-            : '⋮'}
-        </span>
-      </button>
-
-      {plannerOpen && (
-        <div className="stops-planner-panel">
-          <FuelPanel
-            routePlan={
-              routePlan
-            }
-            selectedDayId={
-              selectedDayId
-            }
-            days={
-              days
-            }
-            stops={
-              stops
-            }
-            settings={
-              settings
-            }
-            onChange={
-              onChange
-            }
-            onStatus={
-              onStatus
-            }
-          />
-
-          <BreaksPanel
-            routePlan={
-              routePlan
-            }
-            selectedDayId={
-              selectedDayId
-            }
-            days={
-              days
-            }
-            stops={
-              stops
-            }
-            onChange={
-              onChange
-            }
-            onStatus={
-              onStatus
-            }
-          />
-        </div>
-      )}
     </section>
   )
 }
