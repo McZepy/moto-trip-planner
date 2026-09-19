@@ -3395,6 +3395,51 @@ function App() {
       const sourceDays =
         daysRef.current
 
+      const sourceIndex =
+        sourceDays.findIndex(
+          (
+            item,
+          ) =>
+            item.id ===
+            day.id,
+        )
+
+      if (
+        sourceIndex <
+        0
+      ) {
+        throw new Error(
+          'Giornata da aggiornare non trovata.',
+        )
+      }
+
+      /*
+       * L'hotel è un punto geografico preciso.
+       * Prima risolviamo i punti correnti delle giornate interessate,
+       * poi creiamo routingOverride espliciti così rotta e marker
+       * usano esattamente le stesse coordinate.
+       */
+      const currentDraft =
+        await resolveTripDayEditorDraft(
+          sourceDays[
+            sourceIndex
+          ],
+        )
+
+      const sourceNextDay =
+        sourceDays[
+          sourceIndex +
+            1
+        ]
+
+      const nextDraft =
+        sourceNextDay
+          ? await resolveTripDayEditorDraft(
+              sourceNextDay,
+              place,
+            )
+          : null
+
       const nextDays =
         buildDaysWithBoundaryPlace(
           sourceDays,
@@ -3452,6 +3497,51 @@ function App() {
         hotelDisplay:
           place.label ||
           place.name,
+      }
+
+      editedDay.routingOverride = {
+        startPlace: {
+          ...currentDraft
+            .startPlace,
+        },
+
+        destinationPlace: {
+          ...place,
+        },
+
+        waypoints:
+          cloneEditorWaypoints(
+            currentDraft
+              .waypoints,
+          ),
+      }
+
+      const editedNextDay =
+        nextDays[
+          editedIndex +
+            1
+        ]
+
+      if (
+        editedNextDay &&
+        nextDraft
+      ) {
+        editedNextDay.routingOverride = {
+          startPlace: {
+            ...place,
+          },
+
+          destinationPlace: {
+            ...nextDraft
+              .destinationPlace,
+          },
+
+          waypoints:
+            cloneEditorWaypoints(
+              nextDraft
+                .waypoints,
+            ),
+        }
       }
 
       /*
