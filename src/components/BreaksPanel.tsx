@@ -3,29 +3,20 @@ import {
   useState,
 } from 'react'
 
-import {
-  searchNearbyRestFacilities,
-} from '../providers/autocompleteProvider'
-
 import type {
   TripRoutePlan,
 } from '../providers/tripRoutePlanner'
 
 import {
-  mergeFuelAndBreakStops,
-  plannedStopPoints,
-} from '../itinerary/serviceStopPlanner'
-
-import {
-  pointAtRoadDistance,
-  roadKmAtPoint,
-} from '../itinerary/routeDaySplitter'
+  planBreakStopsForTrip,
+} from '../itinerary/tripServiceStopPlanner'
 
 import type {
   TripDay,
 } from '../types/tripDay'
 
 import type {
+  ServiceStopPlanningSettings,
   TripServiceStop,
 } from '../types/serviceStop'
 
@@ -42,6 +33,16 @@ type BreaksPanelProps = {
     TripDay[]
   stops:
     TripServiceStop[]
+
+  planningSettings:
+    ServiceStopPlanningSettings
+
+  onPlanningSettingsChange:
+    (
+      settings:
+        ServiceStopPlanningSettings,
+    ) => void
+
   onChange:
     (
       stops:
@@ -166,41 +167,11 @@ export function BreaksPanel({
   selectedDayId,
   days,
   stops,
+  planningSettings,
+  onPlanningSettingsChange,
   onChange,
   onStatus,
 }: BreaksPanelProps) {
-  const [
-    intervalKm,
-    setIntervalKm,
-  ] =
-    useState(
-      150,
-    )
-
-  const [
-    durationMinutes,
-    setDurationMinutes,
-  ] =
-    useState(
-      15,
-    )
-
-  const [
-    flexibilityKm,
-    setFlexibilityKm,
-  ] =
-    useState(
-      20,
-    )
-
-  const [
-    maxDeviationKm,
-    setMaxDeviationKm,
-  ] =
-    useState(
-      2,
-    )
-
   const [
     busy,
     setBusy,
@@ -280,367 +251,48 @@ export function BreaksPanel({
       )
 
       try {
-        const targets =
-          plannedStopPoints(
+        const result =
+          await planBreakStopsForTrip({
             routePlan,
-            intervalKm,
-            45,
-          )
-
-        /*
-         * Rigeneriamo solo le pause dello scope corrente.
-         * I rifornimenti restano e possono diventare soste combinate.
-         */
-        const baseStops =
-          stops
-            .filter(
-              (
-                stop,
-              ) =>
-                !(
-                  stop.kind ===
-                    'break' &&
-                  scopeMatches(
-                    stop,
-                    selectedDayId,
-                  )
-                ),
-            )
-            .map(
-              (
-                stop,
-              ) =>
-                stop.kind ===
-                  'fuel' &&
-                scopeMatches(
-                  stop,
-                  selectedDayId,
-                )
-                  ? {
-                      ...stop,
-                      relaxMinutes:
-                        undefined,
-                    }
-                  : {
-                      ...stop,
-                    },
-            )
-
-        const fuelStops =
-          baseStops.filter(
-            (
-              stop,
-            ) =>
-              stop.kind ===
-                'fuel' &&
-              scopeMatches(
-                stop,
-                selectedDayId,
-              ),
-          )
-
-        const generated:
-          TripServiceStop[] = []
-
-        const nextWarnings:
-          string[] = []
-
-        let mergedCount =
-          0
-
-        for (
-          let index =
-            0;
-          index <
-            targets.length;
-          index +=
-            1
-        ) {
-          const target =
-            targets[
-              index
-            ]
-
-          const nearbyFuel =
-            fuelStops
-              .filter(
-                (
-                  stop,
-                ) =>
-                  Math.abs(
-                    stop.routeKm -
-                    target.routeKm,
-                  ) <=
-                  flexibilityKm,
-              )
-              .sort(
-                (
-                  first,
-                  second,
-                ) =>
-                  Math.abs(
-                    first.routeKm -
-                    target.routeKm,
-                  ) -
-                  Math.abs(
-                    second.routeKm -
-                    target.routeKm,
-                  ),
-              )[0]
-
-          if (nearbyFuel) {
-            nearbyFuel.relaxMinutes =
-              durationMinutes
-
-            mergedCount +=
-              1
-
-            continue
-          }
-
-          const searchRadiusMeters =
-            (
-              flexibilityKm +
-              maxDeviationKm +
-              2
-            ) *
-            1000
-
-          const candidates =
-            await searchNearbyRestFacilities(
-              target.point,
-              searchRadiusMeters,
-            )
-
-          const ranked =
-            candidates
-              .map(
-                (
-                  candidate,
-                ) => {
-                  const routeKm =
-                    roadKmAtPoint(
-                      routePlan,
-                      candidate,
-                    )
-
-                  if (
-                    routeKm ===
-                    null
-                  ) {
-                    return null
-                  }
-
-                  const projected =
-                    pointAtRoadDistance(
-                      routePlan,
-                      routeKm *
-                        1000,
-                    )
-
-                  if (!projected) {
-                    return null
-                  }
-
-                  const deviationKm =
-                    distanceMeters(
-                      candidate,
-                      projected.point,
-                    ) /
-                    1000
-
-                  const alongDifference =
-                    Math.abs(
-                      routeKm -
-                      target.routeKm,
-                    )
-
-                  if (
-                    alongDifference >
-                      flexibilityKm ||
-                    deviationKm >
-                      maxDeviationKm
-                  ) {
-                    return null
-                  }
-
-                  const preferredType =
-                    [
-                      'services',
-                      'cafe',
-                      'restaurant',
-                      'fast_food',
-                    ].includes(
-                      candidate.type ??
-                        '',
-                    )
-
-                  const score =
-                    deviationKm *
-                      12 +
-                    alongDifference +
-                    (
-                      preferredType
-                        ? 0
-                        : 4
-                    )
-
-                  return {
-                    candidate,
-                    routeKm,
-                    deviationKm,
-                    score,
-                  }
-                },
-              )
-              .filter(
-                (
-                  value,
-                ): value is {
-                  candidate:
-                    typeof candidates[number]
-                  routeKm:
-                    number
-                  deviationKm:
-                    number
-                  score:
-                    number
-                } =>
-                  value !==
-                  null,
-              )
-              .sort(
-                (
-                  first,
-                  second,
-                ) =>
-                  first.score -
-                  second.score,
-              )
-
-          const best =
-            ranked[0]
-
-          if (!best) {
-            nextWarnings.push(
-              `Km ${target.routeKm.toFixed(0)}: nessuna area servizi/caffè trovata entro ±${flexibilityKm} km e ${maxDeviationKm} km dalla traccia.`,
-            )
-
-            continue
-          }
-
-          generated.push({
-            id:
-              createId(),
-
-            kind:
-              'break',
-
-            dayId:
-              selectedDayId ??
-                undefined,
-
-            dayNumber:
-              scopeDay
-                ?.dayNumber,
-
-            routeKm:
-              best.routeKm,
-
-            deviationKm:
-              best.deviationKm,
-
-            name:
-              best
-                .candidate
-                .name,
-
-            label:
-              best
-                .candidate
-                .label,
-
-            lat:
-              best
-                .candidate
-                .lat,
-
-            lng:
-              best
-                .candidate
-                .lng,
-
-            durationMinutes,
-
-            source:
-              'locationiq',
+            selectedDayId,
+            days,
+            stops,
+            planningSettings,
           })
-        }
-
-        const reconciled =
-          mergeFuelAndBreakStops(
-            [
-              ...baseStops,
-              ...generated,
-            ],
-            selectedDayId ??
-              null,
-            flexibilityKm,
-            Math.min(
-              12,
-              flexibilityKm,
-            ),
-          )
 
         onChange(
-          reconciled.stops,
+          result.stops,
         )
 
         setWarnings(
-          nextWarnings,
+          result.warnings,
         )
-
-        const totalMerged =
-          mergedCount +
-          reconciled.mergedCount
 
         const parts:
           string[] = []
 
         if (
-          totalMerged >
+          result.mergedCount >
           0
         ) {
           parts.push(
-            `${totalMerged} ${totalMerged === 1 ? 'pausa unita' : 'pause unite'} ai rifornimenti`,
+            `${result.mergedCount} ${result.mergedCount === 1 ? 'pausa unita' : 'pause unite'} ai rifornimenti`,
           )
         }
 
         if (
-          generated.length >
+          result.generatedCount >
           0
         ) {
-          const remainingGenerated =
-            Math.max(
-              0,
-              generated.length -
-                reconciled.mergedCount,
-            )
-
-          if (
-            remainingGenerated >
-            0
-          ) {
-            parts.push(
-              `${remainingGenerated} ${remainingGenerated === 1 ? 'area pausa trovata' : 'aree pausa trovate'}`,
-            )
-          }
+          parts.push(
+            `${result.generatedCount} ${result.generatedCount === 1 ? 'area pausa trovata' : 'aree pausa trovate'}`,
+          )
         }
 
         onStatus?.(
           parts.length >
-            0
-            ? `${scopeLabel}: ${parts.join(' · ')}.`
+          0
+            ? `${scopeLabel}: ${parts.join(' · ')}. Le pause ripartono dall’inizio di ogni giornata.`
             : `Nessuna area pausa compatibile trovata per ${scopeLabel}.`,
         )
       } catch (
@@ -711,7 +363,7 @@ export function BreaksPanel({
         </strong>
 
         <p>
-          MotoRoute cerca aree servizi, caffè o ristoro vicino alla traccia. Se una pausa cade entro la flessibilità di un rifornimento già pianificato, usa quel rifornimento come unica sosta.
+          MotoRoute cerca aree servizi, caffè o ristoro vicino alla traccia. Il conteggio delle pause riparte da ogni nuova giornata; se una pausa è vicina a un rifornimento, usa una sola sosta.
         </p>
 
         <div className="service-panel-grid four">
@@ -727,15 +379,18 @@ export function BreaksPanel({
                 step={10}
                 fallback={150}
                 value={
-                  intervalKm
+                  planningSettings
+                    .breakIntervalKm
                 }
                 onCommit={(
                   value,
                 ) =>
-                  setIntervalKm(
-                    value ??
-                    150,
-                  )
+                  onPlanningSettingsChange({
+                    ...planningSettings,
+                    breakIntervalKm:
+                      value ??
+                      150,
+                  })
                 }
               />
 
@@ -757,15 +412,18 @@ export function BreaksPanel({
                 step={5}
                 fallback={15}
                 value={
-                  durationMinutes
+                  planningSettings
+                    .breakDurationMinutes
                 }
                 onCommit={(
                   value,
                 ) =>
-                  setDurationMinutes(
-                    value ??
-                    15,
-                  )
+                  onPlanningSettingsChange({
+                    ...planningSettings,
+                    breakDurationMinutes:
+                      value ??
+                      15,
+                  })
                 }
               />
 
@@ -787,15 +445,18 @@ export function BreaksPanel({
                 step={5}
                 fallback={20}
                 value={
-                  flexibilityKm
+                  planningSettings
+                    .breakFlexibilityKm
                 }
                 onCommit={(
                   value,
                 ) =>
-                  setFlexibilityKm(
-                    value ??
-                    20,
-                  )
+                  onPlanningSettingsChange({
+                    ...planningSettings,
+                    breakFlexibilityKm:
+                      value ??
+                      20,
+                  })
                 }
               />
 
@@ -817,15 +478,18 @@ export function BreaksPanel({
                 step={0.5}
                 fallback={2}
                 value={
-                  maxDeviationKm
+                  planningSettings
+                    .breakMaxDeviationKm
                 }
                 onCommit={(
                   value,
                 ) =>
-                  setMaxDeviationKm(
-                    value ??
-                    2,
-                  )
+                  onPlanningSettingsChange({
+                    ...planningSettings,
+                    breakMaxDeviationKm:
+                      value ??
+                      2,
+                  })
                 }
               />
 
