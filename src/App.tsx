@@ -3278,36 +3278,6 @@ function App() {
       setSelectedDayId(
         day.id,
       )
-
-      setDayRouteStats(
-        (
-          current,
-        ) => {
-          const updated = {
-            ...current,
-          }
-
-          delete updated[
-            day.id
-          ]
-
-          const nextDay =
-            nextDays[
-              editedIndex +
-                1
-            ]
-
-          if (
-            nextDay
-          ) {
-            delete updated[
-              nextDay.id
-            ]
-          }
-
-          return updated
-        },
-      )
     }
 
   const autocompleteStart =
