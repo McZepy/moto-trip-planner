@@ -1032,7 +1032,7 @@
 }
 
 .days-summary-line span {
-  color: #6b7280;
+  color: #4b5563;
 }
 
 .days-strip-wrap {
@@ -1064,7 +1064,7 @@
 }
 
 .days-strip-main small {
-  color: #6b7280;
+  color: #4b5563;
 }
 
 .days-strip-menu {
@@ -1078,7 +1078,7 @@
 
 .days-strip-detail > span,
 .days-strip-price > span {
-  color: #6b7280;
+  color: #4b5563;
 }
 
 .days-strip-detail strong {
@@ -1086,7 +1086,7 @@
 }
 
 .days-strip-detail small {
-  color: #6b7280;
+  color: #4b5563;
 }
 
 .days-strip-hotel-search select,
@@ -1114,4 +1114,13 @@
   border-color: #d1d5db;
   background: #f3f4f6;
   color: #374151;
+}
+
+
+.days-strip-address {
+  overflow: hidden;
+  color: #374151 !important;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
