@@ -337,3 +337,17 @@ input[type='checkbox'] {
   color: #ffffff;
   padding: 0 10px;
 }
+
+
+/* =========================================
+   DATE PICKER VISIBILITY
+   ========================================= */
+.trip-settings-field input[type='date'] {
+  color-scheme: dark;
+}
+
+.trip-settings-field input[type='date']::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  filter: invert(1) brightness(1.35);
+  cursor: pointer;
+}
