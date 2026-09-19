@@ -317,7 +317,7 @@ export function DaysHotelPanel({
                   }
                 >
                   <span className="days-strip-badge">
-                    N{day.dayNumber}
+                    G{day.dayNumber}
                   </span>
 
                   <span className="days-strip-main">
