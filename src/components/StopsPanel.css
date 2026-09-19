@@ -358,3 +358,27 @@
 .stops-planner-panel {
   padding-top: 0;
 }
+
+
+/* =========================================
+   READABILITY · SOSTE
+   ========================================= */
+.stops-recap-heading span,
+.stops-empty-line,
+.stops-strip-main small,
+.stops-planner-toggle small,
+.stops-strip-detail > span,
+.stops-strip-duration > span,
+.stops-strip-detail small,
+.stops-strip-duration b {
+  font-size: 10px;
+}
+
+.stops-strip-main strong,
+.stops-strip-detail strong {
+  font-size: 11px;
+}
+
+.stops-strip-badge {
+  font-size: 9px;
+}
