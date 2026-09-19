@@ -89,6 +89,8 @@ import type { TripDay } from './types/tripDay'
 import {
   cloneServiceStopPlanningSettings,
   defaultServiceStopPlanningSettings,
+  orderedServiceStops,
+  serviceStopBadgeLabel,
   type ServiceStopPlanningSettings,
   type TripServiceStop,
 } from './types/serviceStop'
@@ -1752,34 +1754,52 @@ function App() {
 
       removeServiceStopMarkers()
 
-      const counters = {
-        fuel:
-          0,
-        break:
-          0,
-      }
+      const orderedAllStops =
+        orderedServiceStops(
+          serviceStops,
+        )
 
-      items.forEach(
+      const badgeByStopId =
+        new globalThis.Map<
+          string,
+          string
+        >(
+          orderedAllStops.map(
+            (
+              stop,
+              index,
+            ) => [
+              stop.id,
+              serviceStopBadgeLabel(
+                orderedAllStops,
+                index,
+              ),
+            ],
+          ),
+        )
+
+      const orderedItems =
+        orderedServiceStops(
+          items,
+        )
+
+      orderedItems.forEach(
         (
           stop,
         ) => {
-          counters[
-            stop.kind
-          ] +=
-            1
-
-          const prefix =
-            stop.kind ===
-              'fuel'
-              ? 'F'
-              : 'P'
-
           const element =
             createMapMarkerElement(
-              prefix +
-                counters[
-                  stop.kind
-                ],
+              badgeByStopId.get(
+                stop.id,
+              ) ??
+                (
+                  stop.kind ===
+                    'fuel'
+                    ? stop.relaxMinutes
+                      ? 'F+P'
+                      : 'F'
+                    : 'P'
+                ),
               stop.kind,
             )
 
