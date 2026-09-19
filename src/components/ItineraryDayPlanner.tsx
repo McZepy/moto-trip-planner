@@ -463,7 +463,6 @@ export function ItineraryDayPlanner({
   days,
   routeStats,
   onChange,
-  onOpenDay,
   onSetOvernightDestination,
   onStatus,
 }: ItineraryDayPlannerProps) {
@@ -1864,17 +1863,6 @@ export function ItineraryDayPlanner({
                       )}
 
                       <div className="itinerary-day-strip-actions">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onOpenDay(
-                              day,
-                            )
-                          }
-                        >
-                          Mostra / modifica percorso
-                        </button>
-
                         {day.overnight && (
                           <button
                             type="button"
