@@ -8,7 +8,9 @@ import {
 
 import {
   autocompleteLocalities,
+  autocompletePlaces,
   reverseLookupLocalityPoint,
+  type SmartGeocodingResult,
 } from '../providers/autocompleteProvider'
 
 import {
@@ -88,6 +90,16 @@ type ItineraryDayPlannerProps = {
       day:
         TripDay,
     ) => void
+
+  onSetOvernightDestination?:
+    (
+      day:
+        TripDay,
+      place:
+        GeocodingResult,
+    ) =>
+      | void
+      | Promise<void>
 
   onStatus?:
     (
@@ -452,6 +464,7 @@ export function ItineraryDayPlanner({
   routeStats,
   onChange,
   onOpenDay,
+  onSetOvernightDestination,
   onStatus,
 }: ItineraryDayPlannerProps) {
   const roadKm =
@@ -497,6 +510,39 @@ export function ItineraryDayPlanner({
   ] =
     useState<
       string | null
+    >(null)
+
+  const [
+    hotelEditDayId,
+    setHotelEditDayId,
+  ] =
+    useState<
+      string | null
+    >(null)
+
+  const [
+    hotelQuery,
+    setHotelQuery,
+  ] =
+    useState('')
+
+  const [
+    hotelResults,
+    setHotelResults,
+  ] =
+    useState<
+      SmartGeocodingResult[]
+    >([])
+
+  const [
+    hotelLoading,
+    setHotelLoading,
+  ] =
+    useState(false)
+
+  const hotelAutocompleteControllerRef =
+    useRef<
+      AbortController | null
     >(null)
 
   const autoKeyRef =
@@ -1309,6 +1355,232 @@ export function ItineraryDayPlanner({
       )
     }
 
+  const closeHotelEditor =
+    () => {
+      hotelAutocompleteControllerRef
+        .current
+        ?.abort()
+
+      hotelAutocompleteControllerRef.current =
+        null
+
+      setHotelEditDayId(
+        null,
+      )
+
+      setHotelQuery('')
+      setHotelResults([])
+      setHotelLoading(false)
+    }
+
+  const openHotelEditor =
+    (
+      day:
+        TripDay,
+    ) => {
+      hotelAutocompleteControllerRef
+        .current
+        ?.abort()
+
+      hotelAutocompleteControllerRef.current =
+        null
+
+      setHotelEditDayId(
+        day.id,
+      )
+
+      setHotelQuery('')
+      setHotelResults([])
+      setHotelLoading(false)
+    }
+
+  const searchHotel =
+    async (
+      day:
+        TripDay,
+    ) => {
+      const cleanQuery =
+        hotelQuery.trim()
+
+      if (
+        cleanQuery.length <
+        3
+      ) {
+        onStatus?.(
+          'Scrivi almeno 3 caratteri per cercare hotel, indirizzo o POI.',
+        )
+
+        return
+      }
+
+      hotelAutocompleteControllerRef
+        .current
+        ?.abort()
+
+      const controller =
+        new AbortController()
+
+      hotelAutocompleteControllerRef.current =
+        controller
+
+      const focus =
+        day.overnight
+          ? {
+              lat:
+                day.overnight.lat,
+              lng:
+                day.overnight.lng,
+            }
+          : day
+              .routingOverride
+              ?.destinationPlace
+            ? {
+                lat:
+                  day
+                    .routingOverride
+                    .destinationPlace
+                    .lat,
+                lng:
+                  day
+                    .routingOverride
+                    .destinationPlace
+                    .lng,
+              }
+            : undefined
+
+      try {
+        setHotelLoading(
+          true,
+        )
+
+        const results =
+          await autocompletePlaces(
+            cleanQuery,
+            controller.signal,
+            {
+              focus,
+            },
+          )
+
+        if (
+          controller
+            .signal
+            .aborted
+        ) {
+          return
+        }
+
+        const ranked =
+          rankAutocompleteSuggestions(
+            cleanQuery,
+            results.filter(
+              (
+                result,
+              ) =>
+                result.kind !==
+                'ferry-terminal',
+            ),
+            focus,
+          )
+
+        setHotelResults(
+          ranked.slice(
+            0,
+            8,
+          ),
+        )
+
+        if (
+          ranked.length ===
+          0
+        ) {
+          onStatus?.(
+            'Nessun hotel, indirizzo o POI trovato.',
+          )
+        }
+      } catch (error) {
+        if (
+          error instanceof
+            DOMException &&
+          error.name ===
+            'AbortError'
+        ) {
+          return
+        }
+
+        console.error(
+          error,
+        )
+
+        setHotelResults(
+          [],
+        )
+
+        onStatus?.(
+          error instanceof
+            Error
+            ? error.message
+            : 'Errore durante la ricerca dell’hotel.',
+        )
+      } finally {
+        if (
+          !controller
+            .signal
+            .aborted
+        ) {
+          setHotelLoading(
+            false,
+          )
+        }
+      }
+    }
+
+  const selectHotelResult =
+    async (
+      day:
+        TripDay,
+      result:
+        SmartGeocodingResult,
+    ) => {
+      if (
+        !onSetOvernightDestination
+      ) {
+        return
+      }
+
+      try {
+        setHotelLoading(
+          true,
+        )
+
+        await onSetOvernightDestination(
+          day,
+          result,
+        )
+
+        closeHotelEditor()
+
+        setOpenDayId(
+          day.id,
+        )
+      } catch (error) {
+        console.error(
+          error,
+        )
+
+        setHotelLoading(
+          false,
+        )
+
+        onStatus?.(
+          error instanceof
+            Error
+            ? error.message
+            : 'Errore durante l’impostazione dell’hotel.',
+        )
+      }
+    }
+
   if (
     !routePlan ||
     !startPlace ||
@@ -1599,16 +1871,134 @@ export function ItineraryDayPlanner({
                         {day.overnight && (
                           <button
                             type="button"
-                            onClick={() =>
-                              onOpenDay(
+                            onClick={() => {
+                              if (
+                                hotelEditDayId ===
+                                day.id
+                              ) {
+                                closeHotelEditor()
+
+                                return
+                              }
+
+                              openHotelEditor(
                                 day,
                               )
-                            }
+                            }}
                           >
-                            Inserisci hotel / destinazione precisa
+                            Inserisci hotel / arrivo preciso
                           </button>
                         )}
                       </div>
+
+                      {day.overnight &&
+                        hotelEditDayId ===
+                          day.id && (
+                        <div className="itinerary-day-hotel-editor">
+                          <label>
+                            Hotel, indirizzo o POI
+                          </label>
+
+                          <div className="itinerary-day-hotel-search">
+                            <input
+                              type="text"
+                              value={
+                                hotelQuery
+                              }
+                              autoFocus
+                              autoComplete="off"
+                              placeholder="Es. Hotel Felcaro, Cormons"
+                              onChange={(
+                                event,
+                              ) => {
+                                setHotelQuery(
+                                  event
+                                    .target
+                                    .value,
+                                )
+
+                                setHotelResults(
+                                  [],
+                                )
+                              }}
+                              onKeyDown={(
+                                event,
+                              ) => {
+                                if (
+                                  event.key !==
+                                  'Enter'
+                                ) {
+                                  return
+                                }
+
+                                event.preventDefault()
+
+                                void searchHotel(
+                                  day,
+                                )
+                              }}
+                            />
+
+                            <button
+                              type="button"
+                              disabled={
+                                hotelLoading
+                              }
+                              onClick={() =>
+                                void searchHotel(
+                                  day,
+                                )
+                              }
+                            >
+                              {hotelLoading
+                                ? 'Cerco...'
+                                : 'Cerca'}
+                            </button>
+
+                            <button
+                              type="button"
+                              className="itinerary-day-hotel-cancel"
+                              onClick={
+                                closeHotelEditor
+                              }
+                            >
+                              Annulla
+                            </button>
+                          </div>
+
+                          {hotelResults.length >
+                            0 && (
+                            <div className="itinerary-day-hotel-results">
+                              {hotelResults.map(
+                                (
+                                  result,
+                                ) => (
+                                  <button
+                                    key={
+                                      result.id
+                                    }
+                                    type="button"
+                                    onClick={() =>
+                                      void selectHotelResult(
+                                        day,
+                                        result,
+                                      )
+                                    }
+                                  >
+                                    <strong>
+                                      {result.name}
+                                    </strong>
+
+                                    <span>
+                                      {result.label}
+                                    </span>
+                                  </button>
+                                ),
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
