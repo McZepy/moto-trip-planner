@@ -2557,10 +2557,6 @@ function App() {
       serviceStopReplanRequestRef.current =
         requestId
 
-      setServiceStops(
-        [],
-      )
-
       setStatus(
         'Percorso modificato: ricalcolo automaticamente le soste...',
       )
