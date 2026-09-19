@@ -275,3 +275,20 @@
 .stops-planner-panel .service-cost-estimate small {
   color: #64748b;
 }
+
+
+/* =========================================
+   READABILITY · PIANIFICAZIONE SOSTE
+   ========================================= */
+.stops-planner-panel .service-panel-card > p,
+.stops-planner-panel .service-panel-grid label > span,
+.stops-planner-panel .service-number-row small,
+.stops-planner-panel .service-warning-list span,
+.stops-planner-panel .service-cost-estimate,
+.stops-planner-panel .service-cost-estimate small {
+  font-size: 10px;
+}
+
+.stops-planner-panel .service-panel-actions button {
+  font-size: 11px;
+}
